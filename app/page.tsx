@@ -11,8 +11,8 @@ export default function Home() {
             Table Tennis Rating Converter
           </h1>
           <p className="mt-3 text-base text-gray-600">
-            Enter a player&apos;s foreign rating to see the estimated equivalent in the{' '}
-            <strong>Luxembourg</strong> rating system.
+            Enter a player&apos;s foreign rating to see the estimated equivalent{' '}
+            <strong>FLTT Performance-Wert (PFW)</strong> and division classification.
           </p>
         </div>
 

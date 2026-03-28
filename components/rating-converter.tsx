@@ -4,6 +4,22 @@ import { useState } from 'react';
 import { ratingSystems } from '@/data/ratings';
 import { convertToLuxembourg } from '@/lib/conversions';
 
+const classificationLabel: Record<string, string> = {
+  'A3+': 'A3 or higher',
+  'B1': 'B1',
+  'B2': 'B2',
+  'B3': 'B3',
+  'C1': 'C1 or below',
+};
+
+const classificationColour: Record<string, string> = {
+  'A3+': 'text-purple-700 bg-purple-50 border-purple-200',
+  'B1':  'text-blue-700 bg-blue-50 border-blue-200',
+  'B2':  'text-green-700 bg-green-50 border-green-200',
+  'B3':  'text-yellow-700 bg-yellow-50 border-yellow-200',
+  'C1':  'text-gray-600 bg-gray-50 border-gray-200',
+};
+
 export default function RatingConverter() {
   const [systemId, setSystemId] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -80,15 +96,22 @@ export default function RatingConverter() {
       {result && (
         <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-6 space-y-3">
           <p className="text-sm font-medium text-blue-600 uppercase tracking-wide">
-            Estimated Luxembourg Rating
+            Estimated FLTT Performance-Wert (PFW)
           </p>
-          <p className="text-5xl font-bold text-blue-900">{result.luxembourgRating}</p>
+          <p className="text-5xl font-bold text-blue-900">{result.flttPfw.toFixed(2)}</p>
 
-          <span
-            className={`inline-block rounded-full border px-3 py-1 text-xs font-medium ${confidenceColour[result.confidence]}`}
-          >
-            {confidenceLabel[result.confidence]}
-          </span>
+          <div className="flex flex-wrap gap-2">
+            <span
+              className={`inline-block rounded-full border px-3 py-1 text-xs font-medium ${classificationColour[result.classification]}`}
+            >
+              FLTT {classificationLabel[result.classification]}
+            </span>
+            <span
+              className={`inline-block rounded-full border px-3 py-1 text-xs font-medium ${confidenceColour[result.confidence]}`}
+            >
+              {confidenceLabel[result.confidence]}
+            </span>
+          </div>
 
           <p className="text-sm text-gray-600">{result.note}</p>
 
