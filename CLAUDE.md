@@ -35,6 +35,44 @@ This is a proof of concept for the Luxembourg table tennis federation. The prima
 - **GitHub repo:** https://github.com/JVanGo/TTR-PFW
 - **Hosting:** Vercel Hobby tier (free), auto-deploys on every push to `master`
 
+## What Has Been Built (as of 2026-03-27)
+
+### Versions installed
+- Node.js v24.14.1 (installed via `winget install OpenJS.NodeJS.LTS`)
+- npm 11.11.0
+- Next.js 16.2.1 with React 19.2.4
+- Tailwind CSS v4, TypeScript v5, ESLint v9
+- GitHub CLI v2.89.0 (installed via `winget install GitHub.cli`)
+- Vercel CLI v50.37.2 (used via `npx vercel`)
+
+### Files created
+- `data/ratings.ts` — defines each supported rating system (id, country, name, range, placeholder). Add new systems here.
+- `lib/conversions.ts` — all conversion logic. Uses linear interpolation between benchmark point pairs. Add or adjust benchmark points here to tune accuracy.
+- `components/rating-converter.tsx` — the interactive form (country picker + rating input + result display). Marked `'use client'` since it handles user input.
+- `app/page.tsx` — the main page shell (static, no interactivity — just layout and headings).
+- `app/layout.tsx` — root layout with metadata, font (Geist), and global styles.
+- `app/error.tsx` — shown if something unexpectedly breaks.
+- `app/not-found.tsx` — shown for any URL that doesn't exist.
+
+### Rating systems currently supported
+| Country | System name | Range | Confidence |
+|---|---|---|---|
+| Germany | TTR (DTTB) | 0–3000 | High |
+| Austria | Rating (ÖTTV) | 0–3000 | High |
+| Belgium | Index (VTTL/AFTT) | 0–10 | Medium |
+| France | Classement (FFTT) | 0–2800 | Medium |
+| Netherlands | Rating (NTTB) | 0–3000 | High |
+| International | ITTF World Ranking Points | 0–15000 | Low |
+
+### Conversion method
+All conversions use **linear interpolation** between a set of hand-crafted benchmark points stored in `lib/conversions.ts`. These are estimates only — they have not been validated against real player data. The federation should review and adjust the benchmark points before relying on the results for official placement.
+
+### What still needs doing
+- Validate and refine conversion figures with real data from the federation
+- Confirm which countries/systems are actually relevant (remove unused ones, add missing ones)
+- Consider adding a "reverse" converter (Luxembourg → foreign rating)
+- Consider adding a simple table showing the full rating scale side-by-side
+
 ## How to Work with Jeff
 
 Jeff is not a developer. Keep the following in mind at all times:
