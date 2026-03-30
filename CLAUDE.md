@@ -4,7 +4,7 @@
 
 A web app that converts table tennis ratings between different countries' rating systems. The primary use case is helping the Luxembourg table tennis federation estimate equivalent Luxembourg ratings for foreign players, so they can be placed at the correct level for tournaments and leagues.
 
-For example: a player with a German TTR of 1500 enters their rating, and the app shows the estimated equivalent in the Luxembourg rating system.
+For example: a player enters their foreign rating, and the app shows the estimated equivalent FLTT Performance-Wert (PFW) and division classification.
 
 ## Tech Stack
 
@@ -12,6 +12,16 @@ For example: a player with a German TTR of 1500 enters their rating, and the app
 - **Styling:** Tailwind CSS
 - **Hosting:** Vercel (free Hobby tier)
 - **Database:** None — conversion data is stored in JSON files or hardcoded formulae
+
+## German TTR System
+
+The German table tennis federation (DTTB) uses the TTR (Tischtennis-Rating) system. A full explanation is in [TTR-Erklärung](../Documents/TTR-Erklärung.docx).
+
+The TTR→PFW conversion in `lib/conversions.ts` is calibrated from real data. [Lux-Spiller-TTR.xlsx](../Documents/Lux-Spiller-TTR.xlsx) lists the German TTR ratings of Luxembourg players. Matching these against their PFW values in the [Verbandsrangliste 2026-01-01](../Downloads/verbandsrangliste-2026-01-01.pdf) gave 41 matched pairs and a linear regression of **PFW ≈ 0.596 × TTR − 588 (R² = 0.78)**. The benchmark points in `lib/conversions.ts` are derived from this regression. Values below TTR 1200 are extrapolated (no data in that range). Austrian and Dutch ratings use the same scale and apply the same calibration.
+
+## FLTT Rating System
+
+The Luxembourg table tennis federation (FLTT) uses its own rating system. The full specification is in [IR-22 Performance System v4.2](../Downloads/ir-22-performance-system-v42.pdf). This system produces the player rankings published in [Verbandsrangliste 2026-01-01](../Downloads/verbandsrangliste-2026-01-01.pdf).
 
 ## Rating Conversions
 
@@ -22,7 +32,7 @@ Rating mappings between countries are stored as JSON data files or conversion fo
 - Select a source country/rating system
 - Enter a rating value
 - See the estimated equivalent Luxembourg rating
-- Support for multiple countries' rating systems (e.g. Germany TTR, ITTF, etc.)
+- Support for multiple countries' rating systems (e.g. Germany, France, ITTF, etc.)
 
 ## Audience
 
@@ -57,7 +67,7 @@ This is a proof of concept for the Luxembourg table tennis federation. The prima
 ### Rating systems currently supported
 | Country | System name | Range | Confidence |
 |---|---|---|---|
-| Germany | TTR (DTTB) | 0–3000 | High |
+| Germany | TTR (DTTB) — see [TTR-Erklärung](../Documents/TTR-Erklärung.docx) | 0–3000 | High |
 | Austria | Rating (ÖTTV) | 0–3000 | High |
 | Belgium | Index (VTTL/AFTT) | 0–10 | Medium |
 | France | Classement (FFTT) | 0–2800 | Medium |
