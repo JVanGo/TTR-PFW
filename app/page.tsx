@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import RatingConverter from '@/components/rating-converter';
 
 export default function Home() {
@@ -21,8 +22,18 @@ export default function Home() {
           <RatingConverter />
         </div>
 
+        {/* Ranking link */}
+        <div className="mt-6 text-center">
+          <Link
+            href="/ranking"
+            className="text-sm text-blue-600 hover:underline"
+          >
+            View FLTT ranking with estimated TTR →
+          </Link>
+        </div>
+
         {/* Footer note */}
-        <p className="mt-6 text-center text-xs text-gray-400">
+        <p className="mt-3 text-center text-xs text-gray-400">
           A proof of concept for the Luxembourg Table Tennis Federation.
           Conversion figures are estimates only.
         </p>
