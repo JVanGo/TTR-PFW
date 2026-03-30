@@ -31,8 +31,9 @@ Rating mappings between countries are stored as JSON data files or conversion fo
 
 - Select a source country/rating system
 - Enter a rating value
-- See the estimated equivalent Luxembourg rating
+- See the estimated equivalent FLTT Performance-Wert (PFW) and division classification (A3, B1, B2, B3, C1…)
 - Support for multiple countries' rating systems (e.g. Germany, France, ITTF, etc.)
+- `/ranking` page: full FLTT Verbandsrangliste (1,419 players) with each player's PFW converted back to an estimated TTR, filterable by classification
 
 ## Audience
 
@@ -45,7 +46,7 @@ This is a proof of concept for the Luxembourg table tennis federation. The prima
 - **GitHub repo:** https://github.com/JVanGo/TTR-PFW
 - **Hosting:** Vercel Hobby tier (free), auto-deploys on every push to `master`
 
-## What Has Been Built (as of 2026-03-27)
+## What Has Been Built (as of 2026-03-30)
 
 ### Versions installed
 - Node.js v24.14.1 (installed via `winget install OpenJS.NodeJS.LTS`)
@@ -57,9 +58,11 @@ This is a proof of concept for the Luxembourg table tennis federation. The prima
 
 ### Files created
 - `data/ratings.ts` — defines each supported rating system (id, country, name, range, placeholder). Add new systems here.
-- `lib/conversions.ts` — all conversion logic. Uses linear interpolation between benchmark point pairs. Add or adjust benchmark points here to tune accuracy.
+- `data/ranking.ts` — auto-generated from Verbandsrangliste 2026-01-01. Contains 1,419 players with their PFW and estimated TTR. **Do not edit by hand** — regenerate from the PDF if the ranking is updated.
+- `lib/conversions.ts` — all conversion logic. Uses linear interpolation between benchmark point pairs. Germany/Austria/Netherlands benchmarks are derived from a real-data regression (see German TTR System section). Add or adjust benchmark points here to tune accuracy.
 - `components/rating-converter.tsx` — the interactive form (country picker + rating input + result display). Marked `'use client'` since it handles user input.
-- `app/page.tsx` — the main page shell (static, no interactivity — just layout and headings).
+- `app/page.tsx` — the home page: converter form + link to the ranking page.
+- `app/ranking/page.tsx` — the ranking page. Server Component; reads `data/ranking.ts` and renders the full table. Filterable by classification via `?kl=A1` URL param.
 - `app/layout.tsx` — root layout with metadata, font (Geist), and global styles.
 - `app/error.tsx` — shown if something unexpectedly breaks.
 - `app/not-found.tsx` — shown for any URL that doesn't exist.
@@ -67,21 +70,25 @@ This is a proof of concept for the Luxembourg table tennis federation. The prima
 ### Rating systems currently supported
 | Country | System name | Range | Confidence |
 |---|---|---|---|
-| Germany | TTR (DTTB) — see [TTR-Erklärung](../Documents/TTR-Erklärung.docx) | 0–3000 | High |
-| Austria | Rating (ÖTTV) | 0–3000 | High |
+| Germany | TTR (DTTB) — see [TTR-Erklärung](../Documents/TTR-Erklärung.docx) | 0–3000 | High (calibrated) |
+| Austria | Rating (ÖTTV) | 0–3000 | High (same scale as Germany) |
 | Belgium | Index (VTTL/AFTT) | 0–10 | Medium |
 | France | Classement (FFTT) | 0–2800 | Medium |
-| Netherlands | Rating (NTTB) | 0–3000 | High |
+| Netherlands | Rating (NTTB) | 0–3000 | High (same scale as Germany) |
 | International | ITTF World Ranking Points | 0–15000 | Low |
 
 ### Conversion method
-All conversions use **linear interpolation** between a set of hand-crafted benchmark points stored in `lib/conversions.ts`. These are estimates only — they have not been validated against real player data. The federation should review and adjust the benchmark points before relying on the results for official placement.
+All conversions use **linear interpolation** between benchmark points stored in `lib/conversions.ts`. The output is an estimated **FLTT PFW** (not a 0–3000 scale).
+
+Germany, Austria, and Netherlands benchmarks are derived from a **real-data regression** (PFW ≈ 0.596 × TTR − 588, R² = 0.78) fitted to 41 Luxembourg players whose TTR and PFW were both known. Belgium, France, and ITTF remain hand-estimated.
+
+The `/ranking` page uses the **inverse** of the same regression (TTR = (PFW + 587.68) / 0.596) to convert every player's PFW back to an estimated TTR.
 
 ### What still needs doing
-- Validate and refine conversion figures with real data from the federation
+- Validate and refine Belgium, France, and ITTF conversion figures with real data
 - Confirm which countries/systems are actually relevant (remove unused ones, add missing ones)
-- Consider adding a "reverse" converter (Luxembourg → foreign rating)
-- Consider adding a simple table showing the full rating scale side-by-side
+- Consider adding a "reverse" converter (Luxembourg PFW → foreign rating)
+- Regenerate `data/ranking.ts` whenever a new Verbandsrangliste is published
 
 ## How to Work with Jeff
 
