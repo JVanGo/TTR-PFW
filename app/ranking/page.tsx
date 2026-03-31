@@ -41,12 +41,12 @@ export default function RankingPage({
             FLTT Ranking — Estimated TTR
           </h1>
           <p className="mt-2 text-gray-600">
-            PFW values from the Verbandsrangliste 2026-01-01, converted to an estimated German TTR
-            using the inverse regression{' '}
+            PFW values from the Verbandsrangliste 2026-01-01, converted to an estimated German TTR.
+            A1–C3 use the regression{' '}
             <span className="font-mono text-sm bg-gray-100 px-1 rounded">
               TTR = (PFW + 587.68) / 0.596
             </span>{' '}
-            (R² = 0.78, calibrated from 41 Luxembourg players).
+            (R² = 0.78, 41 Luxembourg players). D1–D3 use the same slope anchored so the lowest-ranked player = TTR 700.
           </p>
           <p className="mt-1 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 inline-block">
             These are estimates only. Individual players may differ significantly depending on their
