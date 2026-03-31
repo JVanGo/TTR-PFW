@@ -8524,5 +8524,4853 @@ export const rankingData: RankingEntry[] = [
     "kl": "C3",
     "pfw": 111.79,
     "estimatedTtr": 1174
+  },
+  {
+    "name": "SIERRA FERRUZ Gabriel",
+    "kl": "D1",
+    "pfw": 179.72,
+    "estimatedTtr": 1288
+  },
+  {
+    "name": "TROMBINI Stan",
+    "kl": "D1",
+    "pfw": 179.71,
+    "estimatedTtr": 1288
+  },
+  {
+    "name": "BAGUENAULT DE VIEVILLE Gabriel",
+    "kl": "D1",
+    "pfw": 179.54,
+    "estimatedTtr": 1287
+  },
+  {
+    "name": "LAGUERRE Raphaël",
+    "kl": "D1",
+    "pfw": 168.59,
+    "estimatedTtr": 1269
+  },
+  {
+    "name": "REDMER Christian",
+    "kl": "D2",
+    "pfw": 163.19,
+    "estimatedTtr": 1260
+  },
+  {
+    "name": "PENG Miao",
+    "kl": "D1",
+    "pfw": 162.90,
+    "estimatedTtr": 1259
+  },
+  {
+    "name": "CLAUDE Louis",
+    "kl": "D2",
+    "pfw": 162.24,
+    "estimatedTtr": 1258
+  },
+  {
+    "name": "WILMES Jo",
+    "kl": "D1",
+    "pfw": 160.26,
+    "estimatedTtr": 1255
+  },
+  {
+    "name": "HEBERTZ Andy",
+    "kl": "D1",
+    "pfw": 159.66,
+    "estimatedTtr": 1254
+  },
+  {
+    "name": "MORTIER Cis",
+    "kl": "D1",
+    "pfw": 159.20,
+    "estimatedTtr": 1253
+  },
+  {
+    "name": "CASTANO RODRIGUEZ Emilio",
+    "kl": "D1",
+    "pfw": 158.92,
+    "estimatedTtr": 1253
+  },
+  {
+    "name": "PRECHT PETER Bailey",
+    "kl": "D1",
+    "pfw": 158.85,
+    "estimatedTtr": 1253
+  },
+  {
+    "name": "RECH Sven",
+    "kl": "D1",
+    "pfw": 158.17,
+    "estimatedTtr": 1251
+  },
+  {
+    "name": "LUX David",
+    "kl": "D1",
+    "pfw": 157.73,
+    "estimatedTtr": 1251
+  },
+  {
+    "name": "JAEGER Mike",
+    "kl": "D1",
+    "pfw": 157.08,
+    "estimatedTtr": 1250
+  },
+  {
+    "name": "Heckel Paul",
+    "kl": "D1",
+    "pfw": 156.55,
+    "estimatedTtr": 1249
+  },
+  {
+    "name": "BOHN Sean",
+    "kl": "D1",
+    "pfw": 156.41,
+    "estimatedTtr": 1248
+  },
+  {
+    "name": "DUHR Marie",
+    "kl": "D1",
+    "pfw": 155.67,
+    "estimatedTtr": 1247
+  },
+  {
+    "name": "WELSCH Justine",
+    "kl": "D1",
+    "pfw": 155.39,
+    "estimatedTtr": 1247
+  },
+  {
+    "name": "SORRAS Arsenios",
+    "kl": "D1",
+    "pfw": 155.37,
+    "estimatedTtr": 1247
+  },
+  {
+    "name": "DELGADO RODENES Francisco",
+    "kl": "D1",
+    "pfw": 155.22,
+    "estimatedTtr": 1246
+  },
+  {
+    "name": "CHEN Yadong",
+    "kl": "D2",
+    "pfw": 155.16,
+    "estimatedTtr": 1246
+  },
+  {
+    "name": "CHANDRA Anant",
+    "kl": "D1",
+    "pfw": 155.15,
+    "estimatedTtr": 1246
+  },
+  {
+    "name": "DUMONT Michel",
+    "kl": "D1",
+    "pfw": 154.68,
+    "estimatedTtr": 1246
+  },
+  {
+    "name": "MICHELS Anne",
+    "kl": "D1",
+    "pfw": 153.09,
+    "estimatedTtr": 1243
+  },
+  {
+    "name": "GRASKO Mykyta",
+    "kl": "D1",
+    "pfw": 153.04,
+    "estimatedTtr": 1243
+  },
+  {
+    "name": "TOISUL Mia",
+    "kl": "D1",
+    "pfw": 153.03,
+    "estimatedTtr": 1243
+  },
+  {
+    "name": "DUKA Andrea",
+    "kl": "D1",
+    "pfw": 152.81,
+    "estimatedTtr": 1242
+  },
+  {
+    "name": "MACHADO DA SILVA Bruno",
+    "kl": "D1",
+    "pfw": 152.79,
+    "estimatedTtr": 1242
+  },
+  {
+    "name": "TUCCI Antonio",
+    "kl": "D1",
+    "pfw": 152.50,
+    "estimatedTtr": 1242
+  },
+  {
+    "name": "FLOCH Erwan",
+    "kl": "D1",
+    "pfw": 152.42,
+    "estimatedTtr": 1242
+  },
+  {
+    "name": "POLYACHENKO Evgeny",
+    "kl": "D1",
+    "pfw": 152.42,
+    "estimatedTtr": 1242
+  },
+  {
+    "name": "GENGLER Filip",
+    "kl": "D1",
+    "pfw": 152.36,
+    "estimatedTtr": 1242
+  },
+  {
+    "name": "AUBERT REISMAN Gabriel",
+    "kl": "D1",
+    "pfw": 151.94,
+    "estimatedTtr": 1241
+  },
+  {
+    "name": "LI Louise Wanjia",
+    "kl": "D1",
+    "pfw": 151.49,
+    "estimatedTtr": 1240
+  },
+  {
+    "name": "STEPHANOV Thomas",
+    "kl": "D2",
+    "pfw": 151.14,
+    "estimatedTtr": 1240
+  },
+  {
+    "name": "MULLER Eugène",
+    "kl": "D1",
+    "pfw": 150.61,
+    "estimatedTtr": 1239
+  },
+  {
+    "name": "GRINGMUTH Sam",
+    "kl": "D1",
+    "pfw": 150.04,
+    "estimatedTtr": 1238
+  },
+  {
+    "name": "ANCORA Matteo",
+    "kl": "D1",
+    "pfw": 149.87,
+    "estimatedTtr": 1238
+  },
+  {
+    "name": "WEILER Ella",
+    "kl": "D1",
+    "pfw": 149.10,
+    "estimatedTtr": 1236
+  },
+  {
+    "name": "LI Lucas Wanhao",
+    "kl": "D1",
+    "pfw": 148.97,
+    "estimatedTtr": 1236
+  },
+  {
+    "name": "ASSELBORN Ben",
+    "kl": "D1",
+    "pfw": 148.90,
+    "estimatedTtr": 1236
+  },
+  {
+    "name": "VAN MIERLO Rafael",
+    "kl": "D1",
+    "pfw": 148.90,
+    "estimatedTtr": 1236
+  },
+  {
+    "name": "APEL Max",
+    "kl": "D1",
+    "pfw": 148.75,
+    "estimatedTtr": 1236
+  },
+  {
+    "name": "REFF Stefan",
+    "kl": "D1",
+    "pfw": 148.60,
+    "estimatedTtr": 1235
+  },
+  {
+    "name": "Vintera Martin",
+    "kl": "D1",
+    "pfw": 148.41,
+    "estimatedTtr": 1235
+  },
+  {
+    "name": "STAMMET Theo",
+    "kl": "D1",
+    "pfw": 148.39,
+    "estimatedTtr": 1235
+  },
+  {
+    "name": "SOUSA DA COSTA Bryan",
+    "kl": "D2",
+    "pfw": 148.31,
+    "estimatedTtr": 1235
+  },
+  {
+    "name": "ZHOU Eddie",
+    "kl": "D1",
+    "pfw": 148.29,
+    "estimatedTtr": 1235
+  },
+  {
+    "name": "SCHUH Nora",
+    "kl": "D1",
+    "pfw": 148.26,
+    "estimatedTtr": 1235
+  },
+  {
+    "name": "WEILAND Manuel",
+    "kl": "D1",
+    "pfw": 148.24,
+    "estimatedTtr": 1235
+  },
+  {
+    "name": "FERNANDES Edgar",
+    "kl": "D1",
+    "pfw": 148.14,
+    "estimatedTtr": 1235
+  },
+  {
+    "name": "DE OLIVEIRA CRUZ Bruno",
+    "kl": "D1",
+    "pfw": 148.14,
+    "estimatedTtr": 1235
+  },
+  {
+    "name": "GRABENHORST Yannick",
+    "kl": "D1",
+    "pfw": 147.93,
+    "estimatedTtr": 1234
+  },
+  {
+    "name": "FRANCOIS Aurélie",
+    "kl": "D1",
+    "pfw": 147.86,
+    "estimatedTtr": 1234
+  },
+  {
+    "name": "REINERS Jos",
+    "kl": "D1",
+    "pfw": 147.40,
+    "estimatedTtr": 1233
+  },
+  {
+    "name": "LAGUERRE Alexandre",
+    "kl": "D1",
+    "pfw": 146.81,
+    "estimatedTtr": 1232
+  },
+  {
+    "name": "LOPES VIEIRA Afonso",
+    "kl": "D1",
+    "pfw": 146.55,
+    "estimatedTtr": 1232
+  },
+  {
+    "name": "VOLKOV Daniil",
+    "kl": "D2",
+    "pfw": 146.36,
+    "estimatedTtr": 1232
+  },
+  {
+    "name": "DELGADO Jorge",
+    "kl": "D1",
+    "pfw": 146.15,
+    "estimatedTtr": 1231
+  },
+  {
+    "name": "REZKI Noé",
+    "kl": "D1",
+    "pfw": 146.07,
+    "estimatedTtr": 1231
+  },
+  {
+    "name": "LAMBERT Simon",
+    "kl": "D2",
+    "pfw": 146.02,
+    "estimatedTtr": 1231
+  },
+  {
+    "name": "AL BONY Ayman",
+    "kl": "D1",
+    "pfw": 145.99,
+    "estimatedTtr": 1231
+  },
+  {
+    "name": "DU Bowen",
+    "kl": "D1",
+    "pfw": 145.58,
+    "estimatedTtr": 1230
+  },
+  {
+    "name": "SONNTAG Maxime",
+    "kl": "D1",
+    "pfw": 145.32,
+    "estimatedTtr": 1230
+  },
+  {
+    "name": "DAL ZUFFO Guillaume",
+    "kl": "D1",
+    "pfw": 145.10,
+    "estimatedTtr": 1229
+  },
+  {
+    "name": "ENDERS Matt",
+    "kl": "D1",
+    "pfw": 144.99,
+    "estimatedTtr": 1229
+  },
+  {
+    "name": "STEMPER Anna-Lena",
+    "kl": "D1",
+    "pfw": 144.20,
+    "estimatedTtr": 1228
+  },
+  {
+    "name": "SCHMITZ Yana",
+    "kl": "D1",
+    "pfw": 144.17,
+    "estimatedTtr": 1228
+  },
+  {
+    "name": "TRINDADE ARAUJO André",
+    "kl": "D1",
+    "pfw": 144.02,
+    "estimatedTtr": 1228
+  },
+  {
+    "name": "GROF Noé",
+    "kl": "D1",
+    "pfw": 144.02,
+    "estimatedTtr": 1228
+  },
+  {
+    "name": "SINGHA Franciska",
+    "kl": "D1",
+    "pfw": 143.95,
+    "estimatedTtr": 1228
+  },
+  {
+    "name": "HUET Luca",
+    "kl": "D1",
+    "pfw": 143.89,
+    "estimatedTtr": 1227
+  },
+  {
+    "name": "HUBERTY FOSSATI Lex",
+    "kl": "D1",
+    "pfw": 143.76,
+    "estimatedTtr": 1227
+  },
+  {
+    "name": "MEURIER Paul",
+    "kl": "D1",
+    "pfw": 143.59,
+    "estimatedTtr": 1227
+  },
+  {
+    "name": "SCHMIT Matti",
+    "kl": "D1",
+    "pfw": 143.54,
+    "estimatedTtr": 1227
+  },
+  {
+    "name": "WEILER Dane",
+    "kl": "D1",
+    "pfw": 143.36,
+    "estimatedTtr": 1227
+  },
+  {
+    "name": "SCHLESSER Christophe",
+    "kl": "D1",
+    "pfw": 143.30,
+    "estimatedTtr": 1226
+  },
+  {
+    "name": "RAKHIMI Damir",
+    "kl": "D2",
+    "pfw": 143.24,
+    "estimatedTtr": 1226
+  },
+  {
+    "name": "KUTH VITALI Oliver",
+    "kl": "D1",
+    "pfw": 143.08,
+    "estimatedTtr": 1226
+  },
+  {
+    "name": "MARTINEZ Edgar",
+    "kl": "D1",
+    "pfw": 142.91,
+    "estimatedTtr": 1226
+  },
+  {
+    "name": "UNIVOCHI Nicolo",
+    "kl": "D1",
+    "pfw": 142.89,
+    "estimatedTtr": 1226
+  },
+  {
+    "name": "HUPPERT Pascal",
+    "kl": "D1",
+    "pfw": 142.82,
+    "estimatedTtr": 1226
+  },
+  {
+    "name": "TAYLOR Craig",
+    "kl": "D1",
+    "pfw": 142.73,
+    "estimatedTtr": 1226
+  },
+  {
+    "name": "MODERT Ben",
+    "kl": "D1",
+    "pfw": 142.69,
+    "estimatedTtr": 1225
+  },
+  {
+    "name": "GÖCKEL Caroline",
+    "kl": "D1",
+    "pfw": 142.55,
+    "estimatedTtr": 1225
+  },
+  {
+    "name": "COMPARETTO Matteo",
+    "kl": "D1",
+    "pfw": 142.44,
+    "estimatedTtr": 1225
+  },
+  {
+    "name": "KLISKA Mirko",
+    "kl": "D1",
+    "pfw": 142.26,
+    "estimatedTtr": 1225
+  },
+  {
+    "name": "DECKER Simon",
+    "kl": "D2",
+    "pfw": 142.04,
+    "estimatedTtr": 1224
+  },
+  {
+    "name": "BRUDER Renée",
+    "kl": "D1",
+    "pfw": 141.92,
+    "estimatedTtr": 1224
+  },
+  {
+    "name": "OMS Christian",
+    "kl": "D1",
+    "pfw": 141.76,
+    "estimatedTtr": 1224
+  },
+  {
+    "name": "ELANOV Arsalan",
+    "kl": "D1",
+    "pfw": 141.42,
+    "estimatedTtr": 1223
+  },
+  {
+    "name": "DESCOUBES Edouard",
+    "kl": "D2",
+    "pfw": 141.36,
+    "estimatedTtr": 1223
+  },
+  {
+    "name": "WAHL Sven",
+    "kl": "D1",
+    "pfw": 141.24,
+    "estimatedTtr": 1223
+  },
+  {
+    "name": "FEHER Daniel",
+    "kl": "D1",
+    "pfw": 141.15,
+    "estimatedTtr": 1223
+  },
+  {
+    "name": "IVAN Dragos",
+    "kl": "D1",
+    "pfw": 140.99,
+    "estimatedTtr": 1223
+  },
+  {
+    "name": "SESSA Guglielmo",
+    "kl": "D1",
+    "pfw": 140.86,
+    "estimatedTtr": 1222
+  },
+  {
+    "name": "YAN Yan",
+    "kl": "D1",
+    "pfw": 140.75,
+    "estimatedTtr": 1222
+  },
+  {
+    "name": "CIRILLO Andrea",
+    "kl": "D1",
+    "pfw": 140.55,
+    "estimatedTtr": 1222
+  },
+  {
+    "name": "NEUMAN Tina",
+    "kl": "D1",
+    "pfw": 140.52,
+    "estimatedTtr": 1222
+  },
+  {
+    "name": "GEORGES Yann",
+    "kl": "D1",
+    "pfw": 140.42,
+    "estimatedTtr": 1222
+  },
+  {
+    "name": "DALEIDEN Tom",
+    "kl": "D1",
+    "pfw": 140.36,
+    "estimatedTtr": 1222
+  },
+  {
+    "name": "HOERDT Yann",
+    "kl": "D1",
+    "pfw": 140.14,
+    "estimatedTtr": 1221
+  },
+  {
+    "name": "DEIKO Kirill",
+    "kl": "D1",
+    "pfw": 140.11,
+    "estimatedTtr": 1221
+  },
+  {
+    "name": "BEUL NUNES Serafim",
+    "kl": "D1",
+    "pfw": 140.05,
+    "estimatedTtr": 1221
+  },
+  {
+    "name": "PINTO DINIS Tim",
+    "kl": "D1",
+    "pfw": 140.00,
+    "estimatedTtr": 1221
+  },
+  {
+    "name": "PESIKAS¬PETERSONS Tomass",
+    "kl": "D1",
+    "pfw": 139.98,
+    "estimatedTtr": 1221
+  },
+  {
+    "name": "MONTILLET CASANOVA Enrique",
+    "kl": "D1",
+    "pfw": 139.79,
+    "estimatedTtr": 1221
+  },
+  {
+    "name": "GREIN Jean-Luc",
+    "kl": "D1",
+    "pfw": 139.77,
+    "estimatedTtr": 1221
+  },
+  {
+    "name": "LI Léo Wan-ou",
+    "kl": "D1",
+    "pfw": 139.61,
+    "estimatedTtr": 1220
+  },
+  {
+    "name": "SOLOVEV Nikolai",
+    "kl": "D2",
+    "pfw": 139.57,
+    "estimatedTtr": 1220
+  },
+  {
+    "name": "BELLINA Enzo",
+    "kl": "D1",
+    "pfw": 139.38,
+    "estimatedTtr": 1220
+  },
+  {
+    "name": "SLIEPEN Finn",
+    "kl": "D1",
+    "pfw": 139.28,
+    "estimatedTtr": 1220
+  },
+  {
+    "name": "SONNHALTER Mireille",
+    "kl": "D1",
+    "pfw": 139.16,
+    "estimatedTtr": 1220
+  },
+  {
+    "name": "KEILEN Lenie",
+    "kl": "D2",
+    "pfw": 138.52,
+    "estimatedTtr": 1218
+  },
+  {
+    "name": "BODSON Ben",
+    "kl": "D1",
+    "pfw": 138.41,
+    "estimatedTtr": 1218
+  },
+  {
+    "name": "RIES Kevin",
+    "kl": "D1",
+    "pfw": 138.40,
+    "estimatedTtr": 1218
+  },
+  {
+    "name": "WECKER Alex",
+    "kl": "D1",
+    "pfw": 138.37,
+    "estimatedTtr": 1218
+  },
+  {
+    "name": "GÖKSEL Naim",
+    "kl": "D1",
+    "pfw": 138.36,
+    "estimatedTtr": 1218
+  },
+  {
+    "name": "QUIDACIOLU Maxence",
+    "kl": "D3",
+    "pfw": 138.18,
+    "estimatedTtr": 1218
+  },
+  {
+    "name": "KAYSER Gilles",
+    "kl": "D1",
+    "pfw": 137.97,
+    "estimatedTtr": 1218
+  },
+  {
+    "name": "LIPPERT Francis",
+    "kl": "D1",
+    "pfw": 137.97,
+    "estimatedTtr": 1218
+  },
+  {
+    "name": "CECALUPO Stefano",
+    "kl": "D1",
+    "pfw": 137.68,
+    "estimatedTtr": 1217
+  },
+  {
+    "name": "SADLER Tom",
+    "kl": "D1",
+    "pfw": 137.66,
+    "estimatedTtr": 1217
+  },
+  {
+    "name": "BOSSELER Boris",
+    "kl": "D2",
+    "pfw": 137.66,
+    "estimatedTtr": 1217
+  },
+  {
+    "name": "DAWIR Marc",
+    "kl": "D1",
+    "pfw": 137.56,
+    "estimatedTtr": 1217
+  },
+  {
+    "name": "SCHMIT Viviane",
+    "kl": "D1",
+    "pfw": 137.55,
+    "estimatedTtr": 1217
+  },
+  {
+    "name": "SCHROEDER Mats",
+    "kl": "D1",
+    "pfw": 137.46,
+    "estimatedTtr": 1217
+  },
+  {
+    "name": "HOFFMANN Lisa",
+    "kl": "D1",
+    "pfw": 137.41,
+    "estimatedTtr": 1217
+  },
+  {
+    "name": "KRIEGER Maurice",
+    "kl": "D1",
+    "pfw": 137.31,
+    "estimatedTtr": 1216
+  },
+  {
+    "name": "VAZ COSTA Rodrigo",
+    "kl": "D2",
+    "pfw": 137.27,
+    "estimatedTtr": 1216
+  },
+  {
+    "name": "BAMBERG Noe",
+    "kl": "D1",
+    "pfw": 137.06,
+    "estimatedTtr": 1216
+  },
+  {
+    "name": "DE CARBONNIERES Isidore",
+    "kl": "D2",
+    "pfw": 136.88,
+    "estimatedTtr": 1216
+  },
+  {
+    "name": "SCHEULEN David",
+    "kl": "D2",
+    "pfw": 136.86,
+    "estimatedTtr": 1216
+  },
+  {
+    "name": "BETTENCOURT BERNARDES João",
+    "kl": "D2",
+    "pfw": 136.84,
+    "estimatedTtr": 1216
+  },
+  {
+    "name": "RODRIGUES Gabriel",
+    "kl": "D1",
+    "pfw": 136.74,
+    "estimatedTtr": 1215
+  },
+  {
+    "name": "LEBELLE Elie",
+    "kl": "D3",
+    "pfw": 136.71,
+    "estimatedTtr": 1215
+  },
+  {
+    "name": "SCHMITZ Daniel",
+    "kl": "D1",
+    "pfw": 136.57,
+    "estimatedTtr": 1215
+  },
+  {
+    "name": "THOMMES Lucien",
+    "kl": "D1",
+    "pfw": 136.54,
+    "estimatedTtr": 1215
+  },
+  {
+    "name": "FOGEN BRAOJOS Elia",
+    "kl": "D2",
+    "pfw": 136.33,
+    "estimatedTtr": 1215
+  },
+  {
+    "name": "CERQUEIRA MIRANDA David",
+    "kl": "D1",
+    "pfw": 136.31,
+    "estimatedTtr": 1215
+  },
+  {
+    "name": "ANTUNES ROSA Simao",
+    "kl": "D2",
+    "pfw": 136.14,
+    "estimatedTtr": 1214
+  },
+  {
+    "name": "MAROTTA Cecilia",
+    "kl": "D1",
+    "pfw": 136.13,
+    "estimatedTtr": 1214
+  },
+  {
+    "name": "THILL Nik",
+    "kl": "D1",
+    "pfw": 136.09,
+    "estimatedTtr": 1214
+  },
+  {
+    "name": "Parate Ankit",
+    "kl": "D2",
+    "pfw": 135.87,
+    "estimatedTtr": 1214
+  },
+  {
+    "name": "FOY Charles",
+    "kl": "D2",
+    "pfw": 135.85,
+    "estimatedTtr": 1214
+  },
+  {
+    "name": "BERTHEREAU Quentin",
+    "kl": "D2",
+    "pfw": 135.76,
+    "estimatedTtr": 1214
+  },
+  {
+    "name": "CLAUDE Gil",
+    "kl": "D1",
+    "pfw": 135.74,
+    "estimatedTtr": 1214
+  },
+  {
+    "name": "MARCATTO DE AZEVEDO Samuel",
+    "kl": "D1",
+    "pfw": 135.53,
+    "estimatedTtr": 1213
+  },
+  {
+    "name": "ZIEGLER Sebastian",
+    "kl": "D1",
+    "pfw": 135.50,
+    "estimatedTtr": 1213
+  },
+  {
+    "name": "WEYLAND Yann",
+    "kl": "D1",
+    "pfw": 135.42,
+    "estimatedTtr": 1213
+  },
+  {
+    "name": "TUCCI Kenzo",
+    "kl": "D2",
+    "pfw": 134.96,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "RYZHEY Vyacheslav",
+    "kl": "D1",
+    "pfw": 134.91,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "NGUYEN Duy Cu",
+    "kl": "D1",
+    "pfw": 134.76,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "IABANJI Valentim",
+    "kl": "D1",
+    "pfw": 134.75,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "MARTINEZ-WITZ Achille",
+    "kl": "D3",
+    "pfw": 134.74,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "BEIL Claude",
+    "kl": "D1",
+    "pfw": 134.64,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "BAUSCH Lenny",
+    "kl": "D2",
+    "pfw": 134.54,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "YOSSEF Eitan",
+    "kl": "D2",
+    "pfw": 134.53,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "TETTAMANTI Matteo",
+    "kl": "D3",
+    "pfw": 134.52,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "STEICHEN Anouk",
+    "kl": "D1",
+    "pfw": 134.43,
+    "estimatedTtr": 1212
+  },
+  {
+    "name": "KARL Jean-Paul",
+    "kl": "D1",
+    "pfw": 134.36,
+    "estimatedTtr": 1211
+  },
+  {
+    "name": "STREVELER Max",
+    "kl": "D1",
+    "pfw": 134.29,
+    "estimatedTtr": 1211
+  },
+  {
+    "name": "DALEIDEN Julie",
+    "kl": "D2",
+    "pfw": 134.22,
+    "estimatedTtr": 1211
+  },
+  {
+    "name": "MAUS Adelin",
+    "kl": "D1",
+    "pfw": 134.20,
+    "estimatedTtr": 1211
+  },
+  {
+    "name": "SCHMITZ Pit",
+    "kl": "D2",
+    "pfw": 134.12,
+    "estimatedTtr": 1211
+  },
+  {
+    "name": "CONG Shuyuan",
+    "kl": "D1",
+    "pfw": 133.83,
+    "estimatedTtr": 1211
+  },
+  {
+    "name": "BOCCARA Nicolas",
+    "kl": "D1",
+    "pfw": 133.79,
+    "estimatedTtr": 1211
+  },
+  {
+    "name": "HOLLAREK Sarah",
+    "kl": "D1",
+    "pfw": 133.52,
+    "estimatedTtr": 1210
+  },
+  {
+    "name": "FERREIRA¬HEIRENS Jaden",
+    "kl": "D1",
+    "pfw": 133.25,
+    "estimatedTtr": 1210
+  },
+  {
+    "name": "RAPOSO Sabrina",
+    "kl": "D1",
+    "pfw": 133.21,
+    "estimatedTtr": 1210
+  },
+  {
+    "name": "CRACIUN Lucian Stefan",
+    "kl": "D2",
+    "pfw": 133.16,
+    "estimatedTtr": 1209
+  },
+  {
+    "name": "FELLENS Jo",
+    "kl": "D1",
+    "pfw": 133.06,
+    "estimatedTtr": 1209
+  },
+  {
+    "name": "ZHOU Emily",
+    "kl": "D1",
+    "pfw": 133.01,
+    "estimatedTtr": 1209
+  },
+  {
+    "name": "DOS SANTOS Lucas",
+    "kl": "D1",
+    "pfw": 133.00,
+    "estimatedTtr": 1209
+  },
+  {
+    "name": "ZHANG Xiaolin",
+    "kl": "D2",
+    "pfw": 132.81,
+    "estimatedTtr": 1209
+  },
+  {
+    "name": "TEODORESCU Ionut",
+    "kl": "D2",
+    "pfw": 132.79,
+    "estimatedTtr": 1209
+  },
+  {
+    "name": "ROCA GOMEZ Carla",
+    "kl": "D2",
+    "pfw": 132.68,
+    "estimatedTtr": 1209
+  },
+  {
+    "name": "SAMAHA Nadim",
+    "kl": "D2",
+    "pfw": 132.62,
+    "estimatedTtr": 1209
+  },
+  {
+    "name": "KRIER Philippe",
+    "kl": "D2",
+    "pfw": 132.59,
+    "estimatedTtr": 1209
+  },
+  {
+    "name": "COLCHEN Eloann",
+    "kl": "D2",
+    "pfw": 132.55,
+    "estimatedTtr": 1208
+  },
+  {
+    "name": "ENGEL Camille",
+    "kl": "D1",
+    "pfw": 132.40,
+    "estimatedTtr": 1208
+  },
+  {
+    "name": "GIAMPAOLO Lenny",
+    "kl": "D2",
+    "pfw": 132.34,
+    "estimatedTtr": 1208
+  },
+  {
+    "name": "KRAUS Leo",
+    "kl": "D1",
+    "pfw": 132.08,
+    "estimatedTtr": 1208
+  },
+  {
+    "name": "FEYDER Sandra",
+    "kl": "D1",
+    "pfw": 131.94,
+    "estimatedTtr": 1207
+  },
+  {
+    "name": "CHEKIN Yan",
+    "kl": "D2",
+    "pfw": 131.89,
+    "estimatedTtr": 1207
+  },
+  {
+    "name": "SORRAS Athanasios",
+    "kl": "D1",
+    "pfw": 131.65,
+    "estimatedTtr": 1207
+  },
+  {
+    "name": "DI DOMENICO Andy",
+    "kl": "D1",
+    "pfw": 131.58,
+    "estimatedTtr": 1207
+  },
+  {
+    "name": "KRAUS Julien",
+    "kl": "D2",
+    "pfw": 131.32,
+    "estimatedTtr": 1206
+  },
+  {
+    "name": "TYSLAND Elin",
+    "kl": "D3",
+    "pfw": 131.25,
+    "estimatedTtr": 1206
+  },
+  {
+    "name": "UKLEJA Raphael",
+    "kl": "D2",
+    "pfw": 131.16,
+    "estimatedTtr": 1206
+  },
+  {
+    "name": "RAVIGNAT Patrick",
+    "kl": "D1",
+    "pfw": 131.10,
+    "estimatedTtr": 1206
+  },
+  {
+    "name": "PLETSCHETTE Karin",
+    "kl": "D1",
+    "pfw": 130.97,
+    "estimatedTtr": 1206
+  },
+  {
+    "name": "VINTERA Artur",
+    "kl": "D2",
+    "pfw": 130.72,
+    "estimatedTtr": 1205
+  },
+  {
+    "name": "VICTOR Félix",
+    "kl": "D1",
+    "pfw": 130.66,
+    "estimatedTtr": 1205
+  },
+  {
+    "name": "KOROTICH Mikhail",
+    "kl": "D2",
+    "pfw": 130.64,
+    "estimatedTtr": 1205
+  },
+  {
+    "name": "THINNES Luc",
+    "kl": "D1",
+    "pfw": 130.38,
+    "estimatedTtr": 1205
+  },
+  {
+    "name": "BERNARD Tun",
+    "kl": "D2",
+    "pfw": 130.34,
+    "estimatedTtr": 1205
+  },
+  {
+    "name": "BLANC Yann",
+    "kl": "D1",
+    "pfw": 130.31,
+    "estimatedTtr": 1205
+  },
+  {
+    "name": "GREIS Nils",
+    "kl": "D1",
+    "pfw": 130.28,
+    "estimatedTtr": 1205
+  },
+  {
+    "name": "ALYOUNES Sham",
+    "kl": "D1",
+    "pfw": 130.27,
+    "estimatedTtr": 1205
+  },
+  {
+    "name": "PENG Michael Yitong",
+    "kl": "D2",
+    "pfw": 130.07,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "POMES Noah",
+    "kl": "D1",
+    "pfw": 130.04,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "MORGADO Leon",
+    "kl": "D2",
+    "pfw": 129.92,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "ESSELING Mathis",
+    "kl": "D1",
+    "pfw": 129.88,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "KREMER Luc",
+    "kl": "D1",
+    "pfw": 129.87,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "POLIACHENKO Vera",
+    "kl": "D2",
+    "pfw": 129.85,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "STRENG Pit",
+    "kl": "D1",
+    "pfw": 129.80,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "LEONARD Lou",
+    "kl": "D2",
+    "pfw": 129.76,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "DUHR Julie",
+    "kl": "D2",
+    "pfw": 129.74,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "STOLTZ Kevin",
+    "kl": "D1",
+    "pfw": 129.67,
+    "estimatedTtr": 1204
+  },
+  {
+    "name": "SIEBENALER Sven",
+    "kl": "D1",
+    "pfw": 129.56,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "AKAABOUNE BARREIRO Lina",
+    "kl": "D1",
+    "pfw": 129.49,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "LUO Lingfei",
+    "kl": "D2",
+    "pfw": 129.47,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "WELTER Ida",
+    "kl": "D2",
+    "pfw": 129.44,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "CANARIA FERNANDES Matteo",
+    "kl": "D2",
+    "pfw": 129.39,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "STEINMETZ Yann",
+    "kl": "D2",
+    "pfw": 129.26,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "SCHNEIDER Lou",
+    "kl": "D1",
+    "pfw": 129.24,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "DIAS MONTEIRO Luca",
+    "kl": "D1",
+    "pfw": 129.21,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "WEILER Nadia",
+    "kl": "D1",
+    "pfw": 129.21,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "BRACHMANN Nils",
+    "kl": "D1",
+    "pfw": 129.18,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "KRANJEC Luka",
+    "kl": "D3",
+    "pfw": 129.11,
+    "estimatedTtr": 1203
+  },
+  {
+    "name": "MARYNYCHEV Lev",
+    "kl": "D2",
+    "pfw": 129.00,
+    "estimatedTtr": 1202
+  },
+  {
+    "name": "WAGNER DAP Aaron",
+    "kl": "D2",
+    "pfw": 128.94,
+    "estimatedTtr": 1202
+  },
+  {
+    "name": "TRAPPLER Theo",
+    "kl": "D2",
+    "pfw": 128.89,
+    "estimatedTtr": 1202
+  },
+  {
+    "name": "MAIRE Timothée",
+    "kl": "D2",
+    "pfw": 128.89,
+    "estimatedTtr": 1202
+  },
+  {
+    "name": "VAN DER ELST Lara",
+    "kl": "D1",
+    "pfw": 128.82,
+    "estimatedTtr": 1202
+  },
+  {
+    "name": "TISSERAND Axel",
+    "kl": "D2",
+    "pfw": 128.81,
+    "estimatedTtr": 1202
+  },
+  {
+    "name": "SCHMITZ Joe",
+    "kl": "D1",
+    "pfw": 128.76,
+    "estimatedTtr": 1202
+  },
+  {
+    "name": "DAVIE Liam",
+    "kl": "D2",
+    "pfw": 128.62,
+    "estimatedTtr": 1202
+  },
+  {
+    "name": "DENAUW Audrey",
+    "kl": "D1",
+    "pfw": 128.55,
+    "estimatedTtr": 1202
+  },
+  {
+    "name": "STADTFELD Francis",
+    "kl": "D1",
+    "pfw": 128.25,
+    "estimatedTtr": 1201
+  },
+  {
+    "name": "PLETSCHETTE Hugo",
+    "kl": "D2",
+    "pfw": 128.14,
+    "estimatedTtr": 1201
+  },
+  {
+    "name": "KRIEGER Alain",
+    "kl": "D1",
+    "pfw": 128.13,
+    "estimatedTtr": 1201
+  },
+  {
+    "name": "RIES Ronnie",
+    "kl": "D1",
+    "pfw": 128.07,
+    "estimatedTtr": 1201
+  },
+  {
+    "name": "WEILER Jacques",
+    "kl": "D1",
+    "pfw": 128.05,
+    "estimatedTtr": 1201
+  },
+  {
+    "name": "MULLER Charel",
+    "kl": "D2",
+    "pfw": 128.01,
+    "estimatedTtr": 1201
+  },
+  {
+    "name": "PRADIER PFEIFFER Stanislas",
+    "kl": "D3",
+    "pfw": 127.78,
+    "estimatedTtr": 1200
+  },
+  {
+    "name": "GEORG Felix",
+    "kl": "D1",
+    "pfw": 127.73,
+    "estimatedTtr": 1200
+  },
+  {
+    "name": "SVOBODOVÁ Kamila",
+    "kl": "D1",
+    "pfw": 127.67,
+    "estimatedTtr": 1200
+  },
+  {
+    "name": "SADIKOVIC Sead",
+    "kl": "D1",
+    "pfw": 127.62,
+    "estimatedTtr": 1200
+  },
+  {
+    "name": "CREMER Theo",
+    "kl": "D2",
+    "pfw": 127.55,
+    "estimatedTtr": 1200
+  },
+  {
+    "name": "BUCHLER Charel",
+    "kl": "D2",
+    "pfw": 127.33,
+    "estimatedTtr": 1200
+  },
+  {
+    "name": "BADEN Lily",
+    "kl": "D1",
+    "pfw": 127.29,
+    "estimatedTtr": 1200
+  },
+  {
+    "name": "THIERRY Larissa",
+    "kl": "D1",
+    "pfw": 127.23,
+    "estimatedTtr": 1200
+  },
+  {
+    "name": "STEINMETZ Jeff",
+    "kl": "D2",
+    "pfw": 127.17,
+    "estimatedTtr": 1199
+  },
+  {
+    "name": "KOVARIK Vladimir",
+    "kl": "D2",
+    "pfw": 127.16,
+    "estimatedTtr": 1199
+  },
+  {
+    "name": "LEHMANN Nathan",
+    "kl": "D1",
+    "pfw": 127.03,
+    "estimatedTtr": 1199
+  },
+  {
+    "name": "GROTZ Nikla",
+    "kl": "D1",
+    "pfw": 126.91,
+    "estimatedTtr": 1199
+  },
+  {
+    "name": "THISSEN Eden",
+    "kl": "D1",
+    "pfw": 126.76,
+    "estimatedTtr": 1199
+  },
+  {
+    "name": "BAMBERG Len",
+    "kl": "D1",
+    "pfw": 126.70,
+    "estimatedTtr": 1199
+  },
+  {
+    "name": "GLODÉ Theo",
+    "kl": "D1",
+    "pfw": 126.63,
+    "estimatedTtr": 1199
+  },
+  {
+    "name": "DEPOTTER Tessy",
+    "kl": "D2",
+    "pfw": 126.52,
+    "estimatedTtr": 1198
+  },
+  {
+    "name": "ALVES TEIXEIRA Mathieu",
+    "kl": "D2",
+    "pfw": 126.48,
+    "estimatedTtr": 1198
+  },
+  {
+    "name": "TOCK Charel",
+    "kl": "D1",
+    "pfw": 126.46,
+    "estimatedTtr": 1198
+  },
+  {
+    "name": "WECKERING Pia",
+    "kl": "D1",
+    "pfw": 126.46,
+    "estimatedTtr": 1198
+  },
+  {
+    "name": "KOHNEN Fynn",
+    "kl": "D1",
+    "pfw": 126.37,
+    "estimatedTtr": 1198
+  },
+  {
+    "name": "SIEBENALER Lara",
+    "kl": "D1",
+    "pfw": 126.02,
+    "estimatedTtr": 1197
+  },
+  {
+    "name": "SUAREZ CRESPO Pablo",
+    "kl": "D3",
+    "pfw": 125.98,
+    "estimatedTtr": 1197
+  },
+  {
+    "name": "HAN Lang",
+    "kl": "D3",
+    "pfw": 125.96,
+    "estimatedTtr": 1197
+  },
+  {
+    "name": "GROSS Ivo",
+    "kl": "D2",
+    "pfw": 125.80,
+    "estimatedTtr": 1197
+  },
+  {
+    "name": "JOSEPH Daniel",
+    "kl": "D1",
+    "pfw": 125.46,
+    "estimatedTtr": 1197
+  },
+  {
+    "name": "KAYSER Anita",
+    "kl": "D1",
+    "pfw": 125.44,
+    "estimatedTtr": 1197
+  },
+  {
+    "name": "SAKIK Elif Vera",
+    "kl": "D2",
+    "pfw": 125.37,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "PASSAU Daniel",
+    "kl": "D2",
+    "pfw": 125.34,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "ROCCARO Manuel",
+    "kl": "D3",
+    "pfw": 125.25,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "WEILAND Camille",
+    "kl": "D1",
+    "pfw": 125.24,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "SCHINTGEN Charel",
+    "kl": "D2",
+    "pfw": 125.21,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "SILVA RODRIGUES Léo",
+    "kl": "D2",
+    "pfw": 125.20,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "KIRPACH Nathalie",
+    "kl": "D1",
+    "pfw": 125.11,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "FERRER PIJAROWSKI Alexander",
+    "kl": "D2",
+    "pfw": 125.11,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "MAO Qiuting",
+    "kl": "D2",
+    "pfw": 125.11,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "BOURGUIGNON GLATZ Félix",
+    "kl": "D2",
+    "pfw": 125.09,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "BREYER Lis",
+    "kl": "D1",
+    "pfw": 125.02,
+    "estimatedTtr": 1196
+  },
+  {
+    "name": "SCHUMANN Marco",
+    "kl": "D1",
+    "pfw": 124.77,
+    "estimatedTtr": 1195
+  },
+  {
+    "name": "HOOGENHOUT Letizia",
+    "kl": "D1",
+    "pfw": 124.74,
+    "estimatedTtr": 1195
+  },
+  {
+    "name": "MEYERS Mara",
+    "kl": "D1",
+    "pfw": 124.61,
+    "estimatedTtr": 1195
+  },
+  {
+    "name": "FEINEN DE CARVALHO Daniel",
+    "kl": "D1",
+    "pfw": 124.57,
+    "estimatedTtr": 1195
+  },
+  {
+    "name": "DE ANDRES Gael",
+    "kl": "D2",
+    "pfw": 124.48,
+    "estimatedTtr": 1195
+  },
+  {
+    "name": "DECKENBRUNNEN Mara",
+    "kl": "D1",
+    "pfw": 124.30,
+    "estimatedTtr": 1195
+  },
+  {
+    "name": "BUCHLER Pol",
+    "kl": "D2",
+    "pfw": 124.30,
+    "estimatedTtr": 1195
+  },
+  {
+    "name": "HOFFMANN Emma",
+    "kl": "D1",
+    "pfw": 124.23,
+    "estimatedTtr": 1194
+  },
+  {
+    "name": "GAVAZZI Luca",
+    "kl": "D2",
+    "pfw": 124.21,
+    "estimatedTtr": 1194
+  },
+  {
+    "name": "THILTGEN Rafael",
+    "kl": "D2",
+    "pfw": 124.20,
+    "estimatedTtr": 1194
+  },
+  {
+    "name": "MARX Eric",
+    "kl": "D1",
+    "pfw": 124.17,
+    "estimatedTtr": 1194
+  },
+  {
+    "name": "Visser Robert",
+    "kl": "D3",
+    "pfw": 124.17,
+    "estimatedTtr": 1194
+  },
+  {
+    "name": "BUTTINI Michelle",
+    "kl": "D2",
+    "pfw": 124.05,
+    "estimatedTtr": 1194
+  },
+  {
+    "name": "SCHMITZ Ludwig",
+    "kl": "D2",
+    "pfw": 123.91,
+    "estimatedTtr": 1194
+  },
+  {
+    "name": "GABURRI Sara",
+    "kl": "D2",
+    "pfw": 123.65,
+    "estimatedTtr": 1194
+  },
+  {
+    "name": "HEYMES Natacha",
+    "kl": "D1",
+    "pfw": 123.59,
+    "estimatedTtr": 1193
+  },
+  {
+    "name": "SCIBERRAS Maximillian",
+    "kl": "D1",
+    "pfw": 123.48,
+    "estimatedTtr": 1193
+  },
+  {
+    "name": "KOEUNE Pit",
+    "kl": "D2",
+    "pfw": 123.43,
+    "estimatedTtr": 1193
+  },
+  {
+    "name": "DAFFIX Quentin",
+    "kl": "D2",
+    "pfw": 123.28,
+    "estimatedTtr": 1193
+  },
+  {
+    "name": "HRISCU Jay",
+    "kl": "D2",
+    "pfw": 123.24,
+    "estimatedTtr": 1193
+  },
+  {
+    "name": "WAGNER Edmond",
+    "kl": "D1",
+    "pfw": 123.23,
+    "estimatedTtr": 1193
+  },
+  {
+    "name": "THILL Lou",
+    "kl": "D2",
+    "pfw": 123.11,
+    "estimatedTtr": 1193
+  },
+  {
+    "name": "CAVALHEIRO DIAS Leandro José",
+    "kl": "D3",
+    "pfw": 123.07,
+    "estimatedTtr": 1193
+  },
+  {
+    "name": "SCHALLER Lukas",
+    "kl": "D3",
+    "pfw": 123.05,
+    "estimatedTtr": 1193
+  },
+  {
+    "name": "FELTGEN Olivier",
+    "kl": "D2",
+    "pfw": 123.01,
+    "estimatedTtr": 1192
+  },
+  {
+    "name": "Sabo Lex",
+    "kl": "D3",
+    "pfw": 122.72,
+    "estimatedTtr": 1192
+  },
+  {
+    "name": "CARVALHO TEIXEIRA David",
+    "kl": "D2",
+    "pfw": 122.61,
+    "estimatedTtr": 1192
+  },
+  {
+    "name": "FEYEREISEN Jim",
+    "kl": "D1",
+    "pfw": 122.51,
+    "estimatedTtr": 1192
+  },
+  {
+    "name": "GROSS Raphael",
+    "kl": "D1",
+    "pfw": 122.49,
+    "estimatedTtr": 1192
+  },
+  {
+    "name": "NACU Robert",
+    "kl": "D2",
+    "pfw": 122.34,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "HOMOLA Jakub",
+    "kl": "D2",
+    "pfw": 122.30,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "WEIRICH Sven",
+    "kl": "D2",
+    "pfw": 122.26,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "WEIWERS Jean-Claude",
+    "kl": "D1",
+    "pfw": 122.15,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "GASPAR Vince",
+    "kl": "D2",
+    "pfw": 122.12,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "GAVINI Alessandro",
+    "kl": "D2",
+    "pfw": 122.09,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "MANGEN Robert",
+    "kl": "D1",
+    "pfw": 122.07,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "SCHAACK Fabrice",
+    "kl": "D1",
+    "pfw": 122.06,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "ACHUTEGUI Unai",
+    "kl": "D2",
+    "pfw": 122.06,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "SEYWERT Tim",
+    "kl": "D2",
+    "pfw": 121.95,
+    "estimatedTtr": 1191
+  },
+  {
+    "name": "JOSE Noah",
+    "kl": "D2",
+    "pfw": 121.80,
+    "estimatedTtr": 1190
+  },
+  {
+    "name": "OESCH Jos",
+    "kl": "D1",
+    "pfw": 121.73,
+    "estimatedTtr": 1190
+  },
+  {
+    "name": "SCOTTO DI PERTA Adriano",
+    "kl": "D1",
+    "pfw": 121.70,
+    "estimatedTtr": 1190
+  },
+  {
+    "name": "DRAGOVIC Dalibor",
+    "kl": "D2",
+    "pfw": 121.61,
+    "estimatedTtr": 1190
+  },
+  {
+    "name": "FRIEDERES Claude",
+    "kl": "D1",
+    "pfw": 121.58,
+    "estimatedTtr": 1190
+  },
+  {
+    "name": "VAN ZIJL Johan",
+    "kl": "D1",
+    "pfw": 121.51,
+    "estimatedTtr": 1190
+  },
+  {
+    "name": "FABER Laura",
+    "kl": "D1",
+    "pfw": 121.48,
+    "estimatedTtr": 1190
+  },
+  {
+    "name": "LENERS HELDENSTEIN Oscar",
+    "kl": "D2",
+    "pfw": 121.47,
+    "estimatedTtr": 1190
+  },
+  {
+    "name": "BEAUME Yannick",
+    "kl": "D1",
+    "pfw": 121.40,
+    "estimatedTtr": 1190
+  },
+  {
+    "name": "NAGY Tine",
+    "kl": "D3",
+    "pfw": 121.07,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "COMPARETTO Lio",
+    "kl": "D2",
+    "pfw": 120.95,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "THISSEN Alain",
+    "kl": "D2",
+    "pfw": 120.94,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "STAUDT Ronny",
+    "kl": "D2",
+    "pfw": 120.94,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "BREDEN John",
+    "kl": "D1",
+    "pfw": 120.93,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "AFONSO Joey",
+    "kl": "D2",
+    "pfw": 120.86,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "DUHR Gérard",
+    "kl": "D1",
+    "pfw": 120.84,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "GONCALVES CRUZ Rafael",
+    "kl": "D2",
+    "pfw": 120.84,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "RIES Eric",
+    "kl": "D1",
+    "pfw": 120.80,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "GARCIA Fabio",
+    "kl": "D1",
+    "pfw": 120.80,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "ROELS Benjamin",
+    "kl": "D3",
+    "pfw": 120.73,
+    "estimatedTtr": 1189
+  },
+  {
+    "name": "BRENDEL Aurelio",
+    "kl": "D3",
+    "pfw": 120.57,
+    "estimatedTtr": 1188
+  },
+  {
+    "name": "FEINEN DE CARVALHO David",
+    "kl": "D1",
+    "pfw": 120.49,
+    "estimatedTtr": 1188
+  },
+  {
+    "name": "LACOUR-SCHNEIDER Mika",
+    "kl": "D2",
+    "pfw": 120.48,
+    "estimatedTtr": 1188
+  },
+  {
+    "name": "BORMANN Marcel",
+    "kl": "D2",
+    "pfw": 120.46,
+    "estimatedTtr": 1188
+  },
+  {
+    "name": "PINTO Jasmine",
+    "kl": "D1",
+    "pfw": 120.31,
+    "estimatedTtr": 1188
+  },
+  {
+    "name": "SWABEY Francesco",
+    "kl": "D3",
+    "pfw": 120.28,
+    "estimatedTtr": 1188
+  },
+  {
+    "name": "DOS SANTOS Kenza",
+    "kl": "D2",
+    "pfw": 120.24,
+    "estimatedTtr": 1188
+  },
+  {
+    "name": "RIVRON¬MARTINELLI Mateo",
+    "kl": "D2",
+    "pfw": 120.06,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "DANTAS DUARTE Matilde",
+    "kl": "D1",
+    "pfw": 120.03,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "WILWERT Christophe",
+    "kl": "D1",
+    "pfw": 120.01,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "NOVELLI Thomas",
+    "kl": "D3",
+    "pfw": 119.90,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "WAGNER Jean-Pierre",
+    "kl": "D2",
+    "pfw": 119.86,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "MA Tianju",
+    "kl": "D2",
+    "pfw": 119.83,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "SAVCHUK Maksym",
+    "kl": "D2",
+    "pfw": 119.72,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "NASER Taifa",
+    "kl": "D2",
+    "pfw": 119.62,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "SUTTER EKER Noé",
+    "kl": "D2",
+    "pfw": 119.56,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "PLETSCHET Sam",
+    "kl": "D1",
+    "pfw": 119.54,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "Taillard Yann",
+    "kl": "D3",
+    "pfw": 119.54,
+    "estimatedTtr": 1187
+  },
+  {
+    "name": "UGEN Neckel",
+    "kl": "D2",
+    "pfw": 119.45,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "VANDENDAEL Anastasia",
+    "kl": "D2",
+    "pfw": 119.40,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "FOHL Christine",
+    "kl": "D1",
+    "pfw": 119.38,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "BONNE RAAD Timothée",
+    "kl": "D3",
+    "pfw": 119.37,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "THEISEN Danielle",
+    "kl": "D1",
+    "pfw": 119.31,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "PEZ Lisa",
+    "kl": "D2",
+    "pfw": 119.26,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "LOPES SCHMIT Ethan",
+    "kl": "D3",
+    "pfw": 119.24,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "DIJOU Maxim",
+    "kl": "D2",
+    "pfw": 119.23,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "PETSCHKO Elias",
+    "kl": "D2",
+    "pfw": 119.21,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "TAYLOR Ava-Mae",
+    "kl": "D1",
+    "pfw": 119.16,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "JUNG Bryan",
+    "kl": "D3",
+    "pfw": 119.12,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "FAGHERAZZI Dino",
+    "kl": "D1",
+    "pfw": 119.01,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "CUYA David",
+    "kl": "D1",
+    "pfw": 118.96,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "NICKS Mick",
+    "kl": "D2",
+    "pfw": 118.95,
+    "estimatedTtr": 1186
+  },
+  {
+    "name": "ROOS Johann",
+    "kl": "D2",
+    "pfw": 118.83,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "GEORG Christophe",
+    "kl": "D1",
+    "pfw": 118.82,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "SEYWERT Jeff",
+    "kl": "D2",
+    "pfw": 118.81,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "HOLTZ Colin",
+    "kl": "D2",
+    "pfw": 118.80,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "GIL GOMES Christophe",
+    "kl": "D2",
+    "pfw": 118.79,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "ZILKIC Nermin",
+    "kl": "D2",
+    "pfw": 118.78,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "BADEN Claire",
+    "kl": "D2",
+    "pfw": 118.74,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "SALENTINY Michèle",
+    "kl": "D1",
+    "pfw": 118.72,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "MOLLING Noémie",
+    "kl": "D1",
+    "pfw": 118.71,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "IRITIA MINO Romeo",
+    "kl": "D3",
+    "pfw": 118.53,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "MERTENS Randy",
+    "kl": "D3",
+    "pfw": 118.49,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "PEREIRA COSTA Ilan",
+    "kl": "D3",
+    "pfw": 118.46,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "SCHLESSER Gilles",
+    "kl": "D2",
+    "pfw": 118.33,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "COELHO DA SILVA Luis",
+    "kl": "D2",
+    "pfw": 118.33,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "KIM Deian",
+    "kl": "D2",
+    "pfw": 118.32,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "HENRY Corinne",
+    "kl": "D2",
+    "pfw": 118.32,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "SIEBENALLER Fränk",
+    "kl": "D1",
+    "pfw": 118.30,
+    "estimatedTtr": 1185
+  },
+  {
+    "name": "HOFFMANN Luca",
+    "kl": "D2",
+    "pfw": 118.26,
+    "estimatedTtr": 1184
+  },
+  {
+    "name": "STOFFELS Marc",
+    "kl": "D1",
+    "pfw": 118.21,
+    "estimatedTtr": 1184
+  },
+  {
+    "name": "BOSSI Lucas",
+    "kl": "D2",
+    "pfw": 118.16,
+    "estimatedTtr": 1184
+  },
+  {
+    "name": "SCHEECK Jo",
+    "kl": "D2",
+    "pfw": 118.13,
+    "estimatedTtr": 1184
+  },
+  {
+    "name": "TEIXEIRA DUARTE Gustavo",
+    "kl": "D2",
+    "pfw": 117.98,
+    "estimatedTtr": 1184
+  },
+  {
+    "name": "KOHLL Jeff",
+    "kl": "D2",
+    "pfw": 117.96,
+    "estimatedTtr": 1184
+  },
+  {
+    "name": "ALMEIDA Natalina",
+    "kl": "D1",
+    "pfw": 117.92,
+    "estimatedTtr": 1184
+  },
+  {
+    "name": "YU Yiyang",
+    "kl": "D2",
+    "pfw": 117.84,
+    "estimatedTtr": 1184
+  },
+  {
+    "name": "Gilis Erwan",
+    "kl": "D2",
+    "pfw": 117.70,
+    "estimatedTtr": 1184
+  },
+  {
+    "name": "XIONG Zijun",
+    "kl": "D1",
+    "pfw": 117.65,
+    "estimatedTtr": 1183
+  },
+  {
+    "name": "KOPS Lou",
+    "kl": "D2",
+    "pfw": 117.55,
+    "estimatedTtr": 1183
+  },
+  {
+    "name": "STRANGEMANN Vincent",
+    "kl": "D2",
+    "pfw": 117.34,
+    "estimatedTtr": 1183
+  },
+  {
+    "name": "HENGEN Philippe",
+    "kl": "D2",
+    "pfw": 117.27,
+    "estimatedTtr": 1183
+  },
+  {
+    "name": "JOVANOVIC Dimitrije",
+    "kl": "D3",
+    "pfw": 117.26,
+    "estimatedTtr": 1183
+  },
+  {
+    "name": "PEPIN Nico",
+    "kl": "D1",
+    "pfw": 117.16,
+    "estimatedTtr": 1183
+  },
+  {
+    "name": "ROZALES Egial",
+    "kl": "D2",
+    "pfw": 117.08,
+    "estimatedTtr": 1182
+  },
+  {
+    "name": "GOLLÈRE Nadine",
+    "kl": "D1",
+    "pfw": 117.02,
+    "estimatedTtr": 1182
+  },
+  {
+    "name": "DANTEC Pierre",
+    "kl": "D3",
+    "pfw": 116.99,
+    "estimatedTtr": 1182
+  },
+  {
+    "name": "OBERWEIS Jamie",
+    "kl": "D2",
+    "pfw": 116.89,
+    "estimatedTtr": 1182
+  },
+  {
+    "name": "HUHN Loris",
+    "kl": "D3",
+    "pfw": 116.88,
+    "estimatedTtr": 1182
+  },
+  {
+    "name": "PENOY Lucas",
+    "kl": "D1",
+    "pfw": 116.85,
+    "estimatedTtr": 1182
+  },
+  {
+    "name": "MACHIELS Olivier",
+    "kl": "D2",
+    "pfw": 116.78,
+    "estimatedTtr": 1182
+  },
+  {
+    "name": "LU Xingle",
+    "kl": "D2",
+    "pfw": 116.68,
+    "estimatedTtr": 1182
+  },
+  {
+    "name": "TABAN Raphaël",
+    "kl": "D2",
+    "pfw": 116.49,
+    "estimatedTtr": 1181
+  },
+  {
+    "name": "KREMER Cheyenne",
+    "kl": "D2",
+    "pfw": 116.37,
+    "estimatedTtr": 1181
+  },
+  {
+    "name": "HURSON Martin",
+    "kl": "D2",
+    "pfw": 116.32,
+    "estimatedTtr": 1181
+  },
+  {
+    "name": "CAZAMIR Iustin",
+    "kl": "D2",
+    "pfw": 116.21,
+    "estimatedTtr": 1181
+  },
+  {
+    "name": "KALMES Mia",
+    "kl": "D2",
+    "pfw": 116.13,
+    "estimatedTtr": 1181
+  },
+  {
+    "name": "POIRRIER Mex",
+    "kl": "D1",
+    "pfw": 115.96,
+    "estimatedTtr": 1181
+  },
+  {
+    "name": "KOENIG Charles",
+    "kl": "D1",
+    "pfw": 115.94,
+    "estimatedTtr": 1181
+  },
+  {
+    "name": "LEPIONKA Stéphane",
+    "kl": "D2",
+    "pfw": 115.65,
+    "estimatedTtr": 1180
+  },
+  {
+    "name": "IMBRU Adrian",
+    "kl": "D2",
+    "pfw": 115.55,
+    "estimatedTtr": 1180
+  },
+  {
+    "name": "RIES Yanik",
+    "kl": "D2",
+    "pfw": 115.47,
+    "estimatedTtr": 1180
+  },
+  {
+    "name": "SOLITO Alexandros",
+    "kl": "D3",
+    "pfw": 115.38,
+    "estimatedTtr": 1180
+  },
+  {
+    "name": "CONG Angel Hao",
+    "kl": "D2",
+    "pfw": 115.29,
+    "estimatedTtr": 1179
+  },
+  {
+    "name": "VASCO OLIVEIRA Matteo",
+    "kl": "D2",
+    "pfw": 115.21,
+    "estimatedTtr": 1179
+  },
+  {
+    "name": "ALYOUNES Joudy",
+    "kl": "D2",
+    "pfw": 114.96,
+    "estimatedTtr": 1179
+  },
+  {
+    "name": "MURALIDHARAN Anand",
+    "kl": "D3",
+    "pfw": 114.96,
+    "estimatedTtr": 1179
+  },
+  {
+    "name": "VILLON Mathéo",
+    "kl": "D2",
+    "pfw": 114.94,
+    "estimatedTtr": 1179
+  },
+  {
+    "name": "REDING Pauline",
+    "kl": "D1",
+    "pfw": 114.87,
+    "estimatedTtr": 1179
+  },
+  {
+    "name": "NARDAI Aron Peter",
+    "kl": "D2",
+    "pfw": 114.86,
+    "estimatedTtr": 1179
+  },
+  {
+    "name": "KOSTOHRYZ Loïc",
+    "kl": "D2",
+    "pfw": 114.81,
+    "estimatedTtr": 1179
+  },
+  {
+    "name": "GOURBIN LEMARIE Virgile",
+    "kl": "D2",
+    "pfw": 114.70,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "WOLFF Benoît",
+    "kl": "D2",
+    "pfw": 114.54,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "LOSCH Daan",
+    "kl": "D2",
+    "pfw": 114.47,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "MARQUES SAMPAIO Sam",
+    "kl": "D2",
+    "pfw": 114.46,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "TSCHÜRTZ Jörg",
+    "kl": "D3",
+    "pfw": 114.46,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "SCHUH Ben",
+    "kl": "D2",
+    "pfw": 114.43,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "MOECHER Annette",
+    "kl": "D1",
+    "pfw": 114.37,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "QUINTUS Jendrik",
+    "kl": "D2",
+    "pfw": 114.33,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "KUHN Simon",
+    "kl": "D2",
+    "pfw": 114.16,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "WOLFF BARTOLINI Jos",
+    "kl": "D3",
+    "pfw": 114.13,
+    "estimatedTtr": 1178
+  },
+  {
+    "name": "MEURIER Christophe",
+    "kl": "D2",
+    "pfw": 114.09,
+    "estimatedTtr": 1177
+  },
+  {
+    "name": "KWAWA Alan",
+    "kl": "D3",
+    "pfw": 113.80,
+    "estimatedTtr": 1177
+  },
+  {
+    "name": "Bastrev Luka",
+    "kl": "D3",
+    "pfw": 113.76,
+    "estimatedTtr": 1177
+  },
+  {
+    "name": "HOFFMANN Sven",
+    "kl": "D2",
+    "pfw": 113.71,
+    "estimatedTtr": 1177
+  },
+  {
+    "name": "SCHRIEBERG David",
+    "kl": "D2",
+    "pfw": 113.55,
+    "estimatedTtr": 1177
+  },
+  {
+    "name": "ARTEMOVA Margarita",
+    "kl": "D2",
+    "pfw": 113.53,
+    "estimatedTtr": 1177
+  },
+  {
+    "name": "GODART Pau",
+    "kl": "D3",
+    "pfw": 113.38,
+    "estimatedTtr": 1176
+  },
+  {
+    "name": "MOHR Jessica",
+    "kl": "D1",
+    "pfw": 113.13,
+    "estimatedTtr": 1176
+  },
+  {
+    "name": "WEBER Luca",
+    "kl": "D2",
+    "pfw": 112.98,
+    "estimatedTtr": 1176
+  },
+  {
+    "name": "THILTGEN Mathis",
+    "kl": "D3",
+    "pfw": 112.98,
+    "estimatedTtr": 1176
+  },
+  {
+    "name": "REDING Michel",
+    "kl": "D1",
+    "pfw": 112.90,
+    "estimatedTtr": 1175
+  },
+  {
+    "name": "THOMMES Myriam",
+    "kl": "D1",
+    "pfw": 112.69,
+    "estimatedTtr": 1175
+  },
+  {
+    "name": "PEDERSEN Rune Bach",
+    "kl": "D3",
+    "pfw": 112.57,
+    "estimatedTtr": 1175
+  },
+  {
+    "name": "GOERGEN Danielle",
+    "kl": "D1",
+    "pfw": 112.52,
+    "estimatedTtr": 1175
+  },
+  {
+    "name": "WÖMPNER Laure",
+    "kl": "D1",
+    "pfw": 112.47,
+    "estimatedTtr": 1175
+  },
+  {
+    "name": "TEUWEN Maksim",
+    "kl": "D3",
+    "pfw": 112.47,
+    "estimatedTtr": 1175
+  },
+  {
+    "name": "BOSSIO Dylan",
+    "kl": "D2",
+    "pfw": 112.39,
+    "estimatedTtr": 1175
+  },
+  {
+    "name": "CALLANGAN Ioannis Vince",
+    "kl": "D3",
+    "pfw": 112.36,
+    "estimatedTtr": 1175
+  },
+  {
+    "name": "LEONARDY Marc",
+    "kl": "D2",
+    "pfw": 112.31,
+    "estimatedTtr": 1174
+  },
+  {
+    "name": "NAGY Oskar",
+    "kl": "D1",
+    "pfw": 112.11,
+    "estimatedTtr": 1174
+  },
+  {
+    "name": "Vijups Daniels",
+    "kl": "D3",
+    "pfw": 112.11,
+    "estimatedTtr": 1174
+  },
+  {
+    "name": "THOMA Carole",
+    "kl": "D2",
+    "pfw": 111.75,
+    "estimatedTtr": 1174
+  },
+  {
+    "name": "SAKIK Mehmet",
+    "kl": "D2",
+    "pfw": 111.70,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "BORMANN SOARES Laila",
+    "kl": "D2",
+    "pfw": 111.69,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "GOMES DA CUNHA Salvador",
+    "kl": "D2",
+    "pfw": 111.69,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "HANSEN Yanis",
+    "kl": "D2",
+    "pfw": 111.64,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "GRÜN Lynn",
+    "kl": "D2",
+    "pfw": 111.57,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "KANEVSKIY Patrick",
+    "kl": "D3",
+    "pfw": 111.47,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "LOUTSCH Jang",
+    "kl": "D2",
+    "pfw": 111.45,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "MAJERUS Max",
+    "kl": "D2",
+    "pfw": 111.41,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "ENTENICH Noah",
+    "kl": "D2",
+    "pfw": 111.26,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "DUHR Mia Lucienne",
+    "kl": "D3",
+    "pfw": 111.22,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "ANDAY MERESIE Eldana",
+    "kl": "D2",
+    "pfw": 111.19,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "KLAESS Julie",
+    "kl": "D1",
+    "pfw": 111.18,
+    "estimatedTtr": 1173
+  },
+  {
+    "name": "SCHNEIDER Steve",
+    "kl": "D2",
+    "pfw": 111.04,
+    "estimatedTtr": 1172
+  },
+  {
+    "name": "PIRES Yannick",
+    "kl": "D2",
+    "pfw": 111.00,
+    "estimatedTtr": 1172
+  },
+  {
+    "name": "GROF Tim",
+    "kl": "D2",
+    "pfw": 110.92,
+    "estimatedTtr": 1172
+  },
+  {
+    "name": "ROSCH Max",
+    "kl": "D3",
+    "pfw": 110.90,
+    "estimatedTtr": 1172
+  },
+  {
+    "name": "CORREIA OLIVEIRA Matteo",
+    "kl": "D2",
+    "pfw": 110.86,
+    "estimatedTtr": 1172
+  },
+  {
+    "name": "JURCZYNSKI Maxime",
+    "kl": "D2",
+    "pfw": 110.46,
+    "estimatedTtr": 1171
+  },
+  {
+    "name": "LIU Yao",
+    "kl": "D2",
+    "pfw": 109.92,
+    "estimatedTtr": 1170
+  },
+  {
+    "name": "MAUS Marine",
+    "kl": "D2",
+    "pfw": 109.87,
+    "estimatedTtr": 1170
+  },
+  {
+    "name": "FRANTZEN Charel",
+    "kl": "D3",
+    "pfw": 109.86,
+    "estimatedTtr": 1170
+  },
+  {
+    "name": "OLIVEIRA SINTRA Inês",
+    "kl": "D2",
+    "pfw": 109.71,
+    "estimatedTtr": 1170
+  },
+  {
+    "name": "CIMIOTTI Luca",
+    "kl": "D3",
+    "pfw": 109.66,
+    "estimatedTtr": 1170
+  },
+  {
+    "name": "POIRRIER Sam",
+    "kl": "D2",
+    "pfw": 109.65,
+    "estimatedTtr": 1170
+  },
+  {
+    "name": "AZEVEDO PEREIRA Victoria",
+    "kl": "D3",
+    "pfw": 109.63,
+    "estimatedTtr": 1170
+  },
+  {
+    "name": "BOGDANI Arbi",
+    "kl": "D2",
+    "pfw": 109.59,
+    "estimatedTtr": 1170
+  },
+  {
+    "name": "DE LUPPE Achille",
+    "kl": "D3",
+    "pfw": 109.55,
+    "estimatedTtr": 1170
+  },
+  {
+    "name": "ALVES COMINOTTI Timeo",
+    "kl": "D3",
+    "pfw": 109.07,
+    "estimatedTtr": 1169
+  },
+  {
+    "name": "GIL GOMES Cédric",
+    "kl": "D2",
+    "pfw": 109.03,
+    "estimatedTtr": 1169
+  },
+  {
+    "name": "ENGBORK Maalik",
+    "kl": "D3",
+    "pfw": 108.87,
+    "estimatedTtr": 1169
+  },
+  {
+    "name": "GRABOWSKI Emil",
+    "kl": "D2",
+    "pfw": 108.85,
+    "estimatedTtr": 1169
+  },
+  {
+    "name": "CZYBULKA Falk",
+    "kl": "D2",
+    "pfw": 108.79,
+    "estimatedTtr": 1169
+  },
+  {
+    "name": "KÄHR Noémie",
+    "kl": "D2",
+    "pfw": 108.78,
+    "estimatedTtr": 1169
+  },
+  {
+    "name": "RASQUIN Dean",
+    "kl": "D2",
+    "pfw": 108.74,
+    "estimatedTtr": 1168
+  },
+  {
+    "name": "GOEDERT Nicole",
+    "kl": "D1",
+    "pfw": 108.70,
+    "estimatedTtr": 1168
+  },
+  {
+    "name": "SZYPROWSKI Dawid",
+    "kl": "D3",
+    "pfw": 108.67,
+    "estimatedTtr": 1168
+  },
+  {
+    "name": "GRAVIERE Vincent",
+    "kl": "D2",
+    "pfw": 108.35,
+    "estimatedTtr": 1168
+  },
+  {
+    "name": "KING Amalia",
+    "kl": "D2",
+    "pfw": 108.31,
+    "estimatedTtr": 1168
+  },
+  {
+    "name": "MANCONI Aïna",
+    "kl": "D2",
+    "pfw": 108.21,
+    "estimatedTtr": 1168
+  },
+  {
+    "name": "ZUKANOVIC Edita",
+    "kl": "D2",
+    "pfw": 108.21,
+    "estimatedTtr": 1168
+  },
+  {
+    "name": "ROSTER Luca",
+    "kl": "D2",
+    "pfw": 108.14,
+    "estimatedTtr": 1167
+  },
+  {
+    "name": "DIDERRICH Jo-Anne",
+    "kl": "D1",
+    "pfw": 108.07,
+    "estimatedTtr": 1167
+  },
+  {
+    "name": "BICA David",
+    "kl": "D3",
+    "pfw": 107.92,
+    "estimatedTtr": 1167
+  },
+  {
+    "name": "MIELCZAREK Simon",
+    "kl": "D3",
+    "pfw": 107.92,
+    "estimatedTtr": 1167
+  },
+  {
+    "name": "SOCHA SCHEULEN Charlie",
+    "kl": "D3",
+    "pfw": 107.88,
+    "estimatedTtr": 1167
+  },
+  {
+    "name": "TURINO Lorenzo",
+    "kl": "D3",
+    "pfw": 107.75,
+    "estimatedTtr": 1167
+  },
+  {
+    "name": "BACK Lisi",
+    "kl": "D2",
+    "pfw": 107.73,
+    "estimatedTtr": 1167
+  },
+  {
+    "name": "DUPUY Adryan",
+    "kl": "D2",
+    "pfw": 107.64,
+    "estimatedTtr": 1167
+  },
+  {
+    "name": "GROOS Nathalie",
+    "kl": "D1",
+    "pfw": 107.47,
+    "estimatedTtr": 1166
+  },
+  {
+    "name": "MORÉSSÉE Ingrid",
+    "kl": "D2",
+    "pfw": 107.45,
+    "estimatedTtr": 1166
+  },
+  {
+    "name": "HUSS Theo",
+    "kl": "D3",
+    "pfw": 107.41,
+    "estimatedTtr": 1166
+  },
+  {
+    "name": "BUCHLER Rick",
+    "kl": "D2",
+    "pfw": 107.23,
+    "estimatedTtr": 1166
+  },
+  {
+    "name": "MICHELS Nikolas",
+    "kl": "D3",
+    "pfw": 107.16,
+    "estimatedTtr": 1166
+  },
+  {
+    "name": "DEBUYS Maxance",
+    "kl": "D2",
+    "pfw": 107.08,
+    "estimatedTtr": 1166
+  },
+  {
+    "name": "FELMAN Theo",
+    "kl": "D3",
+    "pfw": 107.03,
+    "estimatedTtr": 1166
+  },
+  {
+    "name": "SCHUH Lex",
+    "kl": "D3",
+    "pfw": 106.98,
+    "estimatedTtr": 1166
+  },
+  {
+    "name": "VITALI Yan",
+    "kl": "D2",
+    "pfw": 106.95,
+    "estimatedTtr": 1165
+  },
+  {
+    "name": "RIES Steve",
+    "kl": "D1",
+    "pfw": 106.90,
+    "estimatedTtr": 1165
+  },
+  {
+    "name": "CUSTODERO Matteo",
+    "kl": "D3",
+    "pfw": 106.90,
+    "estimatedTtr": 1165
+  },
+  {
+    "name": "NAZAROV Oleksii",
+    "kl": "D2",
+    "pfw": 106.85,
+    "estimatedTtr": 1165
+  },
+  {
+    "name": "MONTEVECCHI Pietro Aurelio",
+    "kl": "D3",
+    "pfw": 106.84,
+    "estimatedTtr": 1165
+  },
+  {
+    "name": "GILIS Loïk",
+    "kl": "D2",
+    "pfw": 106.64,
+    "estimatedTtr": 1165
+  },
+  {
+    "name": "ROCCHIO Leano",
+    "kl": "D3",
+    "pfw": 106.62,
+    "estimatedTtr": 1165
+  },
+  {
+    "name": "WAGNER Morgan",
+    "kl": "D3",
+    "pfw": 106.49,
+    "estimatedTtr": 1165
+  },
+  {
+    "name": "HILBERT Guy",
+    "kl": "D2",
+    "pfw": 106.43,
+    "estimatedTtr": 1165
+  },
+  {
+    "name": "HEINEN Alexandra",
+    "kl": "D2",
+    "pfw": 105.86,
+    "estimatedTtr": 1164
+  },
+  {
+    "name": "BAUSCHLEID Sam",
+    "kl": "D3",
+    "pfw": 105.72,
+    "estimatedTtr": 1163
+  },
+  {
+    "name": "MULLER Anne",
+    "kl": "D2",
+    "pfw": 105.40,
+    "estimatedTtr": 1163
+  },
+  {
+    "name": "PEDREGOSA OLMEDO Alejandro",
+    "kl": "D2",
+    "pfw": 105.32,
+    "estimatedTtr": 1163
+  },
+  {
+    "name": "PORNET Eric",
+    "kl": "D1",
+    "pfw": 105.26,
+    "estimatedTtr": 1163
+  },
+  {
+    "name": "MULLER Ben",
+    "kl": "D2",
+    "pfw": 105.24,
+    "estimatedTtr": 1163
+  },
+  {
+    "name": "HEMMER Pit",
+    "kl": "D2",
+    "pfw": 105.21,
+    "estimatedTtr": 1163
+  },
+  {
+    "name": "TAYLOR Kaiden",
+    "kl": "D2",
+    "pfw": 105.20,
+    "estimatedTtr": 1163
+  },
+  {
+    "name": "BREGER Louis",
+    "kl": "D2",
+    "pfw": 105.17,
+    "estimatedTtr": 1163
+  },
+  {
+    "name": "BRAQUET Valerie",
+    "kl": "D2",
+    "pfw": 105.04,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "LARSSON KRAUS Joakim",
+    "kl": "D3",
+    "pfw": 104.96,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "IRITIA MINO Robin",
+    "kl": "D3",
+    "pfw": 104.93,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "FERNANDES ALVES Leandro",
+    "kl": "D2",
+    "pfw": 104.91,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "KUZMANOV Borislav",
+    "kl": "D3",
+    "pfw": 104.89,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "COELHO Alexandre",
+    "kl": "D2",
+    "pfw": 104.82,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "FERNANDEZ Liam",
+    "kl": "D3",
+    "pfw": 104.81,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "LEE Hannah",
+    "kl": "D2",
+    "pfw": 104.77,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "JADE Maryvonne",
+    "kl": "D2",
+    "pfw": 104.73,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "ZIVOTIC Matija",
+    "kl": "D3",
+    "pfw": 104.62,
+    "estimatedTtr": 1162
+  },
+  {
+    "name": "HENDRIKS Jo",
+    "kl": "D3",
+    "pfw": 104.46,
+    "estimatedTtr": 1161
+  },
+  {
+    "name": "RENCKENS Fabienne",
+    "kl": "D2",
+    "pfw": 104.35,
+    "estimatedTtr": 1161
+  },
+  {
+    "name": "SCHWEIGEN Marie",
+    "kl": "D3",
+    "pfw": 104.14,
+    "estimatedTtr": 1161
+  },
+  {
+    "name": "ROULLING Joel",
+    "kl": "D2",
+    "pfw": 104.13,
+    "estimatedTtr": 1161
+  },
+  {
+    "name": "Jra Soolaiman",
+    "kl": "D3",
+    "pfw": 104.09,
+    "estimatedTtr": 1161
+  },
+  {
+    "name": "GOMES RODRIGUES Leticia",
+    "kl": "D3",
+    "pfw": 104.04,
+    "estimatedTtr": 1161
+  },
+  {
+    "name": "TELEN Roger",
+    "kl": "D2",
+    "pfw": 103.98,
+    "estimatedTtr": 1161
+  },
+  {
+    "name": "QUINTUS Maxima",
+    "kl": "D2",
+    "pfw": 103.97,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "MOHR Sally",
+    "kl": "D1",
+    "pfw": 103.92,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "JOSHI Leo",
+    "kl": "D3",
+    "pfw": 103.90,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "Schmidt Philip",
+    "kl": "D3",
+    "pfw": 103.86,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "FEIERSTEIN Jamie",
+    "kl": "D2",
+    "pfw": 103.85,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "SCHVALLER Théo",
+    "kl": "D2",
+    "pfw": 103.80,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "ZUO Sixian",
+    "kl": "D2",
+    "pfw": 103.80,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "BLANC MENDES Diogo",
+    "kl": "D2",
+    "pfw": 103.71,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "HILBERT Henri",
+    "kl": "D1",
+    "pfw": 103.67,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "KRAUSPENHAAR Gabriel",
+    "kl": "D2",
+    "pfw": 103.59,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "HAO Yanfei",
+    "kl": "D2",
+    "pfw": 103.53,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "JENTGEN Ben Khounakone",
+    "kl": "D2",
+    "pfw": 103.41,
+    "estimatedTtr": 1160
+  },
+  {
+    "name": "KLIDJO Georges Laël",
+    "kl": "D2",
+    "pfw": 103.36,
+    "estimatedTtr": 1159
+  },
+  {
+    "name": "HELLERS Nick",
+    "kl": "D2",
+    "pfw": 103.30,
+    "estimatedTtr": 1159
+  },
+  {
+    "name": "BRAUN Julie",
+    "kl": "D3",
+    "pfw": 103.18,
+    "estimatedTtr": 1159
+  },
+  {
+    "name": "FLICK Gaston",
+    "kl": "D2",
+    "pfw": 103.10,
+    "estimatedTtr": 1159
+  },
+  {
+    "name": "GOUBA Eliana",
+    "kl": "D2",
+    "pfw": 103.07,
+    "estimatedTtr": 1159
+  },
+  {
+    "name": "MARTINUZZI Andrea",
+    "kl": "D3",
+    "pfw": 103.05,
+    "estimatedTtr": 1159
+  },
+  {
+    "name": "MENTGEN Mill",
+    "kl": "D2",
+    "pfw": 103.01,
+    "estimatedTtr": 1159
+  },
+  {
+    "name": "ZERVAS Alexandre",
+    "kl": "D3",
+    "pfw": 103.00,
+    "estimatedTtr": 1159
+  },
+  {
+    "name": "LAMBERTY Leonie",
+    "kl": "D3",
+    "pfw": 102.90,
+    "estimatedTtr": 1159
+  },
+  {
+    "name": "SOLDAN Lucia",
+    "kl": "D2",
+    "pfw": 102.78,
+    "estimatedTtr": 1158
+  },
+  {
+    "name": "Sabo Leo",
+    "kl": "D3",
+    "pfw": 102.78,
+    "estimatedTtr": 1158
+  },
+  {
+    "name": "IACOMI Alin-George",
+    "kl": "D2",
+    "pfw": 102.75,
+    "estimatedTtr": 1158
+  },
+  {
+    "name": "SCHAMINÉ Tristan",
+    "kl": "D3",
+    "pfw": 102.66,
+    "estimatedTtr": 1158
+  },
+  {
+    "name": "BERTANIER Tadéo",
+    "kl": "D2",
+    "pfw": 102.61,
+    "estimatedTtr": 1158
+  },
+  {
+    "name": "THINES Tom",
+    "kl": "D2",
+    "pfw": 102.56,
+    "estimatedTtr": 1158
+  },
+  {
+    "name": "SIMON Marie",
+    "kl": "D2",
+    "pfw": 102.55,
+    "estimatedTtr": 1158
+  },
+  {
+    "name": "DA SILVA RIES Isabelle",
+    "kl": "D2",
+    "pfw": 102.28,
+    "estimatedTtr": 1158
+  },
+  {
+    "name": "MAJERUS Mara",
+    "kl": "D2",
+    "pfw": 102.15,
+    "estimatedTtr": 1157
+  },
+  {
+    "name": "KARTHEISER Max",
+    "kl": "D3",
+    "pfw": 101.83,
+    "estimatedTtr": 1157
+  },
+  {
+    "name": "SCHWEIGEN Pol",
+    "kl": "D3",
+    "pfw": 101.82,
+    "estimatedTtr": 1157
+  },
+  {
+    "name": "ELSEN Christiane",
+    "kl": "D2",
+    "pfw": 101.80,
+    "estimatedTtr": 1157
+  },
+  {
+    "name": "VAN MIERLO Edwin",
+    "kl": "D2",
+    "pfw": 101.69,
+    "estimatedTtr": 1157
+  },
+  {
+    "name": "WAMPACH Fynn",
+    "kl": "D2",
+    "pfw": 101.69,
+    "estimatedTtr": 1157
+  },
+  {
+    "name": "PIRAQUIVE Andrés",
+    "kl": "D2",
+    "pfw": 101.60,
+    "estimatedTtr": 1157
+  },
+  {
+    "name": "BIVER Lena",
+    "kl": "D1",
+    "pfw": 101.59,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "ROCA GOMEZ Gerard",
+    "kl": "D3",
+    "pfw": 101.55,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "DANA Eytan",
+    "kl": "D3",
+    "pfw": 101.51,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "BODRY Lars",
+    "kl": "D3",
+    "pfw": 101.46,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "DONCEEL Georges",
+    "kl": "D3",
+    "pfw": 101.44,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "HOLZHEIMER Rose",
+    "kl": "D2",
+    "pfw": 101.41,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "SILVA RODRIGUES Lucas",
+    "kl": "D3",
+    "pfw": 101.40,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "SANSI SIMO Eva-Light",
+    "kl": "D3",
+    "pfw": 101.39,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "PONTINHA MOURA Brian",
+    "kl": "D1",
+    "pfw": 101.27,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "MAURYA Vrihan",
+    "kl": "D3",
+    "pfw": 101.27,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "WEBER Mike",
+    "kl": "D2",
+    "pfw": 101.14,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "SANTOMAURO Lena",
+    "kl": "D2",
+    "pfw": 101.00,
+    "estimatedTtr": 1156
+  },
+  {
+    "name": "BELLO RODRIGUEZ Adrian",
+    "kl": "D2",
+    "pfw": 100.90,
+    "estimatedTtr": 1155
+  },
+  {
+    "name": "Montealegre Nicolas",
+    "kl": "D3",
+    "pfw": 100.75,
+    "estimatedTtr": 1155
+  },
+  {
+    "name": "BOSSI Célian",
+    "kl": "D2",
+    "pfw": 100.71,
+    "estimatedTtr": 1155
+  },
+  {
+    "name": "DA GRACA MONTEIRO Giulian",
+    "kl": "D3",
+    "pfw": 100.62,
+    "estimatedTtr": 1155
+  },
+  {
+    "name": "Turping Alex",
+    "kl": "D3",
+    "pfw": 100.57,
+    "estimatedTtr": 1155
+  },
+  {
+    "name": "BOCCI Antoine",
+    "kl": "D3",
+    "pfw": 100.56,
+    "estimatedTtr": 1155
+  },
+  {
+    "name": "HOFFMANN Fynn",
+    "kl": "D3",
+    "pfw": 100.55,
+    "estimatedTtr": 1155
+  },
+  {
+    "name": "SILVA DA CRUZ Adriano",
+    "kl": "D3",
+    "pfw": 100.27,
+    "estimatedTtr": 1154
+  },
+  {
+    "name": "CORREIA LOPES Cédric",
+    "kl": "D2",
+    "pfw": 99.90,
+    "estimatedTtr": 1154
+  },
+  {
+    "name": "GRECK Viktor",
+    "kl": "D3",
+    "pfw": 99.85,
+    "estimatedTtr": 1154
+  },
+  {
+    "name": "ESCHENBRENNER Lucas",
+    "kl": "D3",
+    "pfw": 99.85,
+    "estimatedTtr": 1154
+  },
+  {
+    "name": "OMAHEN Alex",
+    "kl": "D3",
+    "pfw": 99.72,
+    "estimatedTtr": 1153
+  },
+  {
+    "name": "OSMANAJ Kleit",
+    "kl": "D2",
+    "pfw": 99.71,
+    "estimatedTtr": 1153
+  },
+  {
+    "name": "Schmitz Felix",
+    "kl": "D3",
+    "pfw": 99.67,
+    "estimatedTtr": 1153
+  },
+  {
+    "name": "RAUSCH Luca",
+    "kl": "D2",
+    "pfw": 99.53,
+    "estimatedTtr": 1153
+  },
+  {
+    "name": "BOSSER SABATHER Timothee",
+    "kl": "D3",
+    "pfw": 99.28,
+    "estimatedTtr": 1153
+  },
+  {
+    "name": "LARIDANT Lisa",
+    "kl": "D3",
+    "pfw": 99.05,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "MOK STEPHANOV Chuck Long",
+    "kl": "D2",
+    "pfw": 98.94,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "STUDER Thomas",
+    "kl": "D3",
+    "pfw": 98.92,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "VORNICESCU Diana",
+    "kl": "D2",
+    "pfw": 98.87,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "PARADA Levi",
+    "kl": "D3",
+    "pfw": 98.87,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "LEY Xavier",
+    "kl": "D3",
+    "pfw": 98.85,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "MEYERS Leo",
+    "kl": "D3",
+    "pfw": 98.79,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "BINTNER Sonja",
+    "kl": "D2",
+    "pfw": 98.66,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "HELLENBRAND Lynn",
+    "kl": "D2",
+    "pfw": 98.63,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "MAIRE Eliott",
+    "kl": "D3",
+    "pfw": 98.62,
+    "estimatedTtr": 1152
+  },
+  {
+    "name": "PAUL Anastasia",
+    "kl": "D2",
+    "pfw": 98.42,
+    "estimatedTtr": 1151
+  },
+  {
+    "name": "REUTER Bob",
+    "kl": "D2",
+    "pfw": 98.39,
+    "estimatedTtr": 1151
+  },
+  {
+    "name": "KOSTIANIKOV Luka",
+    "kl": "D3",
+    "pfw": 98.21,
+    "estimatedTtr": 1151
+  },
+  {
+    "name": "BAUM Yannick",
+    "kl": "D2",
+    "pfw": 98.17,
+    "estimatedTtr": 1151
+  },
+  {
+    "name": "NOLL Manu",
+    "kl": "D2",
+    "pfw": 98.17,
+    "estimatedTtr": 1151
+  },
+  {
+    "name": "HUSS Nicolas",
+    "kl": "D3",
+    "pfw": 98.15,
+    "estimatedTtr": 1151
+  },
+  {
+    "name": "TREMUTH Lou",
+    "kl": "D3",
+    "pfw": 98.11,
+    "estimatedTtr": 1151
+  },
+  {
+    "name": "RASSEL Felix",
+    "kl": "D3",
+    "pfw": 97.87,
+    "estimatedTtr": 1150
+  },
+  {
+    "name": "DUVAL Alicia",
+    "kl": "D3",
+    "pfw": 97.66,
+    "estimatedTtr": 1150
+  },
+  {
+    "name": "ZIMMER Lottie",
+    "kl": "D2",
+    "pfw": 97.60,
+    "estimatedTtr": 1150
+  },
+  {
+    "name": "LEROY Marie-Hélène",
+    "kl": "D2",
+    "pfw": 97.30,
+    "estimatedTtr": 1149
+  },
+  {
+    "name": "KUHN Filip",
+    "kl": "D2",
+    "pfw": 97.30,
+    "estimatedTtr": 1149
+  },
+  {
+    "name": "DANTEC Louis",
+    "kl": "D3",
+    "pfw": 97.23,
+    "estimatedTtr": 1149
+  },
+  {
+    "name": "MICHAELIS Fernand",
+    "kl": "D2",
+    "pfw": 97.12,
+    "estimatedTtr": 1149
+  },
+  {
+    "name": "TABAN Guillaume",
+    "kl": "D2",
+    "pfw": 96.98,
+    "estimatedTtr": 1149
+  },
+  {
+    "name": "LEE Raphael",
+    "kl": "D3",
+    "pfw": 96.91,
+    "estimatedTtr": 1149
+  },
+  {
+    "name": "RUIJZENDAAL Colin",
+    "kl": "D3",
+    "pfw": 96.90,
+    "estimatedTtr": 1149
+  },
+  {
+    "name": "SEHIC Ajdin",
+    "kl": "D1",
+    "pfw": 96.88,
+    "estimatedTtr": 1149
+  },
+  {
+    "name": "LAMBINET Hannah",
+    "kl": "D2",
+    "pfw": 96.85,
+    "estimatedTtr": 1149
+  },
+  {
+    "name": "LOUREIRO Moorea",
+    "kl": "D3",
+    "pfw": 96.79,
+    "estimatedTtr": 1148
+  },
+  {
+    "name": "GODINHO Louis",
+    "kl": "D3",
+    "pfw": 96.76,
+    "estimatedTtr": 1148
+  },
+  {
+    "name": "WERNER Benedikt",
+    "kl": "D3",
+    "pfw": 96.71,
+    "estimatedTtr": 1148
+  },
+  {
+    "name": "ALVES RODRIGUES Mathys",
+    "kl": "D3",
+    "pfw": 96.65,
+    "estimatedTtr": 1148
+  },
+  {
+    "name": "WELTER Lex",
+    "kl": "D3",
+    "pfw": 96.64,
+    "estimatedTtr": 1148
+  },
+  {
+    "name": "BOONEN Louis",
+    "kl": "D3",
+    "pfw": 96.59,
+    "estimatedTtr": 1148
+  },
+  {
+    "name": "HOOGENHOUT Noémie",
+    "kl": "D2",
+    "pfw": 96.43,
+    "estimatedTtr": 1148
+  },
+  {
+    "name": "VAN ZIJL Henrik",
+    "kl": "D2",
+    "pfw": 96.29,
+    "estimatedTtr": 1148
+  },
+  {
+    "name": "FRANCK Jean-Luc",
+    "kl": "D2",
+    "pfw": 96.20,
+    "estimatedTtr": 1147
+  },
+  {
+    "name": "HEMMER Rick",
+    "kl": "D3",
+    "pfw": 96.16,
+    "estimatedTtr": 1147
+  },
+  {
+    "name": "SCHONS Nicolas",
+    "kl": "D2",
+    "pfw": 96.07,
+    "estimatedTtr": 1147
+  },
+  {
+    "name": "RIES Alex",
+    "kl": "D3",
+    "pfw": 96.05,
+    "estimatedTtr": 1147
+  },
+  {
+    "name": "BOUDART Hugo",
+    "kl": "D2",
+    "pfw": 95.86,
+    "estimatedTtr": 1147
+  },
+  {
+    "name": "BRAUN Nick",
+    "kl": "D3",
+    "pfw": 95.83,
+    "estimatedTtr": 1147
+  },
+  {
+    "name": "Steinmetz Philippe",
+    "kl": "D2",
+    "pfw": 95.76,
+    "estimatedTtr": 1147
+  },
+  {
+    "name": "BIANCO Giovanni",
+    "kl": "D2",
+    "pfw": 95.70,
+    "estimatedTtr": 1147
+  },
+  {
+    "name": "SILVA Fabiano",
+    "kl": "D3",
+    "pfw": 95.36,
+    "estimatedTtr": 1146
+  },
+  {
+    "name": "LAROSCH Sheila",
+    "kl": "D1",
+    "pfw": 95.27,
+    "estimatedTtr": 1146
+  },
+  {
+    "name": "KOEHLER Tom",
+    "kl": "D3",
+    "pfw": 94.98,
+    "estimatedTtr": 1145
+  },
+  {
+    "name": "MARQUES COELHO Aaron",
+    "kl": "D3",
+    "pfw": 94.97,
+    "estimatedTtr": 1145
+  },
+  {
+    "name": "MARCELINO Maxime",
+    "kl": "D3",
+    "pfw": 94.83,
+    "estimatedTtr": 1145
+  },
+  {
+    "name": "HUPPERT Shirin",
+    "kl": "D2",
+    "pfw": 94.76,
+    "estimatedTtr": 1145
+  },
+  {
+    "name": "KRAUS Lucie",
+    "kl": "D3",
+    "pfw": 94.67,
+    "estimatedTtr": 1145
+  },
+  {
+    "name": "FARENZENA Lio",
+    "kl": "D3",
+    "pfw": 94.64,
+    "estimatedTtr": 1145
+  },
+  {
+    "name": "LOUTSCH Léini",
+    "kl": "D2",
+    "pfw": 94.61,
+    "estimatedTtr": 1145
+  },
+  {
+    "name": "SCHNEIDER Theo",
+    "kl": "D3",
+    "pfw": 94.48,
+    "estimatedTtr": 1145
+  },
+  {
+    "name": "D'Eliso Giada",
+    "kl": "D3",
+    "pfw": 94.39,
+    "estimatedTtr": 1144
+  },
+  {
+    "name": "LAUX Nicolas",
+    "kl": "D3",
+    "pfw": 94.38,
+    "estimatedTtr": 1144
+  },
+  {
+    "name": "AYDIN Mehmet",
+    "kl": "D3",
+    "pfw": 93.94,
+    "estimatedTtr": 1144
+  },
+  {
+    "name": "BECK Lisa-Marie",
+    "kl": "D3",
+    "pfw": 93.92,
+    "estimatedTtr": 1144
+  },
+  {
+    "name": "BUTTINI Christian",
+    "kl": "D2",
+    "pfw": 93.81,
+    "estimatedTtr": 1143
+  },
+  {
+    "name": "FROMENT-MEURICE Arthur",
+    "kl": "D3",
+    "pfw": 93.75,
+    "estimatedTtr": 1143
+  },
+  {
+    "name": "FABER SIMON Abigail",
+    "kl": "D3",
+    "pfw": 93.73,
+    "estimatedTtr": 1143
+  },
+  {
+    "name": "GALLO Jean-Paul",
+    "kl": "D2",
+    "pfw": 93.72,
+    "estimatedTtr": 1143
+  },
+  {
+    "name": "PINTO Kim",
+    "kl": "D2",
+    "pfw": 93.69,
+    "estimatedTtr": 1143
+  },
+  {
+    "name": "NAZAROVA Anna",
+    "kl": "D3",
+    "pfw": 93.68,
+    "estimatedTtr": 1143
+  },
+  {
+    "name": "DULIK Mia",
+    "kl": "D3",
+    "pfw": 93.12,
+    "estimatedTtr": 1142
+  },
+  {
+    "name": "BAST Stella",
+    "kl": "D3",
+    "pfw": 92.99,
+    "estimatedTtr": 1142
+  },
+  {
+    "name": "KONTZ Jason",
+    "kl": "D3",
+    "pfw": 92.97,
+    "estimatedTtr": 1142
+  },
+  {
+    "name": "HALSDORF Norbert",
+    "kl": "D2",
+    "pfw": 92.92,
+    "estimatedTtr": 1142
+  },
+  {
+    "name": "PELLIN Mathis",
+    "kl": "D3",
+    "pfw": 92.60,
+    "estimatedTtr": 1141
+  },
+  {
+    "name": "DROCCO Federico",
+    "kl": "D3",
+    "pfw": 92.56,
+    "estimatedTtr": 1141
+  },
+  {
+    "name": "LOVRITS Tibor",
+    "kl": "D3",
+    "pfw": 92.56,
+    "estimatedTtr": 1141
+  },
+  {
+    "name": "PETIT Zoé",
+    "kl": "D3",
+    "pfw": 92.51,
+    "estimatedTtr": 1141
+  },
+  {
+    "name": "Melnick Adam",
+    "kl": "D3",
+    "pfw": 92.50,
+    "estimatedTtr": 1141
+  },
+  {
+    "name": "FRISCH Noémie",
+    "kl": "D3",
+    "pfw": 92.37,
+    "estimatedTtr": 1141
+  },
+  {
+    "name": "NICKS Nell",
+    "kl": "D2",
+    "pfw": 92.01,
+    "estimatedTtr": 1140
+  },
+  {
+    "name": "COMPARETTO Jimmy",
+    "kl": "D3",
+    "pfw": 91.91,
+    "estimatedTtr": 1140
+  },
+  {
+    "name": "MANCONI Emma",
+    "kl": "D3",
+    "pfw": 91.84,
+    "estimatedTtr": 1140
+  },
+  {
+    "name": "HANNIBAL André",
+    "kl": "D2",
+    "pfw": 91.82,
+    "estimatedTtr": 1140
+  },
+  {
+    "name": "Van der Weken Pol",
+    "kl": "D3",
+    "pfw": 91.61,
+    "estimatedTtr": 1140
+  },
+  {
+    "name": "DANTAS DUARTE Fábio",
+    "kl": "D2",
+    "pfw": 91.56,
+    "estimatedTtr": 1140
+  },
+  {
+    "name": "SANTOMAURO Sophie",
+    "kl": "D3",
+    "pfw": 91.52,
+    "estimatedTtr": 1140
+  },
+  {
+    "name": "PRZYBYLSKI Robert",
+    "kl": "D3",
+    "pfw": 91.51,
+    "estimatedTtr": 1140
+  },
+  {
+    "name": "CHARRIER Cécile",
+    "kl": "D3",
+    "pfw": 91.32,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "BRAZ Elio",
+    "kl": "D3",
+    "pfw": 91.26,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "SCHILTZ Camille",
+    "kl": "D3",
+    "pfw": 91.09,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "MOLLING Ralph",
+    "kl": "D3",
+    "pfw": 91.06,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "JENTGEN Leo Aditya",
+    "kl": "D3",
+    "pfw": 90.95,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "LABAT Arthur",
+    "kl": "D3",
+    "pfw": 90.95,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "SCHMITZ Vincent",
+    "kl": "D3",
+    "pfw": 90.94,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "MANOGARAN Arun Prasath",
+    "kl": "D2",
+    "pfw": 90.90,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "BALINT Estella",
+    "kl": "D3",
+    "pfw": 90.89,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "WAGNER-PETIT Leon",
+    "kl": "D3",
+    "pfw": 90.87,
+    "estimatedTtr": 1139
+  },
+  {
+    "name": "DIAS DA SILVA Celestino",
+    "kl": "D2",
+    "pfw": 90.83,
+    "estimatedTtr": 1138
+  },
+  {
+    "name": "ENGBORK Milo",
+    "kl": "D3",
+    "pfw": 90.83,
+    "estimatedTtr": 1138
+  },
+  {
+    "name": "LAUER Yonah",
+    "kl": "D3",
+    "pfw": 90.80,
+    "estimatedTtr": 1138
+  },
+  {
+    "name": "SINNER Leo",
+    "kl": "D3",
+    "pfw": 90.68,
+    "estimatedTtr": 1138
+  },
+  {
+    "name": "KASS Leo",
+    "kl": "D3",
+    "pfw": 90.48,
+    "estimatedTtr": 1138
+  },
+  {
+    "name": "ASSEN Jim",
+    "kl": "D2",
+    "pfw": 90.28,
+    "estimatedTtr": 1138
+  },
+  {
+    "name": "SCHOTT Laury",
+    "kl": "D3",
+    "pfw": 90.10,
+    "estimatedTtr": 1137
+  },
+  {
+    "name": "WEBER Pit",
+    "kl": "D3",
+    "pfw": 89.96,
+    "estimatedTtr": 1137
+  },
+  {
+    "name": "HO Athan",
+    "kl": "D3",
+    "pfw": 89.95,
+    "estimatedTtr": 1137
+  },
+  {
+    "name": "CERQUEIRA DE SOUSA Raphael",
+    "kl": "D3",
+    "pfw": 89.89,
+    "estimatedTtr": 1137
+  },
+  {
+    "name": "GÁSPÁR Dávid",
+    "kl": "D3",
+    "pfw": 89.86,
+    "estimatedTtr": 1137
+  },
+  {
+    "name": "HEUSBOURG Pol",
+    "kl": "D3",
+    "pfw": 89.81,
+    "estimatedTtr": 1137
+  },
+  {
+    "name": "WANDERSCHEID Noé",
+    "kl": "D3",
+    "pfw": 89.42,
+    "estimatedTtr": 1136
+  },
+  {
+    "name": "SCHROEDER Dan",
+    "kl": "D3",
+    "pfw": 89.40,
+    "estimatedTtr": 1136
+  },
+  {
+    "name": "PESCH Oscar",
+    "kl": "D3",
+    "pfw": 89.22,
+    "estimatedTtr": 1136
+  },
+  {
+    "name": "KOTOWICZ Louis",
+    "kl": "D3",
+    "pfw": 89.09,
+    "estimatedTtr": 1136
+  },
+  {
+    "name": "GOMES Lenny",
+    "kl": "D3",
+    "pfw": 88.91,
+    "estimatedTtr": 1135
+  },
+  {
+    "name": "CONG Zhaoping",
+    "kl": "D3",
+    "pfw": 88.34,
+    "estimatedTtr": 1134
+  },
+  {
+    "name": "MARÉCHAL Alice",
+    "kl": "D3",
+    "pfw": 88.24,
+    "estimatedTtr": 1134
+  },
+  {
+    "name": "HERR RYCKELYNCK Martin",
+    "kl": "D3",
+    "pfw": 88.00,
+    "estimatedTtr": 1134
+  },
+  {
+    "name": "YU Shaoyu",
+    "kl": "D2",
+    "pfw": 87.82,
+    "estimatedTtr": 1133
+  },
+  {
+    "name": "BRAUN Christian",
+    "kl": "D3",
+    "pfw": 87.53,
+    "estimatedTtr": 1133
+  },
+  {
+    "name": "BAYONNOVE Max",
+    "kl": "D3",
+    "pfw": 87.49,
+    "estimatedTtr": 1133
+  },
+  {
+    "name": "FRITSCH Milo",
+    "kl": "D3",
+    "pfw": 87.33,
+    "estimatedTtr": 1133
+  },
+  {
+    "name": "PEIFFER Mil",
+    "kl": "D3",
+    "pfw": 86.98,
+    "estimatedTtr": 1132
+  },
+  {
+    "name": "FABER Flynn",
+    "kl": "D3",
+    "pfw": 86.42,
+    "estimatedTtr": 1131
+  },
+  {
+    "name": "FELTEN Tania",
+    "kl": "D2",
+    "pfw": 86.16,
+    "estimatedTtr": 1131
+  },
+  {
+    "name": "THINNES WAGENER Sharon",
+    "kl": "D3",
+    "pfw": 85.97,
+    "estimatedTtr": 1130
+  },
+  {
+    "name": "BUTTINI Laurent",
+    "kl": "D3",
+    "pfw": 85.51,
+    "estimatedTtr": 1130
+  },
+  {
+    "name": "URBANO Enzo",
+    "kl": "D3",
+    "pfw": 85.34,
+    "estimatedTtr": 1129
+  },
+  {
+    "name": "MACHADO Leana",
+    "kl": "D3",
+    "pfw": 85.19,
+    "estimatedTtr": 1129
+  },
+  {
+    "name": "Thill Leo Georges",
+    "kl": "D3",
+    "pfw": 85.13,
+    "estimatedTtr": 1129
+  },
+  {
+    "name": "BAST Joy",
+    "kl": "D3",
+    "pfw": 84.76,
+    "estimatedTtr": 1128
+  },
+  {
+    "name": "BOUR Alain",
+    "kl": "D2",
+    "pfw": 84.70,
+    "estimatedTtr": 1128
+  },
+  {
+    "name": "KOLODZIEJ JONAS Liam",
+    "kl": "D3",
+    "pfw": 84.67,
+    "estimatedTtr": 1128
+  },
+  {
+    "name": "MOK STEPHANOV Wai Hong",
+    "kl": "D2",
+    "pfw": 84.62,
+    "estimatedTtr": 1128
+  },
+  {
+    "name": "SCHMITZ Enzo",
+    "kl": "D3",
+    "pfw": 84.59,
+    "estimatedTtr": 1128
+  },
+  {
+    "name": "SCHWEIGEN Pit",
+    "kl": "D3",
+    "pfw": 84.36,
+    "estimatedTtr": 1128
+  },
+  {
+    "name": "WEIS Mads",
+    "kl": "D3",
+    "pfw": 84.10,
+    "estimatedTtr": 1127
+  },
+  {
+    "name": "AREND Jan",
+    "kl": "D3",
+    "pfw": 83.86,
+    "estimatedTtr": 1127
+  },
+  {
+    "name": "KIEFFER Luka",
+    "kl": "D3",
+    "pfw": 83.80,
+    "estimatedTtr": 1127
+  },
+  {
+    "name": "Closter Anekin",
+    "kl": "D3",
+    "pfw": 83.73,
+    "estimatedTtr": 1127
+  },
+  {
+    "name": "BAYONNOVE Tom",
+    "kl": "D3",
+    "pfw": 83.62,
+    "estimatedTtr": 1126
+  },
+  {
+    "name": "SINNER Félix",
+    "kl": "D3",
+    "pfw": 83.54,
+    "estimatedTtr": 1126
+  },
+  {
+    "name": "Tombul Aras",
+    "kl": "D3",
+    "pfw": 83.54,
+    "estimatedTtr": 1126
+  },
+  {
+    "name": "ARYE Itay",
+    "kl": "D3",
+    "pfw": 82.88,
+    "estimatedTtr": 1125
+  },
+  {
+    "name": "PEZ Marco",
+    "kl": "D3",
+    "pfw": 82.71,
+    "estimatedTtr": 1125
+  },
+  {
+    "name": "CIOBANU Lucas",
+    "kl": "D3",
+    "pfw": 82.70,
+    "estimatedTtr": 1125
+  },
+  {
+    "name": "HEIDERSCHEID Lou",
+    "kl": "D3",
+    "pfw": 82.67,
+    "estimatedTtr": 1125
+  },
+  {
+    "name": "DE AZEVEDO GONCALVES Maylie",
+    "kl": "D3",
+    "pfw": 82.43,
+    "estimatedTtr": 1124
+  },
+  {
+    "name": "SCHARRENBROICH Moritz",
+    "kl": "D3",
+    "pfw": 82.03,
+    "estimatedTtr": 1124
+  },
+  {
+    "name": "SCHWARZ Noah",
+    "kl": "D3",
+    "pfw": 81.95,
+    "estimatedTtr": 1124
+  },
+  {
+    "name": "SCHMIT Léini",
+    "kl": "D3",
+    "pfw": 81.91,
+    "estimatedTtr": 1123
+  },
+  {
+    "name": "DALEIDEN Lori",
+    "kl": "D3",
+    "pfw": 81.77,
+    "estimatedTtr": 1123
+  },
+  {
+    "name": "MARCHESINI GLAVAS Benjamin",
+    "kl": "D3",
+    "pfw": 81.72,
+    "estimatedTtr": 1123
+  },
+  {
+    "name": "ESPOSITO Antonio",
+    "kl": "D3",
+    "pfw": 81.65,
+    "estimatedTtr": 1123
+  },
+  {
+    "name": "AUCHER GOUVEIA Lucien",
+    "kl": "D3",
+    "pfw": 81.32,
+    "estimatedTtr": 1122
+  },
+  {
+    "name": "BALDACCHINO Matthias",
+    "kl": "D3",
+    "pfw": 81.17,
+    "estimatedTtr": 1122
+  },
+  {
+    "name": "PESIKAS¬PETERSONS Arturs",
+    "kl": "D2",
+    "pfw": 81.09,
+    "estimatedTtr": 1122
+  },
+  {
+    "name": "CARNEIRO DE BARROS Lara",
+    "kl": "D3",
+    "pfw": 80.59,
+    "estimatedTtr": 1121
+  },
+  {
+    "name": "HOFFMANN Mathéo",
+    "kl": "D3",
+    "pfw": 80.34,
+    "estimatedTtr": 1121
+  },
+  {
+    "name": "SCHLOTTHAUER Leo",
+    "kl": "D3",
+    "pfw": 80.10,
+    "estimatedTtr": 1120
+  },
+  {
+    "name": "HORSMANS Martine",
+    "kl": "D3",
+    "pfw": 80.09,
+    "estimatedTtr": 1120
+  },
+  {
+    "name": "RAVIGNAT Jo",
+    "kl": "D3",
+    "pfw": 79.92,
+    "estimatedTtr": 1120
+  },
+  {
+    "name": "WAGNER Lisa",
+    "kl": "D3",
+    "pfw": 79.82,
+    "estimatedTtr": 1120
+  },
+  {
+    "name": "Winnefeld Constantin",
+    "kl": "D3",
+    "pfw": 79.73,
+    "estimatedTtr": 1120
+  },
+  {
+    "name": "DELFINO Rafael",
+    "kl": "D3",
+    "pfw": 79.69,
+    "estimatedTtr": 1120
+  },
+  {
+    "name": "WAGNER Paul",
+    "kl": "D3",
+    "pfw": 79.55,
+    "estimatedTtr": 1120
+  },
+  {
+    "name": "STEINMETZ Emile",
+    "kl": "D3",
+    "pfw": 79.42,
+    "estimatedTtr": 1119
+  },
+  {
+    "name": "PRYKHODKO David",
+    "kl": "D3",
+    "pfw": 79.30,
+    "estimatedTtr": 1119
+  },
+  {
+    "name": "THILL Linéa",
+    "kl": "D3",
+    "pfw": 79.07,
+    "estimatedTtr": 1119
+  },
+  {
+    "name": "KAISER Ben Antoine",
+    "kl": "D3",
+    "pfw": 79.05,
+    "estimatedTtr": 1119
+  },
+  {
+    "name": "MARTINUZZI Davide",
+    "kl": "D3",
+    "pfw": 78.68,
+    "estimatedTtr": 1118
+  },
+  {
+    "name": "FERREIRA Gabrielle",
+    "kl": "D3",
+    "pfw": 78.51,
+    "estimatedTtr": 1118
+  },
+  {
+    "name": "MULLER Lis",
+    "kl": "D3",
+    "pfw": 77.82,
+    "estimatedTtr": 1117
+  },
+  {
+    "name": "BELLING Jacques",
+    "kl": "D3",
+    "pfw": 77.33,
+    "estimatedTtr": 1116
+  },
+  {
+    "name": "BISCARRAT Victor",
+    "kl": "D3",
+    "pfw": 77.27,
+    "estimatedTtr": 1116
+  },
+  {
+    "name": "KIEFFER Edwin",
+    "kl": "D3",
+    "pfw": 77.22,
+    "estimatedTtr": 1116
+  },
+  {
+    "name": "NEYEN Zoé",
+    "kl": "D3",
+    "pfw": 75.96,
+    "estimatedTtr": 1113
+  },
+  {
+    "name": "GENGLER Katarina",
+    "kl": "D3",
+    "pfw": 75.45,
+    "estimatedTtr": 1113
+  },
+  {
+    "name": "REGGIE RAJENDRA Lisy",
+    "kl": "D3",
+    "pfw": 75.13,
+    "estimatedTtr": 1112
+  },
+  {
+    "name": "BAULISCH Amy",
+    "kl": "D3",
+    "pfw": 74.94,
+    "estimatedTtr": 1112
+  },
+  {
+    "name": "BALDACCHINO Hugo",
+    "kl": "D3",
+    "pfw": 74.93,
+    "estimatedTtr": 1112
+  },
+  {
+    "name": "ARUN PRASATH Gautham",
+    "kl": "D3",
+    "pfw": 74.75,
+    "estimatedTtr": 1111
+  },
+  {
+    "name": "BRAQUET Eva",
+    "kl": "D3",
+    "pfw": 74.50,
+    "estimatedTtr": 1111
+  },
+  {
+    "name": "KAH Thierry",
+    "kl": "D2",
+    "pfw": 73.65,
+    "estimatedTtr": 1110
+  },
+  {
+    "name": "CIMIOTTI Leah",
+    "kl": "D3",
+    "pfw": 73.43,
+    "estimatedTtr": 1109
+  },
+  {
+    "name": "BURG Emily",
+    "kl": "D3",
+    "pfw": 72.72,
+    "estimatedTtr": 1108
+  },
+  {
+    "name": "WEIS Maxi",
+    "kl": "D3",
+    "pfw": 72.13,
+    "estimatedTtr": 1107
+  },
+  {
+    "name": "CHOURIS Hector",
+    "kl": "D3",
+    "pfw": 70.83,
+    "estimatedTtr": 1105
+  },
+  {
+    "name": "MAZOUIN Luca",
+    "kl": "D3",
+    "pfw": 69.94,
+    "estimatedTtr": 1103
+  },
+  {
+    "name": "HEIDERSCHEID Lee",
+    "kl": "D3",
+    "pfw": 69.64,
+    "estimatedTtr": 1103
+  },
+  {
+    "name": "MENDES Elena",
+    "kl": "D3",
+    "pfw": 69.55,
+    "estimatedTtr": 1103
+  },
+  {
+    "name": "KNAUS Lis",
+    "kl": "D3",
+    "pfw": 69.14,
+    "estimatedTtr": 1102
+  },
+  {
+    "name": "Marbes Aron",
+    "kl": "D3",
+    "pfw": 67.51,
+    "estimatedTtr": 1099
+  },
+  {
+    "name": "CROMPVOETS Linn",
+    "kl": "D3",
+    "pfw": 67.46,
+    "estimatedTtr": 1099
+  },
+  {
+    "name": "WENKIN Jim",
+    "kl": "D3",
+    "pfw": 67.26,
+    "estimatedTtr": 1099
+  },
+  {
+    "name": "NEU Mill",
+    "kl": "D3",
+    "pfw": 66.48,
+    "estimatedTtr": 1098
+  },
+  {
+    "name": "GOUBA Luana",
+    "kl": "D3",
+    "pfw": 66.45,
+    "estimatedTtr": 1098
+  },
+  {
+    "name": "ZOLLER Philippe",
+    "kl": "D3",
+    "pfw": 66.19,
+    "estimatedTtr": 1097
+  },
+  {
+    "name": "DROCCO Vittoria",
+    "kl": "D3",
+    "pfw": 64.70,
+    "estimatedTtr": 1095
+  },
+  {
+    "name": "AHMAD Sultan",
+    "kl": "D3",
+    "pfw": 63.99,
+    "estimatedTtr": 1093
+  },
+  {
+    "name": "SOCHA SCHEULEN Tim",
+    "kl": "D3",
+    "pfw": 62.92,
+    "estimatedTtr": 1092
+  },
+  {
+    "name": "RIVOTTI Luca",
+    "kl": "D3",
+    "pfw": 62.03,
+    "estimatedTtr": 1090
   }
 ];

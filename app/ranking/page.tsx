@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { rankingData } from '@/data/ranking';
 
-const KL_ORDER = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3'];
+const KL_ORDER = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3', 'D1', 'D2', 'D3'];
 
 const klColour: Record<string, string> = {
   A1: 'bg-purple-100 text-purple-800',
@@ -13,6 +13,9 @@ const klColour: Record<string, string> = {
   C1: 'bg-gray-100 text-gray-600',
   C2: 'bg-gray-100 text-gray-600',
   C3: 'bg-gray-100 text-gray-600',
+  D1: 'bg-orange-50 text-orange-700',
+  D2: 'bg-orange-50 text-orange-700',
+  D3: 'bg-orange-50 text-orange-700',
 };
 
 export default function RankingPage({
