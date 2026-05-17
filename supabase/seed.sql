@@ -1,0 +1,2 @@
+-- Local-only seed data. Applied after migrations on `supabase db reset`.
+-- Add INSERTs here once tables exist.
