@@ -110,6 +110,8 @@ Vercel preview deploys (auto-built per PR) hit production Supabase — treat the
 
 **Mental check**: if the URL is `localhost`, you're local. If it's `*.vercel.app` or the custom domain, you're touching prod.
 
+**Vercel auto-deploy quirk**: pushes to `master` may not auto-promote to production if Vercel's "Production Branch" setting hasn't been confirmed. If a push lands but https://ttr-pfw.vercel.app still serves an old build, the new deployment is sitting as a Preview — promote it manually in the Vercel Deployments tab.
+
 ## Helping Jeff learn Claude Code
 
 Introduce features naturally, when they'd be useful — not all at once.
