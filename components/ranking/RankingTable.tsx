@@ -92,7 +92,7 @@ export function RankingTable({ rows, clubs, selectedClass }: Props) {
                   </Link>
                   {!row.isActive && (
                     <span className="bg-muted text-muted-foreground ml-2 inline-flex rounded-full px-2 py-0.5 text-xs">
-                      former player
+                      not on ranking
                     </span>
                   )}
                 </td>

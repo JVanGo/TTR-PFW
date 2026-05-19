@@ -17,7 +17,8 @@ export default function AdminImportPage() {
         <h2 className="text-base font-semibold">Verbandsrangliste</h2>
         <p className="text-muted-foreground mt-1 text-xs">
           Upload an FLTT Verbandsrangliste Excel export. Matched names are updated, new names are
-          added, and any active players missing from the upload are marked as former players.
+          added, and any active players missing from the upload are flagged as no longer on the
+          ranking.
         </p>
         <div className="mt-3">
           <VerbandsranglisteImportForm />

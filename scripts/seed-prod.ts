@@ -105,6 +105,8 @@ async function fetchPlayerIdMap(): Promise<Map<string, PlayerLookup>> {
 interface OverviewRow {
   club: string | null;
   name: string;
+  class: string | null;
+  pfw: number | null;
 }
 
 function readOverview(wb: XLSX.WorkBook): OverviewRow[] {
@@ -117,8 +119,10 @@ function readOverview(wb: XLSX.WorkBook): OverviewRow[] {
     if (!Array.isArray(row)) continue;
     const club = typeof row[0] === "string" ? row[0] : null;
     const name = typeof row[1] === "string" ? row[1] : null;
+    const cls = typeof row[2] === "string" ? row[2] : null;
+    const pfw = typeof row[3] === "number" ? row[3] : null;
     if (!name) continue;
-    result.push({ club, name });
+    result.push({ club, name, class: cls, pfw });
   }
   return result;
 }
@@ -140,6 +144,44 @@ async function backfillClubs(wb: XLSX.WorkBook, byKey: Map<string, PlayerLookup>
     process.stdout.write(`  ${Math.min(i + 200, updates.length)}/${updates.length}\r`);
   }
   console.log();
+}
+
+async function insertOverviewOnlyPlayers(
+  wb: XLSX.WorkBook,
+  byKey: Map<string, PlayerLookup>,
+): Promise<number> {
+  console.log("Inserting players who play matches but aren't on the Rangliste...");
+  const overview = readOverview(wb);
+  const seen = new Set<string>();
+  const toInsert: Array<{
+    name: string;
+    class: string;
+    pfw: number;
+    club: string | null;
+    is_active: boolean;
+  }> = [];
+  for (const row of overview) {
+    const key = nameKey(row.name);
+    if (byKey.has(key)) continue;
+    if (seen.has(key)) continue;
+    if (!row.class || !isPlayerClass(row.class) || row.pfw == null) continue;
+    seen.add(key);
+    toInsert.push({
+      name: row.name,
+      class: row.class,
+      pfw: row.pfw,
+      club: row.club,
+      is_active: false,
+    });
+  }
+  for (let i = 0; i < toInsert.length; i += 500) {
+    const chunk = toInsert.slice(i, i + 500);
+    const { error } = await supabase.from("players").insert(chunk);
+    if (error) throw error;
+    process.stdout.write(`  ${Math.min(i + 500, toInsert.length)}/${toInsert.length}\r`);
+  }
+  console.log();
+  return toInsert.length;
 }
 
 interface RawMatchRow {
@@ -240,9 +282,13 @@ async function main() {
   const wb = XLSX.readFile(SAISONENTWICKLUNG);
   await clearExistingData();
   await insertPlayers();
-  const byKey = await fetchPlayerIdMap();
-  console.log(`  ${byKey.size} player rows readable post-insert`);
+  let byKey = await fetchPlayerIdMap();
+  console.log(`  ${byKey.size} ranked player rows readable post-insert`);
   await backfillClubs(wb, byKey);
+  const added = await insertOverviewOnlyPlayers(wb, byKey);
+  console.log(`  ${added} unranked players added (is_active=false)`);
+  byKey = await fetchPlayerIdMap();
+  console.log(`  ${byKey.size} total player rows now resolvable by name`);
   await insertMatches(wb, byKey);
   console.log("Done.");
 }
