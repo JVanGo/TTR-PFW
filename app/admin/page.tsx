@@ -1,19 +1,29 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import { AdminPlayerList, type AdminPlayerRow } from "./AdminPlayerList";
 import { PlayerForm } from "./PlayerForm";
 import { signOut } from "./actions";
 
+interface RawPlayer {
+  id: string;
+  name: string;
+  class: string;
+  pfw: number;
+  club: string | null;
+  is_active: boolean;
+}
+
 export default async function AdminPage() {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("players")
-    .select("id, name, class, pfw, club, is_active")
-    .order("pfw", { ascending: false });
+  const data = await fetchAllRows<RawPlayer>(
+    supabase,
+    "players",
+    "id, name, class, pfw, club, is_active",
+  );
+  data.sort((a, b) => b.pfw - a.pfw);
 
-  if (error) throw new Error(error.message);
-
-  const players: AdminPlayerRow[] = (data ?? []).map((p) => ({
+  const players: AdminPlayerRow[] = data.map((p) => ({
     id: p.id,
     name: p.name,
     class: p.class,

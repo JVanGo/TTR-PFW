@@ -1,11 +1,21 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { estimateTtr, isPlayerClass } from "@/lib/conversions";
+import { fetchAllRows } from "@/lib/supabase/fetchAll";
+import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { ClassPills } from "@/components/ranking/ClassPills";
 import { RankingTable, type RankingRow } from "@/components/ranking/RankingTable";
 
 interface PageProps {
   searchParams: Promise<{ kl?: string }>;
+}
+
+interface PlayerRow {
+  id: string;
+  name: string;
+  class: PlayerClass;
+  pfw: number;
+  club: string | null;
+  is_active: boolean;
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
@@ -14,14 +24,13 @@ export default async function HomePage({ searchParams }: PageProps) {
   const selectedLabel = selectedKl ?? "All";
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("players")
-    .select("id, name, class, pfw, club, is_active");
-  if (error) {
-    throw new Error(`Failed to load players: ${error.message}`);
-  }
+  const data = await fetchAllRows<PlayerRow>(
+    supabase,
+    "players",
+    "id, name, class, pfw, club, is_active",
+  );
 
-  const all = (data ?? []).slice().sort((a, b) => {
+  const all = data.slice().sort((a, b) => {
     if (b.pfw !== a.pfw) return b.pfw - a.pfw;
     return a.name.localeCompare(b.name);
   });
