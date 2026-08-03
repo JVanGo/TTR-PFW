@@ -27,21 +27,22 @@ export default function AboutPage() {
         PFW ≈ 0.596 × TTR − 588 (R² = 0.78, n = 41)
       </pre>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
-        Rearranged, the estimate for PFW scores at or above ~127.5 (roughly TTR 1200 and up,
-        covering classes A1 through most of D1) is:
+        Rearranged, the estimate for a player in A1–C3 is:
       </p>
       <pre className="bg-muted/40 mt-3 overflow-x-auto rounded-md border p-3 text-xs">
         TTR = round((PFW + 587.68) / 0.596)
       </pre>
 
-      <h2 className="mt-8 text-lg font-semibold">Below TTR 1200</h2>
+      <h2 className="mt-8 text-lg font-semibold">Why D1–D3 uses a different formula</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
         The 41 matched players were all above TTR 1200, so the regression has no real data for
-        beginner-level play. Below that point, a second line takes over — it starts exactly where
-        the regression leaves off (no jump) and tapers down to TTR 700 at the lowest PFW score in
-        the ranking, a sensible floor for an actively-playing club member. This applies purely based
-        on PFW score, not class, since some classes overlap in PFW range.
+        beginner-level play. For D1–D3 we keep the same slope (0.596) but anchor the line so the
+        bottom-ranked D3 player ends up at TTR 700 — a sensible floor for an actively-playing club
+        member. This produces:
       </p>
+      <pre className="bg-muted/40 mt-3 overflow-x-auto rounded-md border p-3 text-xs">
+        TTR = round((PFW + 355.17) / 0.596)
+      </pre>
 
       <h2 className="mt-8 text-lg font-semibold">Confidence</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">

@@ -49,7 +49,7 @@ export default async function HomePage({ searchParams }: PageProps) {
     class: p.class,
     club: p.club,
     pfw: Number(p.pfw),
-    estimatedTtr: estimateTtr(Number(p.pfw)),
+    estimatedTtr: estimateTtr(Number(p.pfw), p.class),
     isActive: p.is_active,
   }));
 

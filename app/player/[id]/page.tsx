@@ -66,7 +66,7 @@ export default async function PlayerPage({ params }: PageProps) {
   if (betterError) throw new Error(betterError.message);
 
   const matches = matchesData ?? [];
-  const estimatedTtr = estimateTtr(Number(player.pfw));
+  const estimatedTtr = estimateTtr(Number(player.pfw), player.class);
   const rankPosition = (betterCount ?? 0) + 1;
   const totalPlayers = totalCount ?? 0;
 
