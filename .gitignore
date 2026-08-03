@@ -43,6 +43,9 @@ next-env.d.ts
 
 # local federation data exports (not for public repo)
 /TTR/
+/Dataset/
+/initial-ttr-estimates.csv
+/initial-ttr-estimates.pdf
 
 # Claude Code local-only settings (per-user permissions, not shared)
 .claude/settings.local.json

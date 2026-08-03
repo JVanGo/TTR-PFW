@@ -13,6 +13,7 @@ interface PlayerFormValues {
   pfw?: number | string;
   club?: string | null;
   is_active?: boolean;
+  classement_points?: number | string | null;
 }
 
 interface Props {
@@ -62,6 +63,21 @@ export function PlayerForm({ mode, initial }: Props) {
           defaultValue={initial?.pfw ?? ""}
           className="border-input bg-background rounded-md border px-3 py-2 text-sm"
         />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Classement points</span>
+        <input
+          name="classement_points"
+          type="number"
+          step="0.5"
+          min={-5.5}
+          max={11.5}
+          defaultValue={initial?.classement_points ?? ""}
+          className="border-input bg-background rounded-md border px-3 py-2 text-sm"
+        />
+        <span className="text-muted-foreground text-xs">
+          Only used for C1–D3 · leave blank otherwise.
+        </span>
       </label>
       <label className="flex flex-col gap-1 text-sm sm:col-span-2">
         <span className="font-medium">Club</span>

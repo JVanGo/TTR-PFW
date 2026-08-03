@@ -11,7 +11,7 @@ export interface RankingRow {
   class: string;
   club: string | null;
   pfw: number;
-  estimatedTtr: number;
+  estimatedTtr: number | null;
   isActive: boolean;
 }
 
@@ -99,7 +99,7 @@ export function RankingTable({ rows, clubs, selectedClass }: Props) {
                 <td className="px-3 py-2">{row.class}</td>
                 <td className="text-muted-foreground px-3 py-2">{row.club ?? "—"}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{formatPfw(row.pfw)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{row.estimatedTtr}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{row.estimatedTtr ?? "—"}</td>
               </tr>
             ))}
             {filtered.length === 0 && (

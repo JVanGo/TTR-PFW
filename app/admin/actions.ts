@@ -37,6 +37,7 @@ interface PlayerInput {
   pfw: number;
   club: string | null;
   is_active: boolean;
+  classement_points: number | null;
 }
 
 function parsePlayerForm(formData: FormData): PlayerInput | string {
@@ -45,13 +46,30 @@ function parsePlayerForm(formData: FormData): PlayerInput | string {
   const pfwRaw = (formData.get("pfw") as string | null)?.trim();
   const club = (formData.get("club") as string | null)?.trim() || null;
   const isActive = formData.get("is_active") === "on";
+  const classementRaw = (formData.get("classement_points") as string | null)?.trim();
 
   if (!name) return "Name is required.";
   if (!klRaw || !isPlayerClass(klRaw)) return "Pick a valid class (A1–D3).";
   const pfw = pfwRaw ? Number(pfwRaw) : NaN;
   if (!Number.isFinite(pfw)) return "PFW must be a number.";
 
-  return { name, class: klRaw, pfw, club, is_active: isActive };
+  let classementPoints: number | null = null;
+  if (classementRaw) {
+    classementPoints = Number(classementRaw);
+    if (!Number.isFinite(classementPoints)) return "Classement points must be a number.";
+    if (classementPoints < -5.5 || classementPoints > 11.5) {
+      return "Classement points must be between -5.5 and 11.5.";
+    }
+  }
+
+  return {
+    name,
+    class: klRaw,
+    pfw,
+    club,
+    is_active: isActive,
+    classement_points: classementPoints,
+  };
 }
 
 export async function createPlayer(_: ActionState, formData: FormData): Promise<ActionState> {

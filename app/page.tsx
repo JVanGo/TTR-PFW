@@ -16,6 +16,7 @@ interface PlayerRow {
   pfw: number;
   club: string | null;
   is_active: boolean;
+  classement_points: number | null;
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
@@ -27,7 +28,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   const data = await fetchAllRows<PlayerRow>(
     supabase,
     "players",
-    "id, name, class, pfw, club, is_active",
+    "id, name, class, pfw, club, is_active, classement_points",
   );
 
   const all = data.slice().sort((a, b) => {
@@ -49,7 +50,7 @@ export default async function HomePage({ searchParams }: PageProps) {
     class: p.class,
     club: p.club,
     pfw: Number(p.pfw),
-    estimatedTtr: estimateTtr(Number(p.pfw), p.class),
+    estimatedTtr: estimateTtr(Number(p.pfw), p.class, p.classement_points),
     isActive: p.is_active,
   }));
 

@@ -25,7 +25,7 @@ export default async function PlayerPage({ params }: PageProps) {
 
   const { data: player, error } = await supabase
     .from("players")
-    .select("id, name, class, pfw, club, is_active")
+    .select("id, name, class, pfw, club, is_active, classement_points")
     .eq("id", id)
     .maybeSingle();
 
@@ -66,7 +66,7 @@ export default async function PlayerPage({ params }: PageProps) {
   if (betterError) throw new Error(betterError.message);
 
   const matches = matchesData ?? [];
-  const estimatedTtr = estimateTtr(Number(player.pfw), player.class);
+  const estimatedTtr = estimateTtr(Number(player.pfw), player.class, player.classement_points);
   const rankPosition = (betterCount ?? 0) + 1;
   const totalPlayers = totalCount ?? 0;
 
@@ -109,7 +109,7 @@ export default async function PlayerPage({ params }: PageProps) {
           </div>
           <div>
             <p className="text-muted-foreground text-xs uppercase">Estimated TTR</p>
-            <p className="text-2xl font-semibold tabular-nums">{estimatedTtr}</p>
+            <p className="text-2xl font-semibold tabular-nums">{estimatedTtr ?? "Not available"}</p>
           </div>
         </div>
       </header>

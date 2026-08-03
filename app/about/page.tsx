@@ -27,22 +27,27 @@ export default function AboutPage() {
         PFW ≈ 0.596 × TTR − 588 (R² = 0.78, n = 41)
       </pre>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
-        Rearranged, the estimate for a player in A1–C3 is:
+        Rearranged, the estimate for a player in A1–B3 is:
       </p>
       <pre className="bg-muted/40 mt-3 overflow-x-auto rounded-md border p-3 text-xs">
         TTR = round((PFW + 587.68) / 0.596)
       </pre>
 
-      <h2 className="mt-8 text-lg font-semibold">Why D1–D3 uses a different formula</h2>
+      <h2 className="mt-8 text-lg font-semibold">How C1–D3 is estimated</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
-        The 41 matched players were all above TTR 1200, so the regression has no real data for
-        beginner-level play. For D1–D3 we keep the same slope (0.596) but anchor the line so the
-        bottom-ranked D3 player ends up at TTR 700 — a sensible floor for an actively-playing club
-        member. This produces:
+        The 41 matched players were all above TTR 1200, so the regression has no real data for this
+        range, and PFW itself turned out not to be a reliable basis down there. Instead, C1–D3
+        players are estimated from their classement points — the FLTT in-class standing that runs
+        from -5,5 (about to drop a classement) to +11,5 (about to be promoted), a 17-point span per
+        classement.
       </p>
-      <pre className="bg-muted/40 mt-3 overflow-x-auto rounded-md border p-3 text-xs">
-        TTR = round((PFW + 355.17) / 0.596)
-      </pre>
+      <p className="text-muted-foreground mt-2 text-sm leading-6">
+        Stacking all six classements (C1 down to D3) end to end turns classement + points into one
+        continuous scale, anchored so C1&apos;s top (+11,5) is TTR 1345 and D3&apos;s 0 points is
+        TTR 800. Because the scale is continuous, the bottom of one classement lines up exactly with
+        the top of the next — no jump at the boundary. Players whose classement points haven&apos;t
+        been entered yet show as &quot;not available&quot; rather than a guess.
+      </p>
 
       <h2 className="mt-8 text-lg font-semibold">Confidence</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
