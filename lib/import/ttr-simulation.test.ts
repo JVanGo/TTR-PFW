@@ -209,14 +209,14 @@ describe("simulateSeason", () => {
     expect(aliceTtrEnteringSecondMatch).toBe(1108);
   });
 
-  it("stacks K-factor bonuses for a young, inexperienced player (PDF's own max K=32 example)", () => {
+  it("gives a u15 player K=24 (base 16 + the u15 bracket's own +8, not stacked with u21's +4)", () => {
     const players = [
       player({
         id: "a",
         name: "Cadet Player",
         startingTtr: 1100,
-        ageCategory: "Cadet", // +12 (u21 + u15)
-        careerMatchesBeforeSeason: 5, // +4 (< 30 career matches)
+        ageCategory: "Cadet",
+        careerMatchesBeforeSeason: 100, // experienced -> no newcomer bonus
         lastMatchIsoDateBeforeSeason: "2025-06-01", // recent -> no inactivity bonus
       }),
       player({ id: "b", name: "Bob", startingTtr: 1100 }),
@@ -232,19 +232,46 @@ describe("simulateSeason", () => {
     });
 
     const cadet = matchRows.find((r) => r.playerId === "a")!;
-    // Equal ratings -> win probability 0.5 -> delta = 0.5 * K. K=16+12+4=32 -> delta=16.
-    expect(cadet.ttrDelta).toBe(16);
+    // Equal ratings -> win probability 0.5 -> delta = 0.5 * K. K=16+8=24 -> delta=12.
+    expect(cadet.ttrDelta).toBe(12);
   });
 
-  it("adds the inactivity bonus on top when a returning player is also young and new (K=36)", () => {
+  it("gives a u21-only player (Junior/Espoirs) K=20, distinct from the u15 bracket's K=24", () => {
+    const players = [
+      player({
+        id: "a",
+        name: "Junior Player",
+        startingTtr: 1100,
+        ageCategory: "Junior",
+        careerMatchesBeforeSeason: 100,
+        lastMatchIsoDateBeforeSeason: "2025-06-01",
+      }),
+      player({ id: "b", name: "Bob", startingTtr: 1100 }),
+    ];
+    const matches = [match({ playerNameKey: "junior player", opponentNameKey: "bob", won: true })];
+    const { matchRows } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const junior = matchRows.find((r) => r.playerId === "a")!;
+    // K=16+4=20 -> delta=10.
+    expect(junior.ttrDelta).toBe(10);
+  });
+
+  it("stacks the newcomer and inactivity bonuses on top of the u15 bracket (K=32)", () => {
     const players = [
       player({
         id: "a",
         name: "Cadet Player",
         startingTtr: 1100,
         ageCategory: "Cadet",
-        careerMatchesBeforeSeason: 5,
-        lastMatchIsoDateBeforeSeason: "2023-01-01", // well over 12 months before season start
+        careerMatchesBeforeSeason: 5, // < 30 -> newcomer bonus
+        lastMatchIsoDateBeforeSeason: "2023-01-01", // well over 12 months -> inactivity bonus
       }),
       player({ id: "b", name: "Bob", startingTtr: 1100 }),
     ];
@@ -259,10 +286,8 @@ describe("simulateSeason", () => {
     });
 
     const cadet = matchRows.find((r) => r.playerId === "a")!;
-    // K=16+12+4+4=36 -> delta=18. The PDF's own "max 32" example didn't combine
-    // youth with a long layoff — this stacks a fourth bonus on top, which the
-    // additive rule as written allows.
-    expect(cadet.ttrDelta).toBe(18);
+    // K=16+8+4+4=32 -> delta=16.
+    expect(cadet.ttrDelta).toBe(16);
   });
 
   it("excludes TOU tournament games from per-game scoring but applies a flat placement bonus", () => {

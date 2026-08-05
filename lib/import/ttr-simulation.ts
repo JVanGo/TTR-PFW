@@ -33,15 +33,17 @@ interface AgeRule {
   youthGrowth: boolean;
 }
 
-// See plan: PDF labels the u21 bracket "Espoirs" and the u15 bracket "Cadets";
-// Poussin/Benjamin/Minime/Cadet fall under both (u15 implies u21), Junior and
-// Espoirs only under u21. Confirmed with the site owner — not exact birthdate
-// cutoffs, since the source data has no birthdates.
+// The PDF's own bonus labels give the resulting K directly: "+4 (20) Spieler
+// unter 21 Jahre (Espoirs)" and "+8 (24) Spieler unter 15 Jahre (Cadets)" —
+// these are NOT cumulative between brackets. A player in the u15 bracket
+// gets +8 (K=24) on its own, not +4 stacked with +8 (K=28) — confirmed with
+// the site owner. Poussin/Benjamin/Minime/Cadet fall under the u15 bracket;
+// Junior/Espoirs fall under the (non-stacking) u21-only bracket.
 const AGE_RULES: Record<AgeCategory, AgeRule> = {
-  Poussin: { kBonus: 12, ersteinstufung: 850, youthGrowth: true },
-  Benjamin: { kBonus: 12, ersteinstufung: 850, youthGrowth: true },
-  Minime: { kBonus: 12, ersteinstufung: 900, youthGrowth: true },
-  Cadet: { kBonus: 12, ersteinstufung: 900, youthGrowth: true },
+  Poussin: { kBonus: 8, ersteinstufung: 850, youthGrowth: true },
+  Benjamin: { kBonus: 8, ersteinstufung: 850, youthGrowth: true },
+  Minime: { kBonus: 8, ersteinstufung: 900, youthGrowth: true },
+  Cadet: { kBonus: 8, ersteinstufung: 900, youthGrowth: true },
   Junior: { kBonus: 4, ersteinstufung: 1025, youthGrowth: true },
   Espoirs: { kBonus: 4, ersteinstufung: 1025, youthGrowth: false },
 };
