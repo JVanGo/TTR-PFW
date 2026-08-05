@@ -300,114 +300,158 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     growthApplied = true;
   };
 
-  for (const event of events) {
-    applyGrowthIfDue(event.isoDate);
+  interface DayRow extends OutputMatchRow {
+    settleKey: string;
+  }
 
-    if (event.kind === "placement") {
-      const state = states.get(event.placement.playerNameKey);
-      if (!state) {
+  // Ratings are stable for a whole matchday: every match/placement on a given
+  // date is scored using each player's rating as it stood BEFORE that day's
+  // play began (nothing they, or their same-day opponents, do earlier that
+  // same day moves the number mid-day). All of a day's results are summed and
+  // applied once, at the end of the day, and every row from that day displays
+  // the same settled "new TTR" — each row still shows its own individual
+  // point change (ttrDelta), just not its own running total.
+  let i = 0;
+  while (i < events.length) {
+    const dayIso = events[i].isoDate;
+    applyGrowthIfDue(dayIso);
+
+    const dayRows: DayRow[] = [];
+    const pendingDelta = new Map<string, number>();
+    const pendingMatchCount = new Map<string, number>();
+    const touched = new Set<string>();
+
+    const addDelta = (key: string, amount: number) => {
+      pendingDelta.set(key, (pendingDelta.get(key) ?? 0) + amount);
+      touched.add(key);
+    };
+    const addMatchPlayed = (key: string) => {
+      pendingMatchCount.set(key, (pendingMatchCount.get(key) ?? 0) + 1);
+    };
+
+    while (i < events.length && events[i].isoDate === dayIso) {
+      const event = events[i];
+      i++;
+
+      if (event.kind === "placement") {
+        const state = states.get(event.placement.playerNameKey);
+        if (!state) {
+          summary.unresolvedPlayers++;
+          continue;
+        }
+        const bonus = PLACEMENT_TTR_BONUS[event.placement.place];
+        dayRows.push({
+          settleKey: event.placement.playerNameKey,
+          playerId: state.id,
+          matchDate: event.placement.isoDate,
+          competition: event.placement.competition,
+          opponentName: `Tournament — ${event.placement.place === 1 ? "1st" : event.placement.place === 2 ? "2nd" : "3rd"} place`,
+          opponentPlayerId: null,
+          opponentTtr: null,
+          score: null,
+          result: event.placement.place === 3 ? "L" : "W",
+          ttrDelta: bonus,
+          newTtr: 0, // filled in once the day settles, below
+        });
+        addDelta(event.placement.playerNameKey, bonus);
+        summary.placementBonusesApplied++;
+        continue;
+      }
+
+      const { match } = event;
+      const stateA = states.get(match.a.playerNameKey);
+      if (!stateA) {
         summary.unresolvedPlayers++;
         continue;
       }
-      const bonus = PLACEMENT_TTR_BONUS[event.placement.place];
-      const newTtr = Math.round(state.ttr + bonus);
-      matchRows.push({
-        playerId: state.id,
-        matchDate: event.placement.isoDate,
-        competition: event.placement.competition,
-        opponentName: `Tournament — ${event.placement.place === 1 ? "1st" : event.placement.place === 2 ? "2nd" : "3rd"} place`,
-        opponentPlayerId: null,
-        opponentTtr: null,
-        score: null,
-        result: event.placement.place === 3 ? "L" : "W",
-        ttrDelta: bonus,
-        newTtr,
-      });
-      state.ttr = newTtr;
-      summary.placementBonusesApplied++;
-      continue;
-    }
 
-    const { match } = event;
-    const stateA = states.get(match.a.playerNameKey);
-    if (!stateA) {
-      summary.unresolvedPlayers++;
-      continue;
-    }
+      let ttrBSnapshot: number;
+      let opponentPlayerId: string | null = null;
+      let opponentDisplayName: string;
+      let stateB: RuntimeState | null = null;
+      let stateBKey: string | null = null;
 
-    let ttrB: number;
-    let opponentPlayerId: string | null = null;
-    let opponentDisplayName: string;
-    let stateB: RuntimeState | null = null;
-
-    if (match.b.kind === "tracked") {
-      const found = states.get(match.b.playerNameKey);
-      if (!found) {
-        summary.unresolvedPlayers++;
-        continue;
+      if (match.b.kind === "tracked") {
+        const found = states.get(match.b.playerNameKey);
+        if (!found) {
+          summary.unresolvedPlayers++;
+          continue;
+        }
+        stateB = found;
+        stateBKey = match.b.playerNameKey;
+        ttrBSnapshot = found.ttr; // frozen: not mutated until this day settles
+        opponentPlayerId = found.id;
+        opponentDisplayName = playerByNameKey.get(match.b.playerNameKey)?.name ?? "";
+      } else {
+        const fallback = input.staticTtrByNameKey.get(nameKey(match.b.opponentName));
+        if (fallback == null) {
+          summary.droppedNoOpponentRating++;
+          continue;
+        }
+        ttrBSnapshot = fallback;
+        opponentDisplayName = match.b.opponentName;
       }
-      stateB = found;
-      ttrB = found.ttr;
-      opponentPlayerId = found.id;
-      opponentDisplayName = playerByNameKey.get(match.b.playerNameKey)?.name ?? "";
-    } else {
-      const fallback = input.staticTtrByNameKey.get(nameKey(match.b.opponentName));
-      if (fallback == null) {
-        summary.droppedNoOpponentRating++;
-        continue;
-      }
-      ttrB = fallback;
-      opponentDisplayName = match.b.opponentName;
-    }
 
-    const ttrASnapshot = stateA.ttr;
-    const ttrBSnapshot = ttrB;
-    const kA = kFactor(stateA);
-    const paWinA = winProbability(ttrASnapshot, ttrBSnapshot);
-    const resultA: 0 | 1 = match.a.won ? 1 : 0;
-    const deltaA = ratingDelta(resultA, paWinA, kA);
-    const newTtrA = Math.round(ttrASnapshot + deltaA);
+      const ttrASnapshot = stateA.ttr; // frozen: not mutated until this day settles
+      const kA = kFactor(stateA);
+      const paWinA = winProbability(ttrASnapshot, ttrBSnapshot);
+      const resultA: 0 | 1 = match.a.won ? 1 : 0;
+      const deltaA = Math.round(ratingDelta(resultA, paWinA, kA));
 
-    matchRows.push({
-      playerId: stateA.id,
-      matchDate: match.isoDate,
-      competition: match.competition,
-      opponentName: match.b.kind === "untracked" ? match.b.opponentName : opponentDisplayName,
-      opponentPlayerId,
-      opponentTtr: Math.round(ttrBSnapshot),
-      score: match.score,
-      result: match.a.won ? "W" : "L",
-      ttrDelta: Math.round(deltaA),
-      newTtr: newTtrA,
-    });
-    stateA.ttr = newTtrA;
-    stateA.careerMatches++;
-    if (stateA.inactivityBonusRemaining > 0) stateA.inactivityBonusRemaining--;
-    summary.matchesGraded++;
-
-    if (stateB) {
-      const kB = kFactor(stateB);
-      const paWinB = 1 - paWinA;
-      const resultB: 0 | 1 = match.b.won ? 1 : 0;
-      const deltaB = ratingDelta(resultB, paWinB, kB);
-      const newTtrB = Math.round(ttrBSnapshot + deltaB);
-
-      matchRows.push({
-        playerId: stateB.id,
+      dayRows.push({
+        settleKey: match.a.playerNameKey,
+        playerId: stateA.id,
         matchDate: match.isoDate,
         competition: match.competition,
-        opponentName: playerByNameKey.get(match.a.playerNameKey)?.name ?? "",
-        opponentPlayerId: stateA.id,
-        opponentTtr: Math.round(ttrASnapshot),
-        score: reverseScore(match.score),
-        result: match.b.won ? "W" : "L",
-        ttrDelta: Math.round(deltaB),
-        newTtr: newTtrB,
+        opponentName: match.b.kind === "untracked" ? match.b.opponentName : opponentDisplayName,
+        opponentPlayerId,
+        opponentTtr: Math.round(ttrBSnapshot),
+        score: match.score,
+        result: match.a.won ? "W" : "L",
+        ttrDelta: deltaA,
+        newTtr: 0,
       });
-      stateB.ttr = newTtrB;
-      stateB.careerMatches++;
-      if (stateB.inactivityBonusRemaining > 0) stateB.inactivityBonusRemaining--;
+      addDelta(match.a.playerNameKey, deltaA);
+      addMatchPlayed(match.a.playerNameKey);
       summary.matchesGraded++;
+
+      if (stateB && stateBKey) {
+        const kB = kFactor(stateB);
+        const paWinB = 1 - paWinA;
+        const resultB: 0 | 1 = match.b.won ? 1 : 0;
+        const deltaB = Math.round(ratingDelta(resultB, paWinB, kB));
+
+        dayRows.push({
+          settleKey: stateBKey,
+          playerId: stateB.id,
+          matchDate: match.isoDate,
+          competition: match.competition,
+          opponentName: playerByNameKey.get(match.a.playerNameKey)?.name ?? "",
+          opponentPlayerId: stateA.id,
+          opponentTtr: Math.round(ttrASnapshot),
+          score: reverseScore(match.score),
+          result: match.b.won ? "W" : "L",
+          ttrDelta: deltaB,
+          newTtr: 0,
+        });
+        addDelta(stateBKey, deltaB);
+        addMatchPlayed(stateBKey);
+        summary.matchesGraded++;
+      }
+    }
+
+    // Settle the day: apply every touched player's accumulated change once.
+    for (const key of touched) {
+      const state = states.get(key)!;
+      const delta = pendingDelta.get(key) ?? 0;
+      const matchesToday = pendingMatchCount.get(key) ?? 0;
+      state.ttr = state.ttr + delta;
+      state.careerMatches += matchesToday;
+      state.inactivityBonusRemaining = Math.max(0, state.inactivityBonusRemaining - matchesToday);
+    }
+
+    for (const { settleKey, ...row } of dayRows) {
+      matchRows.push({ ...row, newTtr: states.get(settleKey)?.ttr ?? row.newTtr });
     }
   }
 

@@ -107,6 +107,65 @@ describe("simulateSeason", () => {
     expect(matchRows).toHaveLength(2);
   });
 
+  it("keeps a player's rating stable across a matchday: same-day matches don't see each other's movement", () => {
+    const players = [
+      player({ id: "a", name: "Alice", startingTtr: 1100 }),
+      player({ id: "b", name: "Bob", startingTtr: 1100 }),
+      player({ id: "c", name: "Carol", startingTtr: 1100 }),
+    ];
+    // Alice beats both Bob and Carol on the same day.
+    const matches = [
+      match({ sortKey: "1", playerNameKey: "alice", opponentNameKey: "bob", won: true }),
+      match({ sortKey: "2", playerNameKey: "alice", opponentNameKey: "carol", won: true }),
+    ];
+    const { matchRows } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const aliceRows = matchRows.filter((r) => r.playerId === "a");
+    expect(aliceRows).toHaveLength(2);
+    // Both wins are against a same-strength opponent starting the day at 1100
+    // -> both individual deltas are +8, not a smaller second delta reflecting
+    // an already-higher Alice.
+    expect(aliceRows[0].ttrDelta).toBe(8);
+    expect(aliceRows[1].ttrDelta).toBe(8);
+    // The day settles once: both rows show the same final total (1100+8+8=1116).
+    expect(aliceRows[0].newTtr).toBe(1116);
+    expect(aliceRows[1].newTtr).toBe(1116);
+  });
+
+  it("uses a same-day opponent's start-of-day rating, not their already-updated rating from an earlier match that day", () => {
+    const players = [
+      player({ id: "a", name: "Alice", startingTtr: 1100 }),
+      player({ id: "b", name: "Bob", startingTtr: 1100 }),
+      player({ id: "d", name: "Dave", startingTtr: 1100 }),
+    ];
+    // Bob beats Dave first, then loses to Alice, all on the same day.
+    const matches = [
+      match({ sortKey: "1", playerNameKey: "bob", opponentNameKey: "dave", won: true }),
+      match({ sortKey: "2", playerNameKey: "alice", opponentNameKey: "bob", won: true }),
+    ];
+    const { matchRows } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const aliceRow = matchRows.find((r) => r.playerId === "a")!;
+    // If Bob's post-Dave rating (1108) leaked in, Alice's win would be worth
+    // slightly more than +8. It must still read Bob's start-of-day 1100.
+    expect(aliceRow.opponentTtr).toBe(1100);
+    expect(aliceRow.ttrDelta).toBe(8);
+  });
+
   it("processes matches in chronological order so later results see earlier updates", () => {
     const players = [
       player({ id: "a", name: "Alice", startingTtr: 1100 }),
