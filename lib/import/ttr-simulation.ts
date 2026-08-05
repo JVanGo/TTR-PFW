@@ -106,8 +106,8 @@ export interface SimulationInput {
   staticTtrByNameKey: Map<string, number>;
   matches: RawSeasonMatch[];
   placements: RawSeasonPlacement[];
-  /** ISO date the youth growth bonus lands on (the season's Jan 1). */
-  youthGrowthIsoDate: string;
+  /** ISO dates the youth growth bonus lands on — one per Teilrunde end (the season's Aug 1 and Jan 1). */
+  youthGrowthIsoDates: string[];
   /** ISO date the season starts (for the inactivity check). */
   seasonStartIsoDate: string;
 }
@@ -132,6 +132,7 @@ export interface SimulationSummary {
   tournamentGamesExcluded: number;
   nonRatedGamesExcluded: number;
   placementBonusesApplied: number;
+  youthGrowthBonusesApplied: number;
   droppedNoOpponentRating: number;
   unresolvedPlayers: number;
 }
@@ -255,6 +256,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     tournamentGamesExcluded: 0,
     nonRatedGamesExcluded: 0,
     placementBonusesApplied: 0,
+    youthGrowthBonusesApplied: 0,
     droppedNoOpponentRating: 0,
     unresolvedPlayers: 0,
   };
@@ -274,6 +276,15 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
 
   const canonicalMatches = canonicalizeMatches(gradedMatches, trackedNameKeys);
 
+  // A player only qualifies for the youth growth bonus if they actually
+  // played a graded match this season — an eligible-age player who never
+  // played at all shouldn't get an automatic rating bump either Teilrunde.
+  const playedThisSeason = new Set<string>();
+  for (const m of canonicalMatches) {
+    playedThisSeason.add(m.a.playerNameKey);
+    if (m.b.kind === "tracked") playedThisSeason.add(m.b.playerNameKey);
+  }
+
   const events: SeasonEvent[] = [
     ...canonicalMatches.map((match) => ({
       kind: "match" as const,
@@ -290,16 +301,34 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   ].sort(sortEvents);
 
   const matchRows: OutputMatchRow[] = [];
-  let growthApplied = false;
+  const growthDatesApplied = new Set<string>();
+  const sortedGrowthDates = [...input.youthGrowthIsoDates].sort();
 
   const applyGrowthIfDue = (isoDate: string) => {
-    if (growthApplied || isoDate < input.youthGrowthIsoDate) return;
-    for (const state of states.values()) {
-      if (ageRule(state.ageCategory).youthGrowth) {
-        state.ttr += YOUTH_GROWTH_BONUS;
+    for (const growthDate of sortedGrowthDates) {
+      if (growthDatesApplied.has(growthDate) || isoDate < growthDate) continue;
+      for (const [key, state] of states) {
+        if (!ageRule(state.ageCategory).youthGrowth) continue;
+        if (!playedThisSeason.has(key)) continue;
+        const newTtr = state.ttr + YOUTH_GROWTH_BONUS;
+        matchRows.push({
+          playerId: state.id,
+          matchDate: growthDate,
+          competition: "Nachwuchs-Spielstärkezuwachs",
+          opponentName: "Youth growth bonus",
+          opponentPlayerId: null,
+          opponentTtr: null,
+          score: null,
+          result: "W",
+          ttrDelta: YOUTH_GROWTH_BONUS,
+          newTtr,
+          kFactor: null,
+        });
+        state.ttr = newTtr;
+        summary.youthGrowthBonusesApplied++;
       }
+      growthDatesApplied.add(growthDate);
     }
-    growthApplied = true;
   };
 
   interface DayRow extends OutputMatchRow {

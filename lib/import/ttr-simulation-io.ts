@@ -21,7 +21,9 @@ const CAREER_MATCH_SAFE_DEFAULT = CAREER_MATCH_THRESHOLD;
 export const SEASON_LABEL = "2025-2026";
 const MONGO_SEASON = "25-26";
 const SEASON_START_ISO = "2025-07-01";
-const YOUTH_GROWTH_ISO = "2026-01-01";
+// One per Teilrunde end within this season: Aug 1 (end of the previous
+// Teilrunde, right after the season starts) and Jan 1 (end of "Hironn").
+const YOUTH_GROWTH_ISO_DATES = ["2025-08-01", "2026-01-01"];
 
 interface MongoPlayerMatchDoc {
   id: string;
@@ -420,13 +422,14 @@ export async function runSeasonSimulation(
     staticTtrByNameKey,
     matches,
     placements: rawPlacements,
-    youthGrowthIsoDate: YOUTH_GROWTH_ISO,
+    youthGrowthIsoDates: YOUTH_GROWTH_ISO_DATES,
     seasonStartIsoDate: SEASON_START_ISO,
   });
 
   log(
     `  graded=${summary.matchesGraded} tournamentGamesExcluded=${summary.tournamentGamesExcluded} ` +
       `nonRatedGamesExcluded=${summary.nonRatedGamesExcluded} placementBonuses=${summary.placementBonusesApplied} ` +
+      `youthGrowthBonuses=${summary.youthGrowthBonusesApplied} ` +
       `droppedNoOpponentRating=${summary.droppedNoOpponentRating} unresolvedPlayers=${summary.unresolvedPlayers}`,
   );
 

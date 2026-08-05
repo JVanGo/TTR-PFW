@@ -70,7 +70,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -99,7 +99,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -123,7 +123,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -155,7 +155,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -193,7 +193,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -227,7 +227,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -254,7 +254,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -290,7 +290,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements,
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -326,7 +326,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -351,7 +351,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map([["stranger", 1000]]),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
     expect(withFallback.summary.matchesGraded).toBe(1);
@@ -362,7 +362,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
     expect(withoutFallback.summary.droppedNoOpponentRating).toBe(1);
@@ -427,7 +427,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
@@ -435,19 +435,87 @@ describe("simulateSeason", () => {
       matchRows
         .filter((r) => r.playerId === id)
         .sort((x, y) => x.matchDate.localeCompare(y.matchDate));
+    const growthRowFor = (id: string) =>
+      matchRows.find((r) => r.playerId === id && r.competition === "Nachwuchs-Spielstärkezuwachs");
 
-    const cadetRows = rowsFor("a");
-    // Growth (+12) lands between the two matches, on top of whatever the first loss did.
-    const cadetTtrBeforeSecondMatch = cadetRows[1].newTtr - cadetRows[1].ttrDelta;
-    expect(cadetTtrBeforeSecondMatch).toBe(cadetRows[0].newTtr + 12);
+    const cadetGrowth = growthRowFor("a");
+    expect(cadetGrowth).toBeDefined();
+    expect(cadetGrowth!.matchDate).toBe("2026-01-01");
+    expect(cadetGrowth!.ttrDelta).toBe(12);
+    expect(cadetGrowth!.result).toBe("W");
+    const cadetMatches = rowsFor("a").filter(
+      (r) => r.competition !== "Nachwuchs-Spielstärkezuwachs",
+    );
+    // The second match's starting point reflects the growth bonus already applied.
+    expect(cadetMatches[1].newTtr - cadetMatches[1].ttrDelta).toBe(cadetMatches[0].newTtr + 12);
 
-    const espoirsRows = rowsFor("b");
-    const espoirsTtrBeforeSecondMatch = espoirsRows[1].newTtr - espoirsRows[1].ttrDelta;
-    expect(espoirsTtrBeforeSecondMatch).toBe(espoirsRows[0].newTtr); // no growth bonus
+    expect(growthRowFor("b")).toBeUndefined(); // Espoirs: no growth bonus
+    expect(growthRowFor("c")).toBeUndefined(); // adult: no growth bonus
+  });
 
-    const adultRows = rowsFor("c");
-    const adultTtrBeforeSecondMatch = adultRows[1].newTtr - adultRows[1].ttrDelta;
-    expect(adultTtrBeforeSecondMatch).toBe(adultRows[0].newTtr); // no growth bonus
+  it("applies the youth growth bonus at both Teilrunde boundaries in the same season (Aug 1 and Jan 1)", () => {
+    const players = [
+      player({ id: "a", name: "Cadet Player", startingTtr: 1000, ageCategory: "Cadet" }),
+      player({ id: "d", name: "Filler", startingTtr: 1000 }),
+    ];
+    const matches = [
+      match({
+        sortKey: "1",
+        isoDate: "2025-09-01",
+        playerNameKey: "cadet player",
+        opponentNameKey: "filler",
+        won: false,
+      }),
+      match({
+        sortKey: "2",
+        isoDate: "2026-02-01",
+        playerNameKey: "cadet player",
+        opponentNameKey: "filler",
+        won: false,
+      }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthIsoDates: ["2025-08-01", "2026-01-01"],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const growthRows = matchRows.filter(
+      (r) => r.playerId === "a" && r.competition === "Nachwuchs-Spielstärkezuwachs",
+    );
+    expect(growthRows.map((r) => r.matchDate).sort()).toEqual(["2025-08-01", "2026-01-01"]);
+    expect(summary.youthGrowthBonusesApplied).toBe(2);
+  });
+
+  it("does not apply the youth growth bonus to an age-eligible player who never played this season", () => {
+    const players = [
+      player({ id: "a", name: "Cadet Player", startingTtr: 1000, ageCategory: "Cadet" }),
+      player({ id: "d", name: "Filler", startingTtr: 1000 }),
+      player({ id: "e", name: "Other", startingTtr: 1000 }),
+    ];
+    // Cadet Player never appears in any match; someone else's match still
+    // pushes the timeline past both growth boundaries.
+    const matches = [
+      match({
+        isoDate: "2026-02-01",
+        playerNameKey: "filler",
+        opponentNameKey: "other",
+        won: true,
+      }),
+    ];
+    const { matchRows } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthIsoDates: ["2025-08-01", "2026-01-01"],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    expect(matchRows.some((r) => r.playerId === "a")).toBe(false);
   });
 
   it("uses the Ersteinstufung default when a player has no existing rating", () => {
@@ -470,7 +538,7 @@ describe("simulateSeason", () => {
       staticTtrByNameKey: new Map(),
       matches,
       placements: [],
-      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
       seasonStartIsoDate: SEASON_START,
     });
 
