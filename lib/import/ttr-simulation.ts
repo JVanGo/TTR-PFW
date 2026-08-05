@@ -18,6 +18,15 @@ const YOUTH_GROWTH_BONUS = 12;
 
 const PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 24, 2: 16, 3: 8 };
 
+// Competitions that never count towards the rating at all — no per-game
+// score, no placement bonus either, unlike TOU club tournaments.
+const NON_RATED_COMPETITION_PREFIXES = ["COU FELTEN"];
+
+function isNonRatedCompetition(competition: string): boolean {
+  const upper = competition.toUpperCase();
+  return NON_RATED_COMPETITION_PREFIXES.some((prefix) => upper.startsWith(prefix));
+}
+
 interface AgeRule {
   kBonus: number;
   ersteinstufung: number;
@@ -119,6 +128,7 @@ export interface OutputMatchRow {
 export interface SimulationSummary {
   matchesGraded: number;
   tournamentGamesExcluded: number;
+  nonRatedGamesExcluded: number;
   placementBonusesApplied: number;
   droppedNoOpponentRating: number;
   unresolvedPlayers: number;
@@ -241,6 +251,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   const summary: SimulationSummary = {
     matchesGraded: 0,
     tournamentGamesExcluded: 0,
+    nonRatedGamesExcluded: 0,
     placementBonusesApplied: 0,
     droppedNoOpponentRating: 0,
     unresolvedPlayers: 0,
@@ -250,6 +261,10 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   for (const m of input.matches) {
     if (m.competition.toUpperCase().startsWith("TOU ") || m.competition.toUpperCase() === "TOU") {
       summary.tournamentGamesExcluded++;
+      continue;
+    }
+    if (isNonRatedCompetition(m.competition)) {
+      summary.nonRatedGamesExcluded++;
       continue;
     }
     gradedMatches.push(m);

@@ -308,8 +308,8 @@ export async function runSeasonSimulation(
 
   log(
     `  graded=${summary.matchesGraded} tournamentGamesExcluded=${summary.tournamentGamesExcluded} ` +
-      `placementBonuses=${summary.placementBonusesApplied} droppedNoOpponentRating=${summary.droppedNoOpponentRating} ` +
-      `unresolvedPlayers=${summary.unresolvedPlayers}`,
+      `nonRatedGamesExcluded=${summary.nonRatedGamesExcluded} placementBonuses=${summary.placementBonusesApplied} ` +
+      `droppedNoOpponentRating=${summary.droppedNoOpponentRating} unresolvedPlayers=${summary.unresolvedPlayers}`,
   );
 
   log(`Replacing matches for season ${SEASON_LABEL}...`);

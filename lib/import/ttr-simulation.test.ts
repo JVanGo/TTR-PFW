@@ -242,6 +242,40 @@ describe("simulateSeason", () => {
     expect(matchRows[0].newTtr).toBe(1008);
   });
 
+  it("excludes COU FELTEN matches entirely, with no placement bonus substitute", () => {
+    const players = [
+      player({ id: "a", name: "Alice", startingTtr: 1000 }),
+      player({ id: "b", name: "Bob", startingTtr: 1000 }),
+    ];
+    const matches: RawSeasonMatch[] = [
+      match({
+        playerNameKey: "alice",
+        opponentNameKey: "bob",
+        competition: "COU FELTEN (Q)",
+        won: true,
+      }),
+      match({
+        sortKey: "2",
+        playerNameKey: "alice",
+        opponentNameKey: "bob",
+        competition: "COU FELTEN (TF)",
+        won: true,
+      }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthIsoDate: YOUTH_GROWTH_DATE,
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    expect(summary.nonRatedGamesExcluded).toBe(2);
+    expect(summary.matchesGraded).toBe(0);
+    expect(matchRows).toHaveLength(0);
+  });
+
   it("falls back to a static rating for an untracked opponent, and drops the match if none is available", () => {
     const players = [player({ id: "a", name: "Alice", startingTtr: 1100 })];
     const matches = [
