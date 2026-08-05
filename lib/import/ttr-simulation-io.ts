@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, type Db } from "mongodb";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
@@ -27,6 +27,14 @@ interface MongoPlayerMatchDoc {
   competition: string;
   score: string | null;
   won: boolean | null;
+  // The top-level `competition` is sourced from the Performance-table row and
+  // is blank whenever that source cell was blank (including for most TOU
+  // tournament games) — `rencontres.competition` comes from the Rencontres
+  // table instead and is reliably populated. Prefer it as a fallback so a
+  // blanked-out competition doesn't (a) break match-pair dedup between two
+  // tracked players' mirrored rows, or (b) let a TOU game slip past the
+  // tournament-exclusion filter.
+  rencontres?: { competition?: string };
 }
 
 interface MongoTournamentPlacementDoc {
@@ -46,6 +54,44 @@ interface MongoCatalogPlayerDoc {
 interface PriorSeasonStats {
   count: number;
   lastIsoDate: string | null;
+}
+
+/**
+ * Career-match-count and last-active-date per player, from every season
+ * before the current one — feeds the experience/inactivity K-factor bonus.
+ * This is a full-collection scan (playerMatches has no index leading with
+ * `season` alone), which can exceed Cosmos DB's server-side command timeout
+ * on a large history. Treated as best-effort: on timeout, log and continue
+ * without it rather than failing the whole simulation run — every player
+ * just falls back to the conservative "new/returning player" default.
+ */
+async function fetchPriorSeasonStats(
+  db: Db,
+  currentSeason: string,
+): Promise<{
+  rows: { _id: string; count: number; lastIsoDate: string | null }[];
+  timedOut: boolean;
+}> {
+  try {
+    const rows = await db
+      .collection("playerMatches")
+      .aggregate<{ _id: string; count: number; lastIsoDate: string | null }>(
+        [
+          { $match: { season: { $ne: currentSeason } } },
+          {
+            $group: { _id: "$flttPlayerId", count: { $sum: 1 }, lastIsoDate: { $max: "$isoDate" } },
+          },
+        ],
+        { maxTimeMS: 55_000 },
+      )
+      .toArray();
+    return { rows, timedOut: false };
+  } catch (err) {
+    console.warn(
+      `  Career-match/inactivity stats query failed, continuing without it: ${(err as Error).message}`,
+    );
+    return { rows: [], timedOut: true };
+  }
 }
 
 async function fetchMongoData(season: string) {
@@ -71,6 +117,7 @@ async function fetchMongoData(season: string) {
             opponentName: 1,
             isoDate: 1,
             competition: 1,
+            "rencontres.competition": 1,
             score: 1,
             won: 1,
           },
@@ -102,15 +149,15 @@ async function fetchMongoData(season: string) {
       )
       .toArray();
 
-    const priorSeasonAgg = await db
-      .collection("playerMatches")
-      .aggregate<{ _id: string; count: number; lastIsoDate: string | null }>([
-        { $match: { season: { $ne: season } } },
-        { $group: { _id: "$flttPlayerId", count: { $sum: 1 }, lastIsoDate: { $max: "$isoDate" } } },
-      ])
-      .toArray();
+    const priorSeasonStats = await fetchPriorSeasonStats(db, season);
 
-    return { seasonMatches, placements, catalog, priorSeasonAgg };
+    return {
+      seasonMatches,
+      placements,
+      catalog,
+      priorSeasonAgg: priorSeasonStats.rows,
+      priorSeasonStatsTimedOut: priorSeasonStats.timedOut,
+    };
   } finally {
     await client.close();
   }
@@ -136,10 +183,17 @@ export async function runSeasonSimulation(
   log: (message: string) => void = () => {},
 ): Promise<RunSeasonSimulationResult> {
   log("Fetching season data from MongoDB...");
-  const { seasonMatches, placements, catalog, priorSeasonAgg } = await fetchMongoData(MONGO_SEASON);
+  const { seasonMatches, placements, catalog, priorSeasonAgg, priorSeasonStatsTimedOut } =
+    await fetchMongoData(MONGO_SEASON);
   log(
     `  ${seasonMatches.length} match rows, ${placements.length} tournament placements, ${catalog.length} catalog players.`,
   );
+  if (priorSeasonStatsTimedOut) {
+    log(
+      "  Career-match/inactivity stats query timed out on the Mongo side — continuing without " +
+        "them (every player's experience/inactivity K-bonus falls back to the conservative default).",
+    );
+  }
 
   log("Loading players from Supabase...");
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(
@@ -203,10 +257,11 @@ export async function runSeasonSimulation(
       skippedNoResult++;
       continue;
     }
+    const competition = m.competition?.trim() || m.rencontres?.competition?.trim() || "";
     matches.push({
       sortKey: m.id,
       isoDate: m.isoDate,
-      competition: m.competition,
+      competition,
       playerNameKey: nameKey(m.playerName),
       opponentNameKey: nameKey(m.opponentName),
       opponentName: m.opponentName,
