@@ -123,6 +123,8 @@ export interface OutputMatchRow {
   result: "W" | "L";
   ttrDelta: number;
   newTtr: number;
+  /** The Änderungskonstante (K) applied to this match, or null for a tournament-placement bonus. */
+  kFactor: number | null;
 }
 
 export interface SimulationSummary {
@@ -352,6 +354,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
           result: event.placement.place === 3 ? "L" : "W",
           ttrDelta: bonus,
           newTtr: 0, // filled in once the day settles, below
+          kFactor: null,
         });
         addDelta(event.placement.playerNameKey, bonus);
         summary.placementBonusesApplied++;
@@ -410,6 +413,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
         result: match.a.won ? "W" : "L",
         ttrDelta: deltaA,
         newTtr: 0,
+        kFactor: kA,
       });
       addDelta(match.a.playerNameKey, deltaA);
       addMatchPlayed(match.a.playerNameKey);
@@ -433,6 +437,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
           result: match.b.won ? "W" : "L",
           ttrDelta: deltaB,
           newTtr: 0,
+          kFactor: kB,
         });
         addDelta(stateBKey, deltaB);
         addMatchPlayed(stateBKey);

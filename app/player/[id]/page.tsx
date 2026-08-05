@@ -44,7 +44,7 @@ export default async function PlayerPage({ params }: PageProps) {
     supabase
       .from("matches")
       .select(
-        "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, created_at",
+        "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, created_at",
       )
       .eq("player_id", player.id)
       .eq("season", SEASON)
@@ -169,6 +169,7 @@ export default async function PlayerPage({ params }: PageProps) {
                     <th className="px-3 py-2 text-right font-medium">Score</th>
                     <th className="px-3 py-2 text-center font-medium">W/L</th>
                     <th className="px-3 py-2 text-right font-medium">Δ</th>
+                    <th className="px-3 py-2 text-right font-medium">K</th>
                     <th className="px-3 py-2 text-right font-medium">New TTR</th>
                   </tr>
                 </thead>
@@ -211,6 +212,9 @@ export default async function PlayerPage({ params }: PageProps) {
                       >
                         {m.ttr_delta > 0 ? "+" : ""}
                         {m.ttr_delta}
+                      </td>
+                      <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">
+                        {m.k_factor ?? "—"}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">{m.new_ttr}</td>
                     </tr>

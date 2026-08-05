@@ -339,6 +339,7 @@ function toMatchesTableRow(row: OutputMatchRow) {
     result: row.result,
     ttr_delta: row.ttrDelta,
     new_ttr: row.newTtr,
+    k_factor: row.kFactor,
     season: SEASON_LABEL,
   };
 }
