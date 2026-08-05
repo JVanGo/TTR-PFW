@@ -9,7 +9,7 @@ import { nameKey } from "@/lib/name-key";
  */
 
 const BASE_K = 16;
-const CAREER_MATCH_THRESHOLD = 30;
+export const CAREER_MATCH_THRESHOLD = 30;
 const CAREER_MATCH_BONUS = 4;
 const INACTIVITY_MONTHS_THRESHOLD = 12;
 const INACTIVITY_BONUS = 4;

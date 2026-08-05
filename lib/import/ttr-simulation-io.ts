@@ -6,12 +6,17 @@ import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
 import {
   simulateSeason,
+  CAREER_MATCH_THRESHOLD,
   type OutputMatchRow,
   type RawSeasonMatch,
   type RawSeasonPlacement,
   type SimPlayer,
   type SimulationSummary,
 } from "@/lib/import/ttr-simulation";
+
+// Safe fallback when the career-match history query is unavailable: at or
+// above the "newcomer" threshold, so no bonus is wrongly applied.
+const CAREER_MATCH_SAFE_DEFAULT = CAREER_MATCH_THRESHOLD;
 
 export const SEASON_LABEL = "2025-2026";
 const MONGO_SEASON = "25-26";
@@ -56,14 +61,27 @@ interface PriorSeasonStats {
   lastIsoDate: string | null;
 }
 
+/** "25-26" -> ["24-25", "23-24"] — the two seasons immediately before `current`. */
+function previousTwoSeasons(current: string): [string, string] {
+  const start = Number(current.split("-")[0]);
+  const pad = (n: number) => String(((n % 100) + 100) % 100).padStart(2, "0");
+  return [`${pad(start - 1)}-${pad(start)}`, `${pad(start - 2)}-${pad(start - 1)}`];
+}
+
 /**
- * Career-match-count and last-active-date per player, from every season
- * before the current one — feeds the experience/inactivity K-factor bonus.
- * This is a full-collection scan (playerMatches has no index leading with
- * `season` alone), which can exceed Cosmos DB's server-side command timeout
- * on a large history. Treated as best-effort: on timeout, log and continue
- * without it rather than failing the whole simulation run — every player
- * just falls back to the conservative "new/returning player" default.
+ * Match-count and last-active-date per player, from the two seasons
+ * immediately before the current one — feeds the experience/inactivity
+ * K-factor bonus. Deliberately scoped to just two seasons (rather than full
+ * career history): `playerMatches` has no index leading with `season` alone,
+ * so a query spanning many years of history is a full-collection scan that
+ * reliably exceeds Cosmos DB's server-side command timeout; two seasons'
+ * worth is small enough to complete in a few seconds.
+ *
+ * Treated as best-effort: on failure, log and continue without it rather
+ * than failing the whole run. Critically, the fallback must NOT default
+ * every player to "new and inactive" (that's the opposite of conservative —
+ * most players are neither) — the caller applies a "assume experienced and
+ * active" default instead when this times out.
  */
 async function fetchPriorSeasonStats(
   db: Db,
@@ -77,7 +95,7 @@ async function fetchPriorSeasonStats(
       .collection("playerMatches")
       .aggregate<{ _id: string; count: number; lastIsoDate: string | null }>(
         [
-          { $match: { season: { $ne: currentSeason } } },
+          { $match: { season: { $in: previousTwoSeasons(currentSeason) } } },
           {
             $group: { _id: "$flttPlayerId", count: { $sum: 1 }, lastIsoDate: { $max: "$isoDate" } },
           },
@@ -191,7 +209,8 @@ export async function runSeasonSimulation(
   if (priorSeasonStatsTimedOut) {
     log(
       "  Career-match/inactivity stats query timed out on the Mongo side — continuing without " +
-        "them (every player's experience/inactivity K-bonus falls back to the conservative default).",
+        "them. Every player defaults to 'experienced and active' (no newcomer/inactivity K-bonus) " +
+        "rather than the reverse, since that's true for the vast majority of players.",
     );
   }
 
@@ -234,8 +253,16 @@ export async function runSeasonSimulation(
       nameKey: key,
       startingTtr,
       ageCategory: isAgeCategory(p.age_category) ? p.age_category : null,
-      careerMatchesBeforeSeason: prior?.count ?? 0,
-      lastMatchIsoDateBeforeSeason: prior?.lastIsoDate ?? null,
+      // A timed-out query means "no data available", not "confirmed zero
+      // matches" — defaulting to 0/null here would wrongly flag every
+      // player as a brand-new, long-inactive newcomer. Assume the opposite
+      // (experienced, active) instead when we genuinely have no information.
+      careerMatchesBeforeSeason: priorSeasonStatsTimedOut
+        ? CAREER_MATCH_SAFE_DEFAULT
+        : (prior?.count ?? 0),
+      lastMatchIsoDateBeforeSeason: priorSeasonStatsTimedOut
+        ? SEASON_START_ISO
+        : (prior?.lastIsoDate ?? null),
     };
   });
 
