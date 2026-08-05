@@ -78,23 +78,62 @@ export interface RanglistDiff {
   toDeactivate: string[];
 }
 
-export function diffRangliste(
-  parsed: RanglistEntry[],
-  existing: Array<{ id: string; name_key: string; is_active: boolean }>,
-): RanglistDiff {
-  const byKey = new Map(existing.map((p) => [p.name_key, p]));
-  const parsedKeys = new Set(parsed.map((p) => p.nameKey));
+/** Normalizes a club name for comparison; null/blank all compare equal. */
+function clubKey(club: string | null): string {
+  return (club ?? "").trim().toLowerCase();
+}
 
+export interface ExistingPlayer {
+  id: string;
+  name_key: string;
+  club: string | null;
+  is_active: boolean;
+}
+
+/**
+ * Two different real people can share the exact same name (confirmed: ~25
+ * cases in the FLTT catalog, almost all at different clubs) — matching by
+ * name alone silently merges them into one row. Disambiguate by club when a
+ * name has more than one existing candidate; when there's only one candidate
+ * for a name, match it directly (club isn't required/checked, so players who
+ * transfer clubs still match normally).
+ */
+export function diffRangliste(parsed: RanglistEntry[], existing: ExistingPlayer[]): RanglistDiff {
+  const candidatesByNameKey = new Map<string, ExistingPlayer[]>();
+  for (const p of existing) {
+    const list = candidatesByNameKey.get(p.name_key);
+    if (list) list.push(p);
+    else candidatesByNameKey.set(p.name_key, [p]);
+  }
+
+  const consumed = new Set<string>();
   const toInsert: RanglistEntry[] = [];
   const toUpdate: Array<{ id: string; entry: RanglistEntry }> = [];
+
   for (const entry of parsed) {
-    const match = byKey.get(entry.nameKey);
-    if (match) toUpdate.push({ id: match.id, entry });
-    else toInsert.push(entry);
+    const allCandidates = candidatesByNameKey.get(entry.nameKey) ?? [];
+    const available = allCandidates.filter((c) => !consumed.has(c.id));
+
+    // No collision on file for this name: match the one candidate
+    // unconditionally (so a player who transferred clubs still matches),
+    // as long as an earlier entry in this same import hasn't already
+    // claimed it — if it has, this is a second, previously-unseen person
+    // who happens to share the name, not the same player twice.
+    // A name shared by more than one person on file requires a club match.
+    const match =
+      allCandidates.length <= 1
+        ? available[0]
+        : available.find((c) => clubKey(c.club) === clubKey(entry.club));
+
+    if (match) {
+      toUpdate.push({ id: match.id, entry });
+      consumed.add(match.id);
+    } else {
+      toInsert.push(entry);
+    }
   }
-  const toDeactivate = existing
-    .filter((p) => p.is_active && !parsedKeys.has(p.name_key))
-    .map((p) => p.id);
+
+  const toDeactivate = existing.filter((p) => p.is_active && !consumed.has(p.id)).map((p) => p.id);
 
   return { toInsert, toUpdate, toDeactivate };
 }

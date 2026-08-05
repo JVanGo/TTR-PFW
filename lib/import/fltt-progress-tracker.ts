@@ -2,7 +2,7 @@ import { MongoClient } from "mongodb";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
-import { diffRangliste, type RanglistEntry } from "./verbandsrangliste";
+import { diffRangliste, type ExistingPlayer, type RanglistEntry } from "./verbandsrangliste";
 
 interface MongoPlayerDoc {
   name: string;
@@ -69,12 +69,6 @@ export async function fetchCatalogFromMongo(): Promise<CatalogFetchResult> {
   }
 }
 
-interface ExistingPlayer {
-  id: string;
-  name_key: string;
-  is_active: boolean;
-}
-
 export interface ApplyCatalogSummary {
   read: number;
   skipped: number;
@@ -106,7 +100,7 @@ export async function applyFlttCatalogToSupabase(
   for (;;) {
     const { data, error } = await supabase
       .from("players")
-      .select("id, name_key, is_active")
+      .select("id, name_key, club, is_active")
       .range(from, from + pageSize - 1);
     if (error) throw new Error(error.message);
     if (!data || data.length === 0) break;

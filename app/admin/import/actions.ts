@@ -62,13 +62,18 @@ export async function importRangliste(
       return { status: "error", message: "Couldn't find any player rows in that file." };
     }
 
-    const existing: Array<{ id: string; name_key: string; is_active: boolean }> = [];
+    const existing: Array<{
+      id: string;
+      name_key: string;
+      club: string | null;
+      is_active: boolean;
+    }> = [];
     let from = 0;
     const pageSize = 1000;
     for (;;) {
       const { data, error } = await admin
         .from("players")
-        .select("id, name_key, is_active")
+        .select("id, name_key, club, is_active")
         .range(from, from + pageSize - 1);
       if (error) return { status: "error", message: error.message };
       if (!data || data.length === 0) break;

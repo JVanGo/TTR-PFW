@@ -40,6 +40,10 @@ interface MongoPlayerMatchDoc {
   // tracked players' mirrored rows, or (b) let a TOU game slip past the
   // tournament-exclusion filter.
   rencontres?: { competition?: string };
+  // Opponent's club at match time, when a Performance-table row was joined —
+  // used to disambiguate two different players who share a name (see
+  // playersByNameKey below). Not present on every row.
+  performance?: { opponentClub?: string | null } | null;
 }
 
 interface MongoTournamentPlacementDoc {
@@ -52,8 +56,21 @@ interface MongoTournamentPlacementDoc {
 interface MongoCatalogPlayerDoc {
   flttPlayerId: string;
   name: string;
+  club: string | null;
   ranking: string;
   performanceScore: number;
+}
+
+/** Normalizes a club name for comparison; null/blank all compare equal. */
+function clubKey(club: string | null): string {
+  return (club ?? "").trim().toLowerCase();
+}
+
+/** A player's identity for this run: name plus club, so two different real
+ * people who happen to share a name (confirmed: ~25 cases in the FLTT
+ * catalog) don't get their match histories merged together. */
+function identityKey(playerNameKey: string, club: string | null): string {
+  return `${playerNameKey}|${clubKey(club)}`;
 }
 
 interface PriorSeasonStats {
@@ -136,6 +153,7 @@ async function fetchMongoData(season: string) {
             isoDate: 1,
             competition: 1,
             "rencontres.competition": 1,
+            "performance.opponentClub": 1,
             score: 1,
             won: 1,
           },
@@ -163,7 +181,16 @@ async function fetchMongoData(season: string) {
       .collection<MongoCatalogPlayerDoc>("players")
       .find(
         {},
-        { projection: { _id: 0, flttPlayerId: 1, name: 1, ranking: 1, performanceScore: 1 } },
+        {
+          projection: {
+            _id: 0,
+            flttPlayerId: 1,
+            name: 1,
+            club: 1,
+            ranking: 1,
+            performanceScore: 1,
+          },
+        },
       )
       .toArray();
 
@@ -185,10 +212,29 @@ interface SupabasePlayerRow {
   id: string;
   name: string;
   name_key: string;
+  club: string | null;
   class: string;
   pfw: string | number;
   classement_points: string | number | null;
   age_category: string | null;
+}
+
+/**
+ * Resolve a name to exactly one of our players, disambiguating by club when
+ * more than one of our players shares that name. With zero or one candidate,
+ * club isn't required (so e.g. a club transfer still matches); with more
+ * than one, an unknown or non-matching club means we can't safely resolve —
+ * callers should treat that as "not found" rather than guess.
+ */
+function resolvePlayer(
+  playersByNameKey: Map<string, SupabasePlayerRow[]>,
+  candidateNameKey: string,
+  knownClub: string | null,
+): SupabasePlayerRow | null {
+  const candidates = playersByNameKey.get(candidateNameKey) ?? [];
+  if (candidates.length <= 1) return candidates[0] ?? null;
+  if (knownClub == null) return null;
+  return candidates.find((c) => clubKey(c.club) === clubKey(knownClub)) ?? null;
 }
 
 export interface RunSeasonSimulationResult {
@@ -218,19 +264,28 @@ export async function runSeasonSimulation(
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(
     supabase,
     "players",
-    "id, name, name_key, class, pfw, classement_points, age_category",
+    "id, name, name_key, club, class, pfw, classement_points, age_category",
   );
   log(`  ${supabasePlayers.length} players.`);
 
-  // flttPlayerId -> nameKey, via the Mongo catalog (our own players table has no flttPlayerId).
-  const nameKeyByFlttId = new Map<string, string>();
+  const playersByNameKey = new Map<string, SupabasePlayerRow[]>();
+  for (const p of supabasePlayers) {
+    const list = playersByNameKey.get(p.name_key);
+    if (list) list.push(p);
+    else playersByNameKey.set(p.name_key, [p]);
+  }
+
+  // flttPlayerId -> {nameKey, club}, via the Mongo catalog (our own players
+  // table has no flttPlayerId) — the club is what lets us tell apart two
+  // different real players who happen to share a name.
+  const catalogByFlttId = new Map<string, { nameKey: string; club: string | null }>();
   for (const c of catalog) {
-    nameKeyByFlttId.set(c.flttPlayerId, nameKey(c.name));
+    catalogByFlttId.set(c.flttPlayerId, { nameKey: nameKey(c.name), club: c.club });
   }
 
   const priorStatsByNameKey = new Map<string, PriorSeasonStats>();
   for (const row of priorSeasonAgg) {
-    const key = nameKeyByFlttId.get(row._id);
+    const key = catalogByFlttId.get(row._id)?.nameKey;
     if (!key) continue;
     priorStatsByNameKey.set(key, { count: row.count, lastIsoDate: row.lastIsoDate });
   }
@@ -239,8 +294,7 @@ export async function runSeasonSimulation(
     v != null && (AGE_CATEGORIES as readonly string[]).includes(v);
 
   const players: SimPlayer[] = supabasePlayers.map((p) => {
-    const key = p.name_key;
-    const prior = priorStatsByNameKey.get(key);
+    const prior = priorStatsByNameKey.get(p.name_key);
     const cls = p.class;
     const pfw = Number(p.pfw);
     const classementPoints = p.classement_points == null ? null : Number(p.classement_points);
@@ -250,7 +304,7 @@ export async function runSeasonSimulation(
     return {
       id: p.id,
       name: p.name,
-      nameKey: key,
+      nameKey: identityKey(p.name_key, p.club),
       startingTtr,
       ageCategory: isAgeCategory(p.age_category) ? p.age_category : null,
       // A timed-out query means "no data available", not "confirmed zero
@@ -279,18 +333,50 @@ export async function runSeasonSimulation(
 
   const matches: RawSeasonMatch[] = [];
   let skippedNoResult = 0;
+  let skippedSelfUnresolved = 0;
+  let ambiguousOpponent = 0;
   for (const m of seasonMatches) {
     if (m.won == null) {
       skippedNoResult++;
       continue;
     }
+
+    // The row's own player: always resolvable via their catalog club (exact,
+    // no guessing) — if they're not one of our tracked players at all, skip
+    // this row entirely (there's no valid player_id to attach it to).
+    const selfInfo = catalogByFlttId.get(m.flttPlayerId);
+    const selfPlayer = resolvePlayer(
+      playersByNameKey,
+      selfInfo?.nameKey ?? nameKey(m.playerName),
+      selfInfo?.club ?? null,
+    );
+    if (!selfPlayer) {
+      skippedSelfUnresolved++;
+      continue;
+    }
+
+    // The opponent: only a name (plus, sometimes, a club from a joined
+    // Performance row). Most names have exactly one of our players and
+    // resolve unambiguously; a shared name without a matching club can't be
+    // safely resolved, so it's treated as untracked (counted separately).
+    const opponentCandidateKey = nameKey(m.opponentName);
+    const opponentCandidates = playersByNameKey.get(opponentCandidateKey) ?? [];
+    const opponentPlayer = resolvePlayer(
+      playersByNameKey,
+      opponentCandidateKey,
+      m.performance?.opponentClub ?? null,
+    );
+    if (!opponentPlayer && opponentCandidates.length > 1) ambiguousOpponent++;
+
     const competition = m.competition?.trim() || m.rencontres?.competition?.trim() || "";
     matches.push({
       sortKey: m.id,
       isoDate: m.isoDate,
       competition,
-      playerNameKey: nameKey(m.playerName),
-      opponentNameKey: nameKey(m.opponentName),
+      playerNameKey: identityKey(selfPlayer.name_key, selfPlayer.club),
+      opponentNameKey: opponentPlayer
+        ? identityKey(opponentPlayer.name_key, opponentPlayer.club)
+        : opponentCandidateKey,
       opponentName: m.opponentName,
       score: m.score,
       won: m.won,
@@ -305,8 +391,11 @@ export async function runSeasonSimulation(
       skippedNoPlace++;
       continue;
     }
-    const key = nameKeyByFlttId.get(p.flttPlayerId);
-    if (!key) {
+    const selfInfo = catalogByFlttId.get(p.flttPlayerId);
+    const selfPlayer = selfInfo
+      ? resolvePlayer(playersByNameKey, selfInfo.nameKey, selfInfo.club)
+      : null;
+    if (!selfPlayer) {
       skippedNoPlace++;
       continue;
     }
@@ -314,13 +403,15 @@ export async function runSeasonSimulation(
       sortKey: `${p.flttPlayerId}-${p.isoDate}-${p.competition}`,
       isoDate: p.isoDate,
       competition: p.competition,
-      playerNameKey: key,
+      playerNameKey: identityKey(selfPlayer.name_key, selfPlayer.club),
       place,
     });
   }
 
   log(
-    `  ${skippedNoResult} match rows skipped (no result), ${skippedNoPlace} placement rows skipped.`,
+    `  ${skippedNoResult} match rows skipped (no result), ${skippedSelfUnresolved} skipped ` +
+      `(player not found), ${ambiguousOpponent} opponents left unresolved (shared name, no club ` +
+      `match), ${skippedNoPlace} placement rows skipped.`,
   );
   log(`Simulating season ${SEASON_LABEL}...`);
 
