@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { MongoClient, type Db } from "mongodb";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
@@ -5,6 +7,7 @@ import { nameKey } from "@/lib/name-key";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
 import { fetchSeasonStartTtr, type SeasonStartTtr } from "@/lib/import/season-start-snapshot";
+import { parseSeasonStartExport } from "@/lib/import/season-start-export";
 import {
   simulateSeason,
   CAREER_MATCH_THRESHOLD,
@@ -25,6 +28,45 @@ const SEASON_START_ISO = "2025-07-01";
 // One per Teilrunde end within this season: Aug 1 (end of the previous
 // Teilrunde, right after the season starts) and Jan 1 (end of "Hironn").
 const YOUTH_GROWTH_ISO_DATES = ["2025-08-01", "2026-01-01"];
+
+// FLTT can produce a membership export snapshotting every player's class,
+// classement points, and PFW as of a given date — the authoritative source
+// for a player's season-start rating when Jeff has one on hand, since it
+// beats inferring a snapshot from match history (see season-start-snapshot.ts).
+// Gitignored/local-only (see TTR/ in the repo layout); update this filename
+// each season a fresher export is provided, and this quietly falls back to
+// the match-history heuristic when the file isn't present.
+const SEASON_START_EXPORT_PATH = path.join(process.cwd(), "TTR", "Export-Members (34).xlsx");
+
+interface SeasonStartExportSnapshot {
+  class: PlayerClass;
+  pfw: number;
+  classementPoints: number | null;
+}
+
+function loadSeasonStartExport(
+  log: (message: string) => void,
+): Map<string, SeasonStartExportSnapshot> {
+  const result = new Map<string, SeasonStartExportSnapshot>();
+  if (!existsSync(SEASON_START_EXPORT_PATH)) {
+    log(
+      `  No season-start export found at ${SEASON_START_EXPORT_PATH} — using match-history snapshots only.`,
+    );
+    return result;
+  }
+  const entries = parseSeasonStartExport(readFileSync(SEASON_START_EXPORT_PATH));
+  for (const e of entries) {
+    result.set(e.flttPlayerId, {
+      class: e.class,
+      pfw: e.pfw,
+      classementPoints: e.classementPoints,
+    });
+  }
+  log(
+    `  Loaded ${result.size} season-start snapshots from ${path.basename(SEASON_START_EXPORT_PATH)}.`,
+  );
+  return result;
+}
 
 interface MongoPlayerMatchDoc {
   id: string;
@@ -352,6 +394,9 @@ export async function runSeasonSimulation(
   const isAgeCategory = (v: string | null): v is AgeCategory =>
     v != null && (AGE_CATEGORIES as readonly string[]).includes(v);
 
+  const seasonStartExportByFlttId = loadSeasonStartExport(log);
+
+  let exportHits = 0;
   let seasonStartHits = 0;
   const players: SimPlayer[] = supabasePlayers.map((p) => {
     const prior = priorStatsByNameKey.get(p.name_key);
@@ -359,20 +404,35 @@ export async function runSeasonSimulation(
     const pfw = Number(p.pfw);
     const classementPoints = p.classement_points == null ? null : Number(p.classement_points);
 
-    // Prefer the player's class/PFW/classement points as of their earliest
-    // match this season over Supabase's `players` row, which only ever
-    // reflects the latest catalog import — i.e. roughly where they ended up,
-    // not where they started (see fetchSeasonStartTtr for why that matters).
+    // Prefer the player's class/PFW/classement points as of the start of the
+    // season over Supabase's `players` row, which only ever reflects the
+    // latest catalog import — i.e. roughly where they ended up, not where
+    // they started. Best source first: FLTT's own season-start export when
+    // Jeff has one on hand, then a snapshot inferred from their earliest
+    // match this season (see season-start-snapshot.ts for why either beats
+    // today's catalog).
     const flttId = resolveFlttId(p.name_key, p.club);
+    const exportSnapshot = flttId ? seasonStartExportByFlttId.get(flttId) : undefined;
     const seasonStart: SeasonStartTtr | undefined = flttId
       ? seasonStartByFlttId.get(flttId)
       : undefined;
-    if (seasonStart) seasonStartHits++;
-    const startingTtr = seasonStart
-      ? seasonStart.ttr
-      : isPlayerClass(cls)
+
+    let startingTtr: number | null;
+    if (exportSnapshot) {
+      exportHits++;
+      startingTtr = estimateTtr(
+        exportSnapshot.pfw,
+        exportSnapshot.class,
+        exportSnapshot.classementPoints,
+      );
+    } else if (seasonStart) {
+      seasonStartHits++;
+      startingTtr = seasonStart.ttr;
+    } else {
+      startingTtr = isPlayerClass(cls)
         ? estimateTtr(pfw, cls as PlayerClass, classementPoints)
         : null;
+    }
     return {
       id: p.id,
       name: p.name,
@@ -392,8 +452,9 @@ export async function runSeasonSimulation(
     };
   });
   log(
-    `  ${seasonStartHits} of ${players.length} players got a season-start rating from their ` +
-      `earliest match this season; the rest fall back to today's catalog class/PFW.`,
+    `  ${exportHits} of ${players.length} players got a season-start rating from FLTT's own export; ` +
+      `${seasonStartHits} more from their earliest match this season; the rest fall back to today's ` +
+      `catalog class/PFW.`,
   );
 
   // Fallback static rating for opponents we can't resolve to a tracked player:
