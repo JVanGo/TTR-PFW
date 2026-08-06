@@ -4,6 +4,7 @@ import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions"
 import { nameKey } from "@/lib/name-key";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
+import { fetchSeasonStartTtr, type SeasonStartTtr } from "@/lib/import/season-start-snapshot";
 import {
   simulateSeason,
   CAREER_MATCH_THRESHOLD,
@@ -232,6 +233,7 @@ async function fetchMongoData(season: string) {
     );
 
     const priorSeasonStats = await fetchPriorSeasonStats(db, season);
+    const seasonStartByFlttId = await fetchSeasonStartTtr(db, season, playerIds);
 
     return {
       seasonMatches,
@@ -239,6 +241,7 @@ async function fetchMongoData(season: string) {
       catalog,
       priorSeasonAgg: priorSeasonStats.rows,
       priorSeasonStatsTimedOut: priorSeasonStats.timedOut,
+      seasonStartByFlttId,
     };
   } finally {
     await client.close();
@@ -284,8 +287,14 @@ export async function runSeasonSimulation(
   log: (message: string) => void = () => {},
 ): Promise<RunSeasonSimulationResult> {
   log("Fetching season data from MongoDB...");
-  const { seasonMatches, placements, catalog, priorSeasonAgg, priorSeasonStatsTimedOut } =
-    await fetchMongoData(MONGO_SEASON);
+  const {
+    seasonMatches,
+    placements,
+    catalog,
+    priorSeasonAgg,
+    priorSeasonStatsTimedOut,
+    seasonStartByFlttId,
+  } = await fetchMongoData(MONGO_SEASON);
   log(
     `  ${seasonMatches.length} match rows, ${placements.length} tournament placements, ${catalog.length} catalog players.`,
   );
@@ -316,8 +325,21 @@ export async function runSeasonSimulation(
   // table has no flttPlayerId) — the club is what lets us tell apart two
   // different real players who happen to share a name.
   const catalogByFlttId = new Map<string, { nameKey: string; club: string | null }>();
+  // The reverse: nameKey -> catalog candidates, so a Supabase player row can
+  // be resolved back to its flttPlayerId (to look up its season-start TTR).
+  const catalogByNameKey = new Map<string, { flttPlayerId: string; club: string | null }[]>();
   for (const c of catalog) {
     catalogByFlttId.set(c.flttPlayerId, { nameKey: nameKey(c.name), club: c.club });
+    const key = nameKey(c.name);
+    const list = catalogByNameKey.get(key);
+    const entry = { flttPlayerId: c.flttPlayerId, club: c.club };
+    if (list) list.push(entry);
+    else catalogByNameKey.set(key, [entry]);
+  }
+  function resolveFlttId(candidateNameKey: string, knownClub: string | null): string | null {
+    const candidates = catalogByNameKey.get(candidateNameKey) ?? [];
+    if (candidates.length <= 1) return candidates[0]?.flttPlayerId ?? null;
+    return candidates.find((c) => clubKey(c.club) === clubKey(knownClub))?.flttPlayerId ?? null;
   }
 
   const priorStatsByNameKey = new Map<string, PriorSeasonStats>();
@@ -330,14 +352,27 @@ export async function runSeasonSimulation(
   const isAgeCategory = (v: string | null): v is AgeCategory =>
     v != null && (AGE_CATEGORIES as readonly string[]).includes(v);
 
+  let seasonStartHits = 0;
   const players: SimPlayer[] = supabasePlayers.map((p) => {
     const prior = priorStatsByNameKey.get(p.name_key);
     const cls = p.class;
     const pfw = Number(p.pfw);
     const classementPoints = p.classement_points == null ? null : Number(p.classement_points);
-    const startingTtr = isPlayerClass(cls)
-      ? estimateTtr(pfw, cls as PlayerClass, classementPoints)
-      : null;
+
+    // Prefer the player's class/PFW/classement points as of their earliest
+    // match this season over Supabase's `players` row, which only ever
+    // reflects the latest catalog import — i.e. roughly where they ended up,
+    // not where they started (see fetchSeasonStartTtr for why that matters).
+    const flttId = resolveFlttId(p.name_key, p.club);
+    const seasonStart: SeasonStartTtr | undefined = flttId
+      ? seasonStartByFlttId.get(flttId)
+      : undefined;
+    if (seasonStart) seasonStartHits++;
+    const startingTtr = seasonStart
+      ? seasonStart.ttr
+      : isPlayerClass(cls)
+        ? estimateTtr(pfw, cls as PlayerClass, classementPoints)
+        : null;
     return {
       id: p.id,
       name: p.name,
@@ -356,6 +391,10 @@ export async function runSeasonSimulation(
         : (prior?.lastIsoDate ?? null),
     };
   });
+  log(
+    `  ${seasonStartHits} of ${players.length} players got a season-start rating from their ` +
+      `earliest match this season; the rest fall back to today's catalog class/PFW.`,
+  );
 
   // Fallback static rating for opponents we can't resolve to a tracked player:
   // A1-B3 catalog players only — estimateTtr() needs classement_points for

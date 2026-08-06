@@ -9,7 +9,7 @@ describe("parseClassementPoints", () => {
   });
 
   it("strips a trailing human-readable delta before parsing", () => {
-    const raw = '{"points":0.5,"licence1":{"licenceNumber":"28044"}} (+0.5)';
+    const raw = '{"points":0.5,"ranking":"D2","licence1":{"licenceNumber":"28044"}} (+0.5)';
     expect(parseClassementPoints(raw, "28044")).toBe(0.5);
   });
 
@@ -20,17 +20,17 @@ describe("parseClassementPoints", () => {
   });
 
   it("returns null when the blob belongs to a different player", () => {
-    const raw = '{"points":1,"licence1":{"licenceNumber":"99999"}}';
+    const raw = '{"points":1,"ranking":"D2","licence1":{"licenceNumber":"99999"}}';
     expect(parseClassementPoints(raw, "28044")).toBeNull();
   });
 
   it("returns null for a value outside the -5.5..11.5 classement range", () => {
-    expect(parseClassementPoints('{"points":12}', "28044")).toBeNull();
-    expect(parseClassementPoints('{"points":-6}', "28044")).toBeNull();
+    expect(parseClassementPoints('{"points":12,"ranking":"D2"}', "28044")).toBeNull();
+    expect(parseClassementPoints('{"points":-6,"ranking":"D2"}', "28044")).toBeNull();
   });
 
   it("accepts the range boundaries", () => {
-    expect(parseClassementPoints('{"points":11.5}', "28044")).toBe(11.5);
-    expect(parseClassementPoints('{"points":-5.5}', "28044")).toBe(-5.5);
+    expect(parseClassementPoints('{"points":11.5,"ranking":"D2"}', "28044")).toBe(11.5);
+    expect(parseClassementPoints('{"points":-5.5,"ranking":"D2"}', "28044")).toBe(-5.5);
   });
 });

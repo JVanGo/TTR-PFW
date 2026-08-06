@@ -2,11 +2,10 @@ import { MongoClient } from "mongodb";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
+import { parseFlttMatchSnapshot } from "./fltt-match-snapshot";
 
 // Only C1-D3 estimates need classement points (see lib/conversions.ts).
 const CLASSEMENT_RANKINGS = ["C1", "C2", "C3", "D1", "D2", "D3"];
-const CLASSEMENT_MIN = -5.5;
-const CLASSEMENT_MAX = 11.5;
 
 // Searched most-recent-first; a player is looked up in an older season only
 // if none of the newer ones had a usable value.
@@ -39,39 +38,15 @@ interface MongoRencontresPointsRow {
 }
 
 /**
- * FLTT doesn't expose classement points as a clean field. On team-competition
- * rows, `rencontresRows.points` instead holds a JSON-encoded string
- * describing that round (score, both licences, and a `points`/`pointsTemp`
- * pair for the row's own player) — individual/tournament rows leave the cell
- * blank or plain instead. A row occasionally has a human-readable delta
- * suffix, e.g. `...} (+0.5)`, which is stripped before parsing.
- *
+ * Extracts just the classement-points half of parseFlttMatchSnapshot(), for
+ * callers that don't need the class/performance also carried in that blob.
  * Exported for testing.
  */
 export function parseClassementPoints(
   raw: string | null | undefined,
   ownerFlttId: string,
 ): number | null {
-  if (!raw || !raw.startsWith("{")) return null;
-  const jsonPart = raw.replace(/\s*\([+-][\d.]+\)\s*$/, "");
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonPart);
-  } catch {
-    return null;
-  }
-  if (typeof parsed !== "object" || parsed === null) return null;
-  const obj = parsed as { points?: unknown; licence1?: { licenceNumber?: unknown } };
-
-  // Defensive: the blob is keyed on the row's own player already, but confirm
-  // licence1 (when present) really is that player before trusting its points.
-  const ownerLicence = obj.licence1?.licenceNumber;
-  if (typeof ownerLicence === "string" && ownerLicence !== ownerFlttId) return null;
-
-  const value = obj.points;
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  if (value < CLASSEMENT_MIN || value > CLASSEMENT_MAX) return null;
-  return value;
+  return parseFlttMatchSnapshot(raw, ownerFlttId)?.points ?? null;
 }
 
 interface ClassementFetchResult {
