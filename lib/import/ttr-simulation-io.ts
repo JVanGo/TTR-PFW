@@ -131,6 +131,34 @@ async function fetchPriorSeasonStats(
   }
 }
 
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+}
+
+// playerMatches/rencontresRows are only indexed leading with flttPlayerId
+// (see DATASET_HANDOFF.md section 9), so a query scoped to `season` alone is
+// a full-collection scan that reliably exceeds Cosmos DB's server-side
+// command timeout on this ~1M-row collection. Splitting the same query into
+// one $in-batch of player IDs at a time lets each batch use the
+// (flttPlayerId, season, ...) index instead, and keeps every individual
+// request small enough to finish well inside the timeout. Sequential (not
+// parallel) on purpose: Cosmos's own timeout error blames "concurrent
+// transactions", so firing batches at once would work against the fix.
+const PLAYER_BATCH_SIZE = 100;
+
+async function fetchInPlayerBatches<T>(
+  playerIds: string[],
+  runBatch: (idBatch: string[]) => Promise<T[]>,
+): Promise<T[]> {
+  const results: T[] = [];
+  for (const idBatch of chunk(playerIds, PLAYER_BATCH_SIZE)) {
+    results.push(...(await runBatch(idBatch)));
+  }
+  return results;
+}
+
 async function fetchMongoData(season: string) {
   const uri = process.env.MONGODB_URI;
   const dbName = process.env.MONGODB_DB_NAME;
@@ -140,44 +168,6 @@ async function fetchMongoData(season: string) {
   try {
     await client.connect();
     const db = client.db(dbName);
-
-    const seasonMatches = await db
-      .collection<MongoPlayerMatchDoc>("playerMatches")
-      .find(
-        { season },
-        {
-          projection: {
-            _id: 0,
-            id: 1,
-            flttPlayerId: 1,
-            playerName: 1,
-            opponentName: 1,
-            isoDate: 1,
-            competition: 1,
-            "rencontres.competition": 1,
-            "performance.opponentClub": 1,
-            score: 1,
-            won: 1,
-          },
-        },
-      )
-      .toArray();
-
-    const placements = await db
-      .collection<MongoTournamentPlacementDoc>("rencontresRows")
-      .find(
-        { season, rowType: "tournamentPlacement" },
-        {
-          projection: {
-            _id: 0,
-            flttPlayerId: 1,
-            isoDate: 1,
-            competition: 1,
-            tournamentPlacement: 1,
-          },
-        },
-      )
-      .toArray();
 
     const catalog = await db
       .collection<MongoCatalogPlayerDoc>("players")
@@ -195,6 +185,51 @@ async function fetchMongoData(season: string) {
         },
       )
       .toArray();
+    const playerIds = catalog.map((p) => p.flttPlayerId);
+
+    const seasonMatches = await fetchInPlayerBatches(playerIds, (idBatch) =>
+      db
+        .collection<MongoPlayerMatchDoc>("playerMatches")
+        .find(
+          { flttPlayerId: { $in: idBatch }, season },
+          {
+            projection: {
+              _id: 0,
+              id: 1,
+              flttPlayerId: 1,
+              playerName: 1,
+              opponentName: 1,
+              isoDate: 1,
+              competition: 1,
+              "rencontres.competition": 1,
+              "performance.opponentClub": 1,
+              score: 1,
+              won: 1,
+            },
+            maxTimeMS: 55_000,
+          },
+        )
+        .toArray(),
+    );
+
+    const placements = await fetchInPlayerBatches(playerIds, (idBatch) =>
+      db
+        .collection<MongoTournamentPlacementDoc>("rencontresRows")
+        .find(
+          { flttPlayerId: { $in: idBatch }, season, rowType: "tournamentPlacement" },
+          {
+            projection: {
+              _id: 0,
+              flttPlayerId: 1,
+              isoDate: 1,
+              competition: 1,
+              tournamentPlacement: 1,
+            },
+            maxTimeMS: 55_000,
+          },
+        )
+        .toArray(),
+    );
 
     const priorSeasonStats = await fetchPriorSeasonStats(db, season);
 
