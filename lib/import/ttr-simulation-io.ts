@@ -457,21 +457,37 @@ export async function runSeasonSimulation(
       ? seasonStartByFlttId.get(flttId)
       : undefined;
 
-    let startingTtr: number | null;
+    // Each source only "claims" the player if it actually produces a number —
+    // a classement-class export/season-start row with no points recorded
+    // yields null from estimateTtr(), and previously that null was taken as
+    // final instead of falling through to the next source. That silently
+    // dropped an established player (e.g. current B2, started the season as
+    // C1) straight to the flat newcomer/age default, skipping every real
+    // fallback meant to catch exactly this case.
+    let startingTtr: number | null = null;
     if (overrideClass) {
-      overrideHits++;
-      startingTtr = medianTtrByClass.get(overrideClass) ?? null;
-    } else if (exportSnapshot) {
-      exportHits++;
-      startingTtr = estimateTtr(
+      const est = medianTtrByClass.get(overrideClass) ?? null;
+      if (est != null) {
+        overrideHits++;
+        startingTtr = est;
+      }
+    }
+    if (startingTtr == null && exportSnapshot) {
+      const est = estimateTtr(
         exportSnapshot.pfw,
         exportSnapshot.class,
         exportSnapshot.classementPoints,
       );
-    } else if (seasonStart) {
+      if (est != null) {
+        exportHits++;
+        startingTtr = est;
+      }
+    }
+    if (startingTtr == null && seasonStart) {
       seasonStartHits++;
       startingTtr = seasonStart.ttr;
-    } else {
+    }
+    if (startingTtr == null) {
       startingTtr = isPlayerClass(cls)
         ? estimateTtr(pfw, cls as PlayerClass, classementPoints)
         : null;
