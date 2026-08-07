@@ -16,9 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pinned (not "latest"): v2.112.0 has a regression where `link` fails
+      # with a SchemaError decoding a project's API keys (its inserted_at
+      # timestamp validation is stricter than what the Management API
+      # actually returns) — https://github.com/supabase/cli/issues/6115.
+      # Bump this once a release after 2.112.0 fixes it.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.111.0
 
       - name: Link project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
