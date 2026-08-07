@@ -123,11 +123,12 @@ function previousTwoSeasons(current: string): [string, string] {
 /**
  * Match-count and last-active-date per player, from the two seasons
  * immediately before the current one — feeds the experience/inactivity
- * K-factor bonus. Deliberately scoped to just two seasons (rather than full
- * career history): `playerMatches` has no index leading with `season` alone,
- * so a query spanning many years of history is a full-collection scan that
- * reliably exceeds Cosmos DB's server-side command timeout; two seasons'
- * worth is small enough to complete in a few seconds.
+ * K-factor bonus. `playerMatches` has no index leading with `season` alone,
+ * so a query scoped to season(s) only is a full-collection scan that
+ * reliably exceeds Cosmos DB's server-side command timeout no matter how few
+ * seasons are in the filter; batched by player ID below (same fix as the
+ * main season fetch) so each batch can use the (flttPlayerId, season, ...)
+ * index instead.
  *
  * Treated as best-effort: on failure, log and continue without it rather
  * than failing the whole run. Critically, the fallback must NOT default
@@ -138,23 +139,35 @@ function previousTwoSeasons(current: string): [string, string] {
 async function fetchPriorSeasonStats(
   db: Db,
   currentSeason: string,
+  playerIds: string[],
 ): Promise<{
   rows: { _id: string; count: number; lastIsoDate: string | null }[];
   timedOut: boolean;
 }> {
+  const seasons = previousTwoSeasons(currentSeason);
   try {
-    const rows = await db
-      .collection("playerMatches")
-      .aggregate<{ _id: string; count: number; lastIsoDate: string | null }>(
-        [
-          { $match: { season: { $in: previousTwoSeasons(currentSeason) } } },
-          {
-            $group: { _id: "$flttPlayerId", count: { $sum: 1 }, lastIsoDate: { $max: "$isoDate" } },
-          },
-        ],
-        { maxTimeMS: 55_000 },
-      )
-      .toArray();
+    const docs = await fetchInPlayerBatches(playerIds, (idBatch) =>
+      db
+        .collection<{ flttPlayerId: string; isoDate: string }>("playerMatches")
+        .find(
+          { flttPlayerId: { $in: idBatch }, season: { $in: seasons } },
+          { projection: { _id: 0, flttPlayerId: 1, isoDate: 1 }, maxTimeMS: 55_000 },
+        )
+        .toArray(),
+    );
+
+    const statsByPlayer = new Map<string, { count: number; lastIsoDate: string | null }>();
+    for (const d of docs) {
+      const existing = statsByPlayer.get(d.flttPlayerId);
+      if (existing) {
+        existing.count++;
+        if (!existing.lastIsoDate || d.isoDate > existing.lastIsoDate)
+          existing.lastIsoDate = d.isoDate;
+      } else {
+        statsByPlayer.set(d.flttPlayerId, { count: 1, lastIsoDate: d.isoDate });
+      }
+    }
+    const rows = Array.from(statsByPlayer, ([_id, v]) => ({ _id, ...v }));
     return { rows, timedOut: false };
   } catch (err) {
     console.warn(
@@ -264,7 +277,7 @@ async function fetchMongoData(season: string) {
         .toArray(),
     );
 
-    const priorSeasonStats = await fetchPriorSeasonStats(db, season);
+    const priorSeasonStats = await fetchPriorSeasonStats(db, season, playerIds);
     const seasonStartByFlttId = await fetchSeasonStartTtr(db, season, playerIds);
 
     return {
