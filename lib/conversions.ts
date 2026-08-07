@@ -24,6 +24,18 @@ export function isPlayerClass(value: unknown): value is PlayerClass {
 const REGRESSION_SLOPE = 0.596;
 const REGRESSION_OFFSET = 587.68;
 
+// Confirmed with Jeff (2026-08-07): the classement recalibration below raised
+// C1's ceiling well past where the regression naturally put B3's floor,
+// which would have let some C1 players outrank some B3 players. Shifting the
+// whole regression up by a flat amount puts B3's floor exactly on C1's new
+// ceiling instead — continuous, no overlap, no cliff.
+const REGRESSION_SHIFT = 175;
+
+// A ceiling on the *estimate* only — a real player's TTR can still climb past
+// this during the season simulation via actual match results, same as any
+// other player. Confirmed with Jeff (2026-08-07).
+const MAX_ESTIMATE = 2600;
+
 // C1-D3 are estimated from classement points instead (see estimateTtrFromClassement).
 const CLASSEMENT_LEVEL: Partial<Record<PlayerClass, number>> = {
   D3: 0,
@@ -35,13 +47,18 @@ const CLASSEMENT_LEVEL: Partial<Record<PlayerClass, number>> = {
 };
 
 // Each classement spans 17 points: -5,5 (about to drop a classement) to +11,5
-// (about to be promoted). Stacking all six levels end to end gives one continuous
-// scale, anchored so C1's top (+11,5) is 1345 TTR and D3's 0 points is 800 TTR.
+// (about to be promoted). Stacking all six levels end to end gives one
+// continuous scale (no cliffs between classes), anchored on two points
+// confirmed with Jeff (2026-08-07): D2's 0 points is 1000 TTR, and C2's +6
+// points is 1325 TTR.
 const CLASSEMENT_SPAN = 17;
-const CLASSEMENT_TOP_TTR = 1345;
-const CLASSEMENT_ZERO_TTR = 800;
-const CLASSEMENT_TOP_SCORE = 11.5 + CLASSEMENT_SPAN * CLASSEMENT_LEVEL.C1!;
-const CLASSEMENT_SCALE = (CLASSEMENT_TOP_TTR - CLASSEMENT_ZERO_TTR) / CLASSEMENT_TOP_SCORE;
+const ANCHOR_A_SCORE = 0 + CLASSEMENT_SPAN * CLASSEMENT_LEVEL.D2!; // D2, 0 points
+const ANCHOR_A_TTR = 1000;
+const ANCHOR_B_SCORE = 6 + CLASSEMENT_SPAN * CLASSEMENT_LEVEL.C2!; // C2, +6 points
+const ANCHOR_B_TTR = 1325;
+const CLASSEMENT_SCALE = (ANCHOR_B_TTR - ANCHOR_A_TTR) / (ANCHOR_B_SCORE - ANCHOR_A_SCORE);
+// TTR at score 0 (D3's own 0 points), derived from the two anchors above.
+const CLASSEMENT_ZERO_TTR = ANCHOR_A_TTR - ANCHOR_A_SCORE * CLASSEMENT_SCALE;
 
 function estimateTtrFromClassement(kl: PlayerClass, points: number): number {
   const level = CLASSEMENT_LEVEL[kl]!;
@@ -57,11 +74,12 @@ export function usesClassementPoints(kl: PlayerClass): boolean {
 /**
  * Convert a Luxembourg FLTT player's rating to an estimated German TTR rating.
  *
- * A1-B3 use the PFW regression fit to 41 matched players. C1-D3 use the
- * player's classement points instead (see estimateTtrFromClassement) — the
- * regression has no real data down there, and PFW-based estimates weren't
- * reliable. Returns null for C1-D3 players whose classement points haven't
- * been entered yet.
+ * A1-B3 use the PFW regression fit to 41 matched players (shifted up and
+ * capped, see REGRESSION_SHIFT/MAX_ESTIMATE). C1-D3 use the player's
+ * classement points instead (see estimateTtrFromClassement) — the regression
+ * has no real data down there, and PFW-based estimates weren't reliable.
+ * Returns null for C1-D3 players whose classement points haven't been
+ * entered yet.
  */
 export function estimateTtr(
   pfw: number,
@@ -71,5 +89,6 @@ export function estimateTtr(
   if (kl in CLASSEMENT_LEVEL) {
     return classementPoints == null ? null : estimateTtrFromClassement(kl, classementPoints);
   }
-  return Math.round((pfw + REGRESSION_OFFSET) / REGRESSION_SLOPE);
+  const regressed = Math.round((pfw + REGRESSION_OFFSET) / REGRESSION_SLOPE) + REGRESSION_SHIFT;
+  return Math.min(MAX_ESTIMATE, regressed);
 }
