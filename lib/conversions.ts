@@ -49,6 +49,11 @@ function estimateTtrFromClassement(kl: PlayerClass, points: number): number {
   return Math.round(CLASSEMENT_ZERO_TTR + score * CLASSEMENT_SCALE);
 }
 
+/** Whether estimateTtr() uses classement points (C1-D3) for this class, rather than PFW. */
+export function usesClassementPoints(kl: PlayerClass): boolean {
+  return kl in CLASSEMENT_LEVEL;
+}
+
 /**
  * Convert a Luxembourg FLTT player's rating to an estimated German TTR rating.
  *

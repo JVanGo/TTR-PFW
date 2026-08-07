@@ -47,12 +47,28 @@ describe("parseSeasonStartExport", () => {
     expect(parsed[1].classementPoints).toBe(-5.5);
   });
 
-  it("skips rows with an invalid class or missing licence/PFW", () => {
+  it("skips rows with an invalid class or missing licence", () => {
     const buf = buildWorkbook([
       { licenceNumber: 1, ranking: "ZZ", performancePfInitial: 100 },
       { ranking: "C1", performancePfInitial: 100 },
-      { licenceNumber: 3, ranking: "C1", performancePfInitial: "not-a-number" },
     ]);
     expect(parseSeasonStartExport(buf)).toEqual([]);
+  });
+
+  it("skips a row with an unusable PFW (0, or not a number) for a class that needs it", () => {
+    const buf = buildWorkbook([
+      { licenceNumber: 1, ranking: "B1", performancePfInitial: 0 },
+      { licenceNumber: 2, ranking: "B1", performancePfInitial: "not-a-number" },
+    ]);
+    expect(parseSeasonStartExport(buf)).toEqual([]);
+  });
+
+  it("keeps a classement-class row despite an unusable PFW, since it's never read", () => {
+    const buf = buildWorkbook([
+      { licenceNumber: 1, ranking: "C1", rankingPoints: 5, performancePfInitial: 0 },
+    ]);
+    expect(parseSeasonStartExport(buf)).toEqual([
+      { flttPlayerId: "1", class: "C1", pfw: 0, classementPoints: 5 },
+    ]);
   });
 });

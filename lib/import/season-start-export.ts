@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as XLSX from "xlsx";
-import { isPlayerClass, type PlayerClass } from "@/lib/conversions";
+import { isPlayerClass, usesClassementPoints, type PlayerClass } from "@/lib/conversions";
 
 const CLASSEMENT_MIN = -5.5;
 const CLASSEMENT_MAX = 11.5;
@@ -39,6 +39,15 @@ interface RawRow {
  * export has occasionally gone slightly outside it (observed as far as
  * -6.5/+16.5), which would otherwise spill a player's estimate into a
  * neighboring class's band.
+ *
+ * `performancePfInitial` of exactly `0` (and `performancePf` also `0`)
+ * shows up ~75 times in a real export, spread across every class — a
+ * placeholder for "not tracked", not a real score (confirmed: no other row
+ * has a PFW between 0 and 50). Taken at face value it feeds the A1-B3
+ * regression a PFW of 0 and produces a nonsensical ~986 TTR regardless of
+ * the player's actual class. Skipped for classes where PFW is actually used
+ * (usesClassementPoints() is false); kept for classement classes, where it's
+ * never read anyway.
  */
 export function parseSeasonStartExport(buffer: ArrayBuffer | Buffer): SeasonStartExportEntry[] {
   const wb = XLSX.read(buffer, { type: "buffer" });
@@ -56,15 +65,16 @@ export function parseSeasonStartExport(buffer: ArrayBuffer | Buffer): SeasonStar
     const cls = typeof row.ranking === "string" ? row.ranking.trim().toUpperCase() : "";
     if (!isPlayerClass(cls)) continue;
 
-    const pfw = Number(row.performancePfInitial);
-    if (!Number.isFinite(pfw)) continue;
+    const pfwRaw = Number(row.performancePfInitial);
+    const pfwUsable = Number.isFinite(pfwRaw) && pfwRaw > 0;
+    if (!pfwUsable && !usesClassementPoints(cls)) continue;
 
     let classementPoints: number | null = null;
     if (typeof row.rankingPoints === "number" && Number.isFinite(row.rankingPoints)) {
       classementPoints = Math.min(CLASSEMENT_MAX, Math.max(CLASSEMENT_MIN, row.rankingPoints));
     }
 
-    out.push({ flttPlayerId, class: cls, pfw, classementPoints });
+    out.push({ flttPlayerId, class: cls, pfw: pfwUsable ? pfwRaw : 0, classementPoints });
   }
   return out;
 }
