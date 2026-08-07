@@ -1,8 +1,17 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import * as XLSX from "xlsx";
 import { isPlayerClass, type PlayerClass } from "@/lib/conversions";
 
 const CLASSEMENT_MIN = -5.5;
 const CLASSEMENT_MAX = 11.5;
+
+// FLTT can produce a membership export snapshotting every player's class,
+// classement points, and PFW as of a given date — the authoritative source
+// for a player's season-start rating when Jeff has one on hand. Gitignored/
+// local-only (see TTR/ in the repo layout); update this filename each season
+// a fresher export is provided.
+export const SEASON_START_EXPORT_PATH = path.join(process.cwd(), "TTR", "Export-Members (34).xlsx");
 
 export interface SeasonStartExportEntry {
   flttPlayerId: string;
@@ -58,4 +67,12 @@ export function parseSeasonStartExport(buffer: ArrayBuffer | Buffer): SeasonStar
     out.push({ flttPlayerId, class: cls, pfw, classementPoints });
   }
   return out;
+}
+
+/** Reads and parses the export from disk, or [] if no file is present there. */
+export function readSeasonStartExportFile(
+  filePath: string = SEASON_START_EXPORT_PATH,
+): SeasonStartExportEntry[] {
+  if (!existsSync(filePath)) return [];
+  return parseSeasonStartExport(readFileSync(filePath));
 }

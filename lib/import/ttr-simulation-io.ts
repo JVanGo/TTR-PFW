@@ -1,5 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
 import { MongoClient, type Db } from "mongodb";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
@@ -7,7 +5,10 @@ import { nameKey } from "@/lib/name-key";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
 import { fetchSeasonStartTtr, type SeasonStartTtr } from "@/lib/import/season-start-snapshot";
-import { parseSeasonStartExport } from "@/lib/import/season-start-export";
+import {
+  readSeasonStartExportFile,
+  SEASON_START_EXPORT_PATH,
+} from "@/lib/import/season-start-export";
 import {
   simulateSeason,
   CAREER_MATCH_THRESHOLD,
@@ -29,32 +30,19 @@ const SEASON_START_ISO = "2025-07-01";
 // Teilrunde, right after the season starts) and Jan 1 (end of "Hironn").
 const YOUTH_GROWTH_ISO_DATES = ["2025-08-01", "2026-01-01"];
 
-// FLTT can produce a membership export snapshotting every player's class,
-// classement points, and PFW as of a given date — the authoritative source
-// for a player's season-start rating when Jeff has one on hand, since it
-// beats inferring a snapshot from match history (see season-start-snapshot.ts).
-// Gitignored/local-only (see TTR/ in the repo layout); update this filename
-// each season a fresher export is provided, and this quietly falls back to
-// the match-history heuristic when the file isn't present.
-const SEASON_START_EXPORT_PATH = path.join(process.cwd(), "TTR", "Export-Members (34).xlsx");
-
 interface SeasonStartExportSnapshot {
   class: PlayerClass;
   pfw: number;
   classementPoints: number | null;
 }
 
+// Falls back to the match-history heuristic (fetchSeasonStartTtr) for
+// everyone when the export file isn't present — see season-start-export.ts.
 function loadSeasonStartExport(
   log: (message: string) => void,
 ): Map<string, SeasonStartExportSnapshot> {
+  const entries = readSeasonStartExportFile();
   const result = new Map<string, SeasonStartExportSnapshot>();
-  if (!existsSync(SEASON_START_EXPORT_PATH)) {
-    log(
-      `  No season-start export found at ${SEASON_START_EXPORT_PATH} — using match-history snapshots only.`,
-    );
-    return result;
-  }
-  const entries = parseSeasonStartExport(readFileSync(SEASON_START_EXPORT_PATH));
   for (const e of entries) {
     result.set(e.flttPlayerId, {
       class: e.class,
@@ -63,7 +51,9 @@ function loadSeasonStartExport(
     });
   }
   log(
-    `  Loaded ${result.size} season-start snapshots from ${path.basename(SEASON_START_EXPORT_PATH)}.`,
+    entries.length > 0
+      ? `  Loaded ${result.size} season-start snapshots from ${SEASON_START_EXPORT_PATH}.`
+      : `  No season-start export found at ${SEASON_START_EXPORT_PATH} — using match-history snapshots only.`,
   );
   return result;
 }

@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
 import { parseFlttMatchSnapshot } from "./fltt-match-snapshot";
+import { readSeasonStartExportFile, SEASON_START_EXPORT_PATH } from "./season-start-export";
 
 // Only C1-D3 estimates need classement points (see lib/conversions.ts).
 const CLASSEMENT_RANKINGS = ["C1", "C2", "C3", "D1", "D2", "D3"];
@@ -137,19 +138,36 @@ export interface ApplyClassementPointsSummary {
 }
 
 /**
- * Backfills `players.classement_points` for C1-D3 players from the FLTT
- * Progress Tracker Mongo dataset (see parseClassementPoints for where the
- * value actually comes from). Only ever overwrites a row when the parsed
- * value differs from what's stored — an admin's manual entry is left alone
- * unless Mongo's own value has since changed.
+ * Backfills `players.classement_points` for C1-D3 players. FLTT's own
+ * season-start export (see season-start-export.ts) is the authoritative
+ * source when Jeff has a copy on hand — the Mongo `points` field this used
+ * to rely on turned out to be a small per-match delta, not a running
+ * classement standing, which compressed every classement-based class into an
+ * 8-17 point band. The Mongo-derived value now only fills in players missing
+ * from the export. Only ever overwrites a row when the resolved value
+ * differs from what's stored — an admin's manual entry is left alone unless
+ * the source value has since changed.
  */
 export async function applyClassementPointsToSupabase(
   supabase: SupabaseClient,
   log: (message: string) => void = () => {},
 ): Promise<ApplyClassementPointsSummary> {
+  const exportEntries = readSeasonStartExportFile();
+  const exportByFlttId = new Map<string, number>();
+  for (const e of exportEntries) {
+    if (e.classementPoints != null && isPlayerClass(e.class)) {
+      exportByFlttId.set(e.flttPlayerId, e.classementPoints);
+    }
+  }
+  log(
+    exportEntries.length > 0
+      ? `  ${exportByFlttId.size} players have a classement value in ${SEASON_START_EXPORT_PATH}.`
+      : `  No season-start export found at ${SEASON_START_EXPORT_PATH} — using Mongo match history only.`,
+  );
+
   log("Fetching classement points from MongoDB (this season first, older seasons as fallback)...");
   const { byFlttId, catalog } = await fetchClassementPointsFromMongo(log);
-  log(`  ${byFlttId.size} of ${catalog.length} C1-D3 catalog players have a usable value.`);
+  log(`  ${byFlttId.size} of ${catalog.length} C1-D3 catalog players have a usable Mongo value.`);
 
   log("Loading existing players from Supabase...");
   const existing: SupabasePlayerRow[] = [];
@@ -178,12 +196,15 @@ export async function applyClassementPointsToSupabase(
   let matched = 0;
   let unresolved = 0;
   let unchanged = 0;
+  let fromExport = 0;
   const toUpdate: Array<{ id: string; classement_points: number }> = [];
 
   for (const c of catalog) {
     if (!isPlayerClass(c.ranking?.trim().toUpperCase())) continue;
-    const points = byFlttId.get(c.flttPlayerId);
+    const exportPoints = exportByFlttId.get(c.flttPlayerId);
+    const points = exportPoints ?? byFlttId.get(c.flttPlayerId);
     if (points == null) continue;
+    if (exportPoints != null) fromExport++;
 
     const player = resolvePlayer(playersByNameKey, nameKey(c.name), c.club);
     if (!player) {
@@ -197,6 +218,8 @@ export async function applyClassementPointsToSupabase(
     }
     toUpdate.push({ id: player.id, classement_points: points });
   }
+
+  log(`  ${fromExport} of ${matched} matched players used the export value; the rest used Mongo.`);
 
   if (toUpdate.length > 0) {
     log(`Updating ${toUpdate.length} player(s)...`);
