@@ -9,6 +9,7 @@ import {
   readSeasonStartExportFile,
   SEASON_START_EXPORT_PATH,
 } from "@/lib/import/season-start-export";
+import { SEASON_START_OVERRIDES } from "@/lib/import/season-start-overrides";
 import {
   simulateSeason,
   CAREER_MATCH_THRESHOLD,
@@ -302,6 +303,7 @@ interface SupabasePlayerRow {
   pfw: string | number;
   classement_points: string | number | null;
   age_category: string | null;
+  is_active: boolean;
 }
 
 /**
@@ -355,9 +357,36 @@ export async function runSeasonSimulation(
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(
     supabase,
     "players",
-    "id, name, name_key, club, class, pfw, classement_points, age_category",
+    "id, name, name_key, club, class, pfw, classement_points, age_category, is_active",
   );
   log(`  ${supabasePlayers.length} players.`);
+
+  // "Typical player in this class" stand-in for the SEASON_START_OVERRIDES
+  // players, none of whom have a usable starting PFW — the median PFW-
+  // regression estimate among today's active players in the same class.
+  const ttrByClassForMedian = new Map<PlayerClass, number[]>();
+  for (const p of supabasePlayers) {
+    if (!p.is_active || !isPlayerClass(p.class)) continue;
+    const ttr = estimateTtr(
+      Number(p.pfw),
+      p.class,
+      p.classement_points == null ? null : Number(p.classement_points),
+    );
+    if (ttr == null) continue;
+    const list = ttrByClassForMedian.get(p.class);
+    if (list) list.push(ttr);
+    else ttrByClassForMedian.set(p.class, [ttr]);
+  }
+  const medianTtrByClass = new Map<PlayerClass, number>();
+  for (const [cls, ttrs] of ttrByClassForMedian) {
+    const sorted = [...ttrs].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    medianTtrByClass.set(cls, Math.round(median));
+  }
+  const overrideClassByFlttId = new Map(
+    SEASON_START_OVERRIDES.map((o) => [o.flttPlayerId, o.class]),
+  );
 
   const playersByNameKey = new Map<string, SupabasePlayerRow[]>();
   for (const p of supabasePlayers) {
@@ -399,6 +428,7 @@ export async function runSeasonSimulation(
 
   const seasonStartExportByFlttId = loadSeasonStartExport(log);
 
+  let overrideHits = 0;
   let exportHits = 0;
   let seasonStartHits = 0;
   const players: SimPlayer[] = supabasePlayers.map((p) => {
@@ -410,18 +440,23 @@ export async function runSeasonSimulation(
     // Prefer the player's class/PFW/classement points as of the start of the
     // season over Supabase's `players` row, which only ever reflects the
     // latest catalog import — i.e. roughly where they ended up, not where
-    // they started. Best source first: FLTT's own season-start export when
-    // Jeff has one on hand, then a snapshot inferred from their earliest
-    // match this season (see season-start-snapshot.ts for why either beats
-    // today's catalog).
+    // they started. Best source first: a manual correction (SEASON_START_OVERRIDES)
+    // for a player whose export row had to be discarded, then FLTT's own
+    // season-start export when Jeff has one on hand, then a snapshot inferred
+    // from their earliest match this season (see season-start-snapshot.ts for
+    // why either beats today's catalog).
     const flttId = resolveFlttId(p.name_key, p.club);
+    const overrideClass = flttId ? overrideClassByFlttId.get(flttId) : undefined;
     const exportSnapshot = flttId ? seasonStartExportByFlttId.get(flttId) : undefined;
     const seasonStart: SeasonStartTtr | undefined = flttId
       ? seasonStartByFlttId.get(flttId)
       : undefined;
 
     let startingTtr: number | null;
-    if (exportSnapshot) {
+    if (overrideClass) {
+      overrideHits++;
+      startingTtr = medianTtrByClass.get(overrideClass) ?? null;
+    } else if (exportSnapshot) {
       exportHits++;
       startingTtr = estimateTtr(
         exportSnapshot.pfw,
@@ -455,9 +490,9 @@ export async function runSeasonSimulation(
     };
   });
   log(
-    `  ${exportHits} of ${players.length} players got a season-start rating from FLTT's own export; ` +
-      `${seasonStartHits} more from their earliest match this season; the rest fall back to today's ` +
-      `catalog class/PFW.`,
+    `  ${overrideHits} of ${players.length} players used a manual season-start correction; ` +
+      `${exportHits} more from FLTT's own export; ${seasonStartHits} more from their earliest match ` +
+      `this season; the rest fall back to today's catalog class/PFW.`,
   );
 
   // Fallback static rating for opponents we can't resolve to a tracked player:
