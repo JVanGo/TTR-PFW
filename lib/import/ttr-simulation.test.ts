@@ -290,6 +290,58 @@ describe("simulateSeason", () => {
     expect(cadet.ttrDelta).toBe(16);
   });
 
+  it("gives a brand-new adult player K=20 (base + newcomer only, not inactivity too)", () => {
+    const players = [
+      player({
+        id: "a",
+        name: "New Adult",
+        startingTtr: 1100,
+        careerMatchesBeforeSeason: 0, // never played -> newcomer bonus
+        lastMatchIsoDateBeforeSeason: null, // never played -> not "inactive", just new
+      }),
+      player({ id: "b", name: "Bob", startingTtr: 1100 }),
+    ];
+    const matches = [match({ playerNameKey: "new adult", opponentNameKey: "bob", won: true })];
+    const { matchRows } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const row = matchRows.find((r) => r.playerId === "a")!;
+    // K=16+4=20 (not 24) -> delta=10.
+    expect(row.ttrDelta).toBe(10);
+  });
+
+  it("still gives the inactivity bonus to an experienced player with a real, stale last match", () => {
+    const players = [
+      player({
+        id: "a",
+        name: "Rusty Veteran",
+        startingTtr: 1100,
+        careerMatchesBeforeSeason: 100, // experienced -> no newcomer bonus
+        lastMatchIsoDateBeforeSeason: "2023-01-01", // real date, well over 12 months -> inactivity bonus
+      }),
+      player({ id: "b", name: "Bob", startingTtr: 1100 }),
+    ];
+    const matches = [match({ playerNameKey: "rusty veteran", opponentNameKey: "bob", won: true })];
+    const { matchRows } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthIsoDates: [YOUTH_GROWTH_DATE],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const row = matchRows.find((r) => r.playerId === "a")!;
+    // K=16+4=20 -> delta=10.
+    expect(row.ttrDelta).toBe(10);
+  });
+
   it("excludes TOU tournament games from per-game scoring but applies a flat placement bonus", () => {
     const players = [player({ id: "a", name: "Alice", startingTtr: 1000 })];
     const matches: RawSeasonMatch[] = [

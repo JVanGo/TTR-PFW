@@ -239,8 +239,12 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   for (const p of input.players) {
     playerByNameKey.set(p.nameKey, p);
     const startingTtr = p.startingTtr ?? ageRule(p.ageCategory).ersteinstufung;
+    // Inactivity means "was active, then stopped" — a player with no prior
+    // match at all (lastMatchIsoDateBeforeSeason == null) has nothing to have
+    // gone inactive from; that's what the newcomer bonus already covers, and
+    // stacking both on a brand-new player double-counts the same situation.
     const inactive =
-      p.lastMatchIsoDateBeforeSeason == null ||
+      p.lastMatchIsoDateBeforeSeason != null &&
       monthsBetween(p.lastMatchIsoDateBeforeSeason, input.seasonStartIsoDate) >=
         INACTIVITY_MONTHS_THRESHOLD;
     states.set(p.nameKey, {
