@@ -108,8 +108,12 @@ export interface SimulationInput {
   staticTtrByNameKey: Map<string, number>;
   matches: RawSeasonMatch[];
   placements: RawSeasonPlacement[];
-  /** ISO dates the youth growth bonus lands on — one per Teilrunde end (the season's Aug 1 and Jan 1). */
-  youthGrowthIsoDates: string[];
+  /**
+   * Each Teilrunde's [start, end) window — a player in a youth-growth age
+   * bracket gets the bonus on that period's `end` date only if they played a
+   * graded match within that specific window, not merely somewhere this season.
+   */
+  youthGrowthPeriods: { start: string; end: string }[];
   /** ISO date the season starts (for the inactivity check). */
   seasonStartIsoDate: string;
 }
@@ -282,13 +286,19 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
 
   const canonicalMatches = canonicalizeMatches(gradedMatches, trackedNameKeys);
 
-  // A player only qualifies for the youth growth bonus if they actually
-  // played a graded match this season — an eligible-age player who never
-  // played at all shouldn't get an automatic rating bump either Teilrunde.
-  const playedThisSeason = new Set<string>();
-  for (const m of canonicalMatches) {
-    playedThisSeason.add(m.a.playerNameKey);
-    if (m.b.kind === "tracked") playedThisSeason.add(m.b.playerNameKey);
+  // A player only qualifies for a Teilrunde's youth growth bonus if they
+  // actually played a graded match within that specific Teilrunde — not just
+  // somewhere in the season. Each period's bonus lands on its own `end` date
+  // and is scoped to matches on [start, end).
+  const playedByPeriodEnd = new Map<string, Set<string>>();
+  for (const period of input.youthGrowthPeriods) {
+    const played = new Set<string>();
+    for (const m of canonicalMatches) {
+      if (m.isoDate < period.start || m.isoDate >= period.end) continue;
+      played.add(m.a.playerNameKey);
+      if (m.b.kind === "tracked") played.add(m.b.playerNameKey);
+    }
+    playedByPeriodEnd.set(period.end, played);
   }
 
   const events: SeasonEvent[] = [
@@ -308,14 +318,15 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
 
   const matchRows: OutputMatchRow[] = [];
   const growthDatesApplied = new Set<string>();
-  const sortedGrowthDates = [...input.youthGrowthIsoDates].sort();
+  const sortedGrowthDates = [...playedByPeriodEnd.keys()].sort();
 
   const applyGrowthIfDue = (isoDate: string) => {
     for (const growthDate of sortedGrowthDates) {
       if (growthDatesApplied.has(growthDate) || isoDate < growthDate) continue;
+      const playedThisPeriod = playedByPeriodEnd.get(growthDate)!;
       for (const [key, state] of states) {
         if (!ageRule(state.ageCategory).youthGrowth) continue;
-        if (!playedThisSeason.has(key)) continue;
+        if (!playedThisPeriod.has(key)) continue;
         const newTtr = state.ttr + YOUTH_GROWTH_BONUS;
         matchRows.push({
           playerId: state.id,
@@ -494,6 +505,14 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
       matchRows.push({ ...row, newTtr: states.get(settleKey)?.ttr ?? row.newTtr });
     }
   }
+
+  // A period's bonus is earned by having played within it, not by some
+  // later match happening to exist to trigger the check during the loop
+  // above — if the season's last recorded match falls before a period's end
+  // date (e.g. no match yet on/after Aug 1), that period would otherwise
+  // never get applied to anyone. Force each remaining period through once
+  // events run out.
+  for (const growthDate of sortedGrowthDates) applyGrowthIfDue(growthDate);
 
   return { matchRows, summary };
 }

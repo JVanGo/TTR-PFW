@@ -27,9 +27,14 @@ const CAREER_MATCH_SAFE_DEFAULT = CAREER_MATCH_THRESHOLD;
 export const SEASON_LABEL = "2025-2026";
 const MONGO_SEASON = "25-26";
 const SEASON_START_ISO = "2025-07-01";
-// One per Teilrunde end within this season: Aug 1 (end of the previous
-// Teilrunde, right after the season starts) and Jan 1 (end of "Hironn").
-const YOUTH_GROWTH_ISO_DATES = ["2025-08-01", "2026-01-01"];
+// Each Teilrunde's [start, end) window, in order: Aug 1 2025 - Jan 1 2026
+// ("Hironn"), then Jan 1 2026 - Aug 1 2026. A youth-bracket player only earns
+// a given period's bonus (landing on that period's `end` date) if they
+// played a graded match within that specific window.
+const YOUTH_GROWTH_PERIODS = [
+  { start: "2025-08-01", end: "2026-01-01" },
+  { start: "2026-01-01", end: "2026-08-01" },
+];
 
 interface SeasonStartExportSnapshot {
   class: PlayerClass;
@@ -595,7 +600,7 @@ export async function runSeasonSimulation(
     staticTtrByNameKey,
     matches,
     placements: rawPlacements,
-    youthGrowthIsoDates: YOUTH_GROWTH_ISO_DATES,
+    youthGrowthPeriods: YOUTH_GROWTH_PERIODS,
     seasonStartIsoDate: SEASON_START_ISO,
   });
 
