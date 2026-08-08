@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FLTT Ranking — with estimated TTR",
+  title: "FLTT DTR Ranking",
   description:
-    "The Luxembourg table tennis federation ranking, alongside an estimated German TTR rating for every player.",
+    "The Luxembourg table tennis federation ranking, with a DTR rating calculated from real season match results for every player.",
 };
 
 export default function RootLayout({
@@ -33,7 +33,7 @@ export default function RootLayout({
               FLTT Ranking
             </Link>
             <nav className="flex items-center gap-4 text-sm font-medium">
-              <Link href="/" className="hover:underline">
+              <Link href="/ranking" className="hover:underline">
                 Rankings
               </Link>
               <Link href="/about" className="hover:underline">
@@ -46,9 +46,9 @@ export default function RootLayout({
         <footer className="bg-muted/40 mt-12 border-t">
           <div className="text-muted-foreground mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p>
-              FLTT ranking with estimated TTR (Germany). Estimates only — see{" "}
+              FLTT ranking with DTR, calculated from real season match results — see{" "}
               <Link href="/about" className="underline">
-                methodology
+                how it works
               </Link>
               .
             </p>

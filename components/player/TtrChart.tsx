@@ -47,7 +47,7 @@ function ChartTooltip({ active, payload }: TooltipRenderProps) {
         vs <span className="font-medium">{point.opponent}</span> · {point.score} · {point.result}
       </p>
       <p>
-        TTR: {point.ttr}{" "}
+        DTR: {point.ttr}{" "}
         <span
           className={
             point.delta > 0

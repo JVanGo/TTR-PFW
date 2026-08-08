@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { estimateTtr, isPlayerClass } from "@/lib/conversions";
-import { formatPfw } from "@/lib/format";
+import { getRankingRows, CURRENT_SEASON } from "@/lib/ranking";
 import { TtrChart, type TtrPoint } from "@/components/player/TtrChart";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const SEASON = "2025-2026";
+const SEASON = CURRENT_SEASON;
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -25,21 +24,17 @@ export default async function PlayerPage({ params }: PageProps) {
 
   const { data: player, error } = await supabase
     .from("players")
-    .select("id, name, class, pfw, club, is_active, classement_points")
+    .select("id, name, club, is_active")
     .eq("id", id)
     .maybeSingle();
 
   if (error) throw new Error(`Failed to load player: ${error.message}`);
   if (!player) notFound();
-  if (!isPlayerClass(player.class)) {
-    throw new Error(`Unexpected player class: ${player.class}`);
-  }
 
   const [
     { data: matchesData, error: matchesError },
     { data: summary, error: summaryError },
-    { count: totalCount, error: countError },
-    { count: betterCount, error: betterError },
+    rankingRows,
   ] = await Promise.all([
     supabase
       .from("matches")
@@ -56,19 +51,18 @@ export default async function PlayerPage({ params }: PageProps) {
       .eq("player_id", player.id)
       .eq("season", SEASON)
       .maybeSingle(),
-    supabase.from("players").select("id", { count: "exact", head: true }),
-    supabase.from("players").select("id", { count: "exact", head: true }).gt("pfw", player.pfw),
+    getRankingRows(supabase),
   ]);
 
   if (matchesError) throw new Error(matchesError.message);
   if (summaryError) throw new Error(summaryError.message);
-  if (countError) throw new Error(countError.message);
-  if (betterError) throw new Error(betterError.message);
 
   const matches = matchesData ?? [];
-  const estimatedTtr = estimateTtr(Number(player.pfw), player.class, player.classement_points);
-  const rankPosition = (betterCount ?? 0) + 1;
-  const totalPlayers = totalCount ?? 0;
+  const ranking = rankingRows.find((r) => r.id === player.id);
+  const currentDtr = ranking?.dtr ?? summary?.latest_ttr ?? null;
+  const klassierung = ranking?.klassierung ?? null;
+  const rankPosition = ranking?.rank ?? null;
+  const totalPlayers = rankingRows.length;
 
   const chartPoints: TtrPoint[] = matches.map((m) => ({
     date: m.match_date,
@@ -83,7 +77,7 @@ export default async function PlayerPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
-      <Link href="/" className="text-muted-foreground text-sm hover:underline">
+      <Link href="/ranking" className="text-muted-foreground text-sm hover:underline">
         ← Back to ranking
       </Link>
 
@@ -91,9 +85,11 @@ export default async function PlayerPage({ params }: PageProps) {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{player.name}</h1>
           <p className="text-muted-foreground text-sm">
-            <span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-              {player.class}
-            </span>{" "}
+            {klassierung && (
+              <span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+                {klassierung}
+              </span>
+            )}{" "}
             {player.club ?? "—"}
             {!player.is_active && (
               <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
@@ -102,24 +98,22 @@ export default async function PlayerPage({ params }: PageProps) {
             )}
           </p>
         </div>
-        <div className="flex gap-6 text-right">
-          <div>
-            <p className="text-muted-foreground text-xs uppercase">FLTT PFW</p>
-            <p className="text-2xl font-semibold tabular-nums">{formatPfw(Number(player.pfw))}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs uppercase">Estimated TTR</p>
-            <p className="text-2xl font-semibold tabular-nums">{estimatedTtr ?? "Not available"}</p>
-          </div>
+        <div className="text-right">
+          <p className="text-muted-foreground text-xs uppercase">DTR</p>
+          <p className="text-2xl font-semibold tabular-nums">{currentDtr ?? "Not available"}</p>
         </div>
       </header>
 
       <p className="text-muted-foreground mt-3 text-sm">
-        TTR estimated from PFW using the FLTT-calibrated formula.{" "}
         <Link href="/about" className="underline">
-          How this works →
-        </Link>{" "}
-        · #{rankPosition.toLocaleString()} of {totalPlayers.toLocaleString()} in the FLTT ranking.
+          How DTR works →
+        </Link>
+        {rankPosition !== null && (
+          <>
+            {" "}
+            · #{rankPosition.toLocaleString()} of {totalPlayers.toLocaleString()} by DTR.
+          </>
+        )}
       </p>
 
       {!player.is_active && (
@@ -150,7 +144,7 @@ export default async function PlayerPage({ params }: PageProps) {
           </section>
 
           <section className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold">Season TTR</h2>
+            <h2 className="mb-3 text-lg font-semibold">Season DTR</h2>
             <div className="text-foreground rounded-md border p-2">
               <TtrChart points={chartPoints} />
             </div>
@@ -165,12 +159,12 @@ export default async function PlayerPage({ params }: PageProps) {
                     <th className="px-3 py-2 text-left font-medium">Date</th>
                     <th className="px-3 py-2 text-left font-medium">Competition</th>
                     <th className="px-3 py-2 text-left font-medium">Opponent</th>
-                    <th className="px-3 py-2 text-right font-medium">Opp. TTR</th>
+                    <th className="px-3 py-2 text-right font-medium">Opp. DTR</th>
                     <th className="px-3 py-2 text-right font-medium">Score</th>
                     <th className="px-3 py-2 text-center font-medium">W/L</th>
                     <th className="px-3 py-2 text-right font-medium">Δ</th>
                     <th className="px-3 py-2 text-right font-medium">K</th>
-                    <th className="px-3 py-2 text-right font-medium">New TTR</th>
+                    <th className="px-3 py-2 text-right font-medium">New DTR</th>
                   </tr>
                 </thead>
                 <tbody>

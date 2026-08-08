@@ -1,83 +1,70 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { fetchAllRows } from "@/lib/supabase/fetchAll";
-import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
-import { ClassPills } from "@/components/ranking/ClassPills";
-import { RankingTable, type RankingRow } from "@/components/ranking/RankingTable";
+import { getRankingRows } from "@/lib/ranking";
+import { PlayerSearch } from "@/components/home/PlayerSearch";
 
-interface PageProps {
-  searchParams: Promise<{ kl?: string }>;
-}
-
-interface PlayerRow {
-  id: string;
-  name: string;
-  class: PlayerClass;
-  pfw: number;
-  club: string | null;
-  is_active: boolean;
-  classement_points: number | null;
-}
-
-export default async function HomePage({ searchParams }: PageProps) {
-  const sp = await searchParams;
-  const selectedKl = sp.kl && isPlayerClass(sp.kl) ? sp.kl : null;
-  const selectedLabel = selectedKl ?? "All";
-
+export default async function HomePage() {
   const supabase = await createClient();
-  const data = await fetchAllRows<PlayerRow>(
-    supabase,
-    "players",
-    "id, name, class, pfw, club, is_active, classement_points",
-  );
+  const rows = await getRankingRows(supabase);
 
-  const all = data.slice().sort((a, b) => {
-    if (b.pfw !== a.pfw) return b.pfw - a.pfw;
-    return a.name.localeCompare(b.name);
-  });
-
-  const counts: Record<string, number> = {};
-  for (const p of all) {
-    counts[p.class] = (counts[p.class] ?? 0) + 1;
+  const clubCounts = new Map<string, number>();
+  for (const p of rows) {
+    if (!p.club) continue;
+    clubCounts.set(p.club, (clubCounts.get(p.club) ?? 0) + 1);
   }
-
-  const filtered = selectedKl ? all.filter((p) => p.class === selectedKl) : all;
-
-  const rows: RankingRow[] = filtered.map((p, i) => ({
-    id: p.id,
-    rank: i + 1,
-    name: p.name,
-    class: p.class,
-    club: p.club,
-    pfw: Number(p.pfw),
-    estimatedTtr: estimateTtr(Number(p.pfw), p.class, p.classement_points),
-    isActive: p.is_active,
-  }));
-
-  const clubSet = new Set<string>();
-  for (const p of filtered) {
-    if (p.club) clubSet.add(p.club);
-  }
-  const clubs = Array.from(clubSet).sort((a, b) => a.localeCompare(b));
+  const clubs = Array.from(clubCounts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          FLTT Ranking — with estimated TTR
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          The Luxembourg Verbandsrangliste with an estimated German TTR for each player.{" "}
-          <Link href="/about" className="underline">
-            Estimates explained →
-          </Link>
-        </p>
+    <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">FLTT DTR Ranking</h1>
+      <p className="text-muted-foreground mt-3 text-base leading-7">
+        DTR (Dëschtennis-Rating) is a rating that tracks every player&apos;s real playing strength,
+        recalculated after each match of the 2025-2026 season. It&apos;s based on the same system
+        used for the German TTR rating: win a match against a similarly-rated opponent and your
+        rating goes up by a handful of points; lose, and it goes down. Beating a much stronger
+        player is worth more, losing to a much weaker one costs more.
+      </p>
+      <p className="text-muted-foreground mt-4 text-base leading-7">
+        Every player started the season with a baseline rating: adult players began at 1025, younger
+        players began lower (900 or 850, depending on age group) since the rating hasn&apos;t yet
+        had a chance to reflect their real strength. From there, every match this season has moved
+        each player&apos;s rating up or down to where it stands today.{" "}
+        <Link href="/about" className="underline">
+          Read more →
+        </Link>
+      </p>
+
+      <div className="mt-8">
+        <PlayerSearch />
       </div>
 
-      <div className="mt-5 flex flex-col gap-4">
-        <ClassPills selected={selectedLabel} counts={counts} total={all.length} />
-        <RankingTable rows={rows} clubs={clubs} selectedClass={selectedLabel} />
+      <div className="mt-4">
+        <Link
+          href="/ranking"
+          className="text-sm font-medium underline underline-offset-4 hover:no-underline"
+        >
+          Browse the full ranking →
+        </Link>
       </div>
+
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold">Clubs</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Browse players by club — {clubs.length.toLocaleString()} clubs in total.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {clubs.map(([club, count]) => (
+            <Link
+              key={club}
+              href={`/ranking?club=${encodeURIComponent(club)}`}
+              className="hover:bg-accent hover:text-accent-foreground flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+            >
+              <span>{club}</span>
+              <span className="text-muted-foreground tabular-nums">{count}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

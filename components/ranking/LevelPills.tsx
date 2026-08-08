@@ -1,25 +1,27 @@
 import Link from "next/link";
-import { PLAYER_CLASSES } from "@/lib/conversions";
+import { KLASSIERUNG_BANDS } from "@/lib/klassierung";
 
 interface Props {
   selected: string;
   counts: Record<string, number>;
   total: number;
+  club: string | null;
 }
 
-export function ClassPills({ selected, counts, total }: Props) {
+export function LevelPills({ selected, counts, total, club }: Props) {
+  const clubParam = club ? `&club=${encodeURIComponent(club)}` : "";
   const entries: Array<{ label: string; href: string; count: number; active: boolean }> = [
     {
       label: "All",
-      href: "/",
+      href: `/ranking?${club ? `club=${encodeURIComponent(club)}` : ""}`,
       count: total,
       active: selected === "All",
     },
-    ...PLAYER_CLASSES.map((kl) => ({
-      label: kl,
-      href: `/?kl=${kl}`,
-      count: counts[kl] ?? 0,
-      active: selected === kl,
+    ...KLASSIERUNG_BANDS.map((band) => ({
+      label: band,
+      href: `/ranking?level=${band}${clubParam}`,
+      count: counts[band] ?? 0,
+      active: selected === band,
     })),
   ];
 

@@ -6,60 +6,42 @@ export default function AboutPage() {
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">About this site</h1>
 
       <p className="text-muted-foreground mt-4 text-sm leading-6">
-        This page shows the official Luxembourg table tennis ranking (the FLTT Verbandsrangliste)
-        alongside an estimated German TTR rating for every player. The estimates help FLTT place
-        foreign players at the right level for tournaments and league matches.
+        This site tracks a DTR (Dëschtennis-Rating) for every player in the FLTT Verbandsrangliste —
+        a rating that starts from a baseline value and moves up or down after every match of the
+        season, the same way the German TTR rating works.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold">Where the data comes from</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
-        The PFW values and class assignments come from the FLTT Verbandsrangliste (snapshot
-        2025-08-13). Match histories are taken from the FLTT match exports for the 2025-2026 season
-        and run through the FLTT IR-22 performance system to produce per-match TTR changes.
+        Match histories are taken from the FLTT match exports for the 2025-2026 season and run
+        through the DTR formula (see <code>DëschTennisRating.pdf</code>) to produce a per-match DTR
+        change for every player.
       </p>
 
-      <h2 className="mt-8 text-lg font-semibold">How the TTR is estimated</h2>
+      <h2 className="mt-8 text-lg font-semibold">Starting values</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
-        We compared 41 players who appear in both the FLTT ranking and the German TTR ranking and
-        fitted a linear regression:
-      </p>
-      <pre className="bg-muted/40 mt-3 overflow-x-auto rounded-md border p-3 text-xs">
-        PFW ≈ 0.596 × TTR − 588 (R² = 0.78, n = 41)
-      </pre>
-      <p className="text-muted-foreground mt-2 text-sm leading-6">
-        Rearranged, the estimate for a player in A1–B3 is:
-      </p>
-      <pre className="bg-muted/40 mt-3 overflow-x-auto rounded-md border p-3 text-xs">
-        TTR = min(2600, round((PFW + 587.68) / 0.596) + 175)
-      </pre>
-      <p className="text-muted-foreground mt-2 text-sm leading-6">
-        The +175 keeps this formula lined up with the C1–D3 scale below (so B3&apos;s floor sits
-        exactly on C1&apos;s ceiling, not below it), and 2600 is a ceiling on the estimate itself —
-        a player&apos;s TTR can still climb past it during the season through real match results,
-        same as anyone else.
-      </p>
-
-      <h2 className="mt-8 text-lg font-semibold">How C1–D3 is estimated</h2>
-      <p className="text-muted-foreground mt-2 text-sm leading-6">
-        The 41 matched players were all above TTR 1200, so the regression has no real data for this
-        range, and PFW itself turned out not to be a reliable basis down there. Instead, C1–D3
-        players are estimated from their classement points — the FLTT in-class standing that runs
-        from -5,5 (about to drop a classement) to +11,5 (about to be promoted), a 17-point span per
-        classement.
-      </p>
-      <p className="text-muted-foreground mt-2 text-sm leading-6">
-        Stacking all six classements (C1 down to D3) end to end turns classement + points into one
-        continuous scale, anchored so D2&apos;s 0 points is TTR 1000 and C2&apos;s +6 points is TTR
-        1325. Because the scale is continuous, the bottom of one classement lines up exactly with
-        the top of the next — no jump at the boundary. Players whose classement points haven&apos;t
-        been entered yet show as &quot;not available&quot; rather than a guess.
+        Every player begins the season at a baseline rating rather than an estimate carried over
+        from elsewhere: adult players start at 1025, and youth players start lower depending on
+        their age group (900 for Cadets/Minimes, 850 for Benjamins/Poussins), since a new player
+        hasn&apos;t yet built up match results that reflect their real strength.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold">Confidence</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
-        These are estimates only. Individual players can sit well above or below the line — the R²
-        of 0.78 says the formula gets the broad picture right but can miss any one player by 100+
-        TTR points. Use the estimate as a starting point, not a final verdict.
+        DTR is recalculated from real match results, not estimated — the more matches a player has
+        played this season, the more it reflects their actual current form.
+      </p>
+
+      <h2 className="mt-8 text-lg font-semibold">
+        Historical note: the original PFW-based estimate
+      </h2>
+      <p className="text-muted-foreground mt-2 text-sm leading-6">
+        Before the DTR season simulation above existed, this site estimated a German TTR rating
+        directly from each player&apos;s FLTT PFW score and class, using a regression fitted to 41
+        players who appeared in both rankings (PFW ≈ 0.596 × TTR − 588, R² = 0.78). That estimate is
+        no longer shown on the site — DTR, calculated from real matches, replaced it — but it&apos;s
+        kept here for reference since some of the DTR system&apos;s starting values were
+        cross-checked against it during development.
       </p>
 
       <h2 className="mt-8 text-lg font-semibold">Further reading</h2>
@@ -89,7 +71,7 @@ export default function AboutPage() {
       </ul>
 
       <p className="mt-8 text-sm">
-        <Link href="/" className="underline">
+        <Link href="/ranking" className="underline">
           ← Back to ranking
         </Link>
       </p>
