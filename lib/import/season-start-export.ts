@@ -6,6 +6,15 @@ import { isPlayerClass, usesClassementPoints, type PlayerClass } from "@/lib/con
 const CLASSEMENT_MIN = -5.5;
 const CLASSEMENT_MAX = 11.5;
 
+// FLTT itself promotes a classement-class player (C1-D3) to B3 or higher at
+// the start of the season if their performancePf already clears this bar —
+// confirmed with Jeff (2026-08-08) via SUN Pumo: export row says C1, but he
+// actually started the season as B3. So a classement row at or above this
+// PFW uses the PFW regression like a B1-B3 row, ignoring its classement
+// points entirely (rather than the flat classement-points formula, which
+// tops out well below what this PFW would regress to).
+const CLASSEMENT_PFW_PROMOTION_THRESHOLD = 215;
+
 // FLTT can produce a membership export snapshotting every player's class,
 // classement points, and PFW as of a given date — the authoritative source
 // for a player's season-start rating when Jeff has one on hand. Gitignored/
@@ -81,7 +90,15 @@ export function parseSeasonStartExport(buffer: ArrayBuffer | Buffer): SeasonStar
       classementPoints = Math.min(CLASSEMENT_MAX, Math.max(CLASSEMENT_MIN, row.rankingPoints));
     }
 
-    out.push({ flttPlayerId, class: cls, pfw: pfwUsable ? pfwRaw : 0, classementPoints });
+    const promoted =
+      usesClassementPoints(cls) && pfwUsable && pfwRaw >= CLASSEMENT_PFW_PROMOTION_THRESHOLD;
+
+    out.push({
+      flttPlayerId,
+      class: promoted ? "B3" : cls,
+      pfw: pfwUsable ? pfwRaw : 0,
+      classementPoints,
+    });
   }
   return out;
 }
