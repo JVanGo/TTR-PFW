@@ -79,7 +79,7 @@ export function RankingTable({ rows, clubs, selectedLevel, initialClub }: Props)
 
       <p className="text-muted-foreground text-sm">
         Showing {filtered.length.toLocaleString()} players
-        {selectedLevel !== "All" && ` in Klassierung ${selectedLevel}`}
+        {selectedLevel !== "All" && ` in Class ${selectedLevel}`}
         {club && ` at ${club}`}.
       </p>
 
@@ -90,7 +90,7 @@ export function RankingTable({ rows, clubs, selectedLevel, initialClub }: Props)
               <th className="px-3 py-2 text-right font-medium">#</th>
               <th className="px-3 py-2 text-left font-medium">Name</th>
               <th className="px-3 py-2 text-left font-medium">Club</th>
-              <th className="px-3 py-2 text-left font-medium">Klassierung</th>
+              <th className="px-3 py-2 text-left font-medium">Class</th>
               <th className="px-3 py-2 text-right font-medium">DTR</th>
             </tr>
           </thead>
