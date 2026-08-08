@@ -99,7 +99,7 @@ export default async function PlayerPage({ params }: PageProps) {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-muted-foreground text-xs uppercase">DTR</p>
+          <p className="text-muted-foreground text-sm uppercase">DTR</p>
           <p className="text-4xl font-semibold tabular-nums sm:text-5xl">
             {currentDtr ?? "Not available"}
           </p>
