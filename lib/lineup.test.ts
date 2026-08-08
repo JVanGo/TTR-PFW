@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildTeams, canSwap, toleranceTierFor, type LineupPlayer } from "./lineup";
+import {
+  buildTeams,
+  isValidArrangement,
+  legalTargetIndices,
+  movePlayer,
+  toleranceTierFor,
+  type LineupPlayer,
+} from "./lineup";
 
 function player(id: string, dtr: number, opts: Partial<LineupPlayer> = {}): LineupPlayer {
   return { id, name: id, dtr, isYouth: false, isKader: false, ...opts };
@@ -26,35 +33,79 @@ describe("toleranceTierFor", () => {
   });
 });
 
-describe("canSwap", () => {
-  it("allows a swap exactly at the base tolerance boundary, blocks one point over", () => {
-    const a = player("a", 1500);
-    expect(canSwap(a, player("b", 1465), true)).toBe(true); // gap 35, team
-    expect(canSwap(a, player("b", 1464), true)).toBe(false); // gap 36, team
-    expect(canSwap(a, player("b", 1450), false)).toBe(true); // gap 50, club
-    expect(canSwap(a, player("b", 1449), false)).toBe(false); // gap 51, club
+describe("isValidArrangement", () => {
+  it("allows a later player up to the tolerance stronger than an earlier one, blocks one point over", () => {
+    const weaker = player("weak", 1465);
+    expect(isValidArrangement([weaker, player("strong", 1500)])).toBe(true); // gap 35, team
+    expect(isValidArrangement([weaker, player("strong", 1501)])).toBe(false); // gap 36, team
   });
 
-  it("widens tolerance to 70/85 when either player is youth", () => {
-    const a = player("a", 1500, { isYouth: true });
-    expect(canSwap(a, player("b", 1430), true)).toBe(true); // gap 70, team
-    expect(canSwap(a, player("b", 1429), true)).toBe(false); // gap 71, team
-    expect(canSwap(a, player("b", 1415), false)).toBe(true); // gap 85, club
-    expect(canSwap(a, player("b", 1414), false)).toBe(false); // gap 86, club
+  it("never violates when the later player is weaker or equal, regardless of gap size", () => {
+    expect(isValidArrangement([player("strong", 5000), player("weak", 1)])).toBe(true);
   });
 
-  it("widens tolerance to 105/120 when either player is Kader", () => {
-    const a = player("a", 1500, { isKader: true });
-    expect(canSwap(a, player("b", 1395), true)).toBe(true); // gap 105, team
-    expect(canSwap(a, player("b", 1394), true)).toBe(false); // gap 106, team
-    expect(canSwap(a, player("b", 1380), false)).toBe(true); // gap 120, club
-    expect(canSwap(a, player("b", 1379), false)).toBe(false); // gap 121, club
+  it("uses the club-wide tolerance across a team boundary", () => {
+    const team0 = [player("a1", 1500), player("a2", 1490), player("a3", 1480), player("a4", 1470)];
+    // a4 (weakest in team0) vs a newcomer in team1 is the tightest constraint.
+    expect(isValidArrangement([...team0, player("b1", 1520)])).toBe(true); // gap to a4 = 50
+    expect(isValidArrangement([...team0, player("b1", 1521)])).toBe(false); // gap to a4 = 51
   });
 
-  it("is symmetric — order of the two players passed in doesn't matter", () => {
-    const a = player("a", 1500);
-    const b = player("b", 1464);
-    expect(canSwap(a, b, true)).toBe(canSwap(b, a, true));
+  it("widens tolerance to 70/85 when either player is youth, 105/120 for Kader", () => {
+    expect(
+      isValidArrangement([player("weak", 1430, { isYouth: true }), player("strong", 1500)]),
+    ).toBe(true); // gap 70
+    expect(
+      isValidArrangement([player("weak", 1429, { isYouth: true }), player("strong", 1500)]),
+    ).toBe(false); // gap 71
+    expect(
+      isValidArrangement([player("weak", 1395, { isKader: true }), player("strong", 1500)]),
+    ).toBe(true); // gap 105
+    expect(
+      isValidArrangement([player("weak", 1394, { isKader: true }), player("strong", 1500)]),
+    ).toBe(false); // gap 106
+  });
+
+  it("catches a violation between non-adjacent players even when every adjacent gap is within tolerance", () => {
+    // 1500 -> 1470 (adjacent gap -30, fine) -> 1500 (adjacent gap 30, fine)
+    // -> 1525 (adjacent gap 25, fine) but position 2 (1470) vs position 4
+    // (1525) is a 55-point gap, over the 35-point team tolerance.
+    const arrangement = [
+      player("a", 1500),
+      player("b", 1470),
+      player("c", 1500),
+      player("d", 1525),
+    ];
+    expect(isValidArrangement(arrangement)).toBe(false);
+  });
+});
+
+describe("movePlayer", () => {
+  it("moves an item to a new index, shifting the rest", () => {
+    expect(movePlayer(["a", "b", "c", "d"], 3, 1)).toEqual(["a", "d", "b", "c"]);
+    expect(movePlayer(["a", "b", "c", "d"], 0, 2)).toEqual(["b", "c", "a", "d"]);
+  });
+
+  it("doesn't mutate the input array", () => {
+    const input = ["a", "b", "c"];
+    movePlayer(input, 0, 2);
+    expect(input).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("legalTargetIndices", () => {
+  const players = [player("a", 1500), player("b", 1470), player("c", 1440), player("d", 1410)];
+
+  it("finds the only legal slot for the weakest player to move up to", () => {
+    // Moving d (1410) to index 0 or 1 creates a >35 gap; index 2 (ahead of
+    // the near-equal 1440) stays within tolerance.
+    expect(legalTargetIndices(players, 3)).toEqual([2]);
+  });
+
+  it("finds the only legal slot for the strongest player to move down to", () => {
+    // Moving a (1500) past b (1470, gap 30) is fine; past c or d creates a
+    // >35 gap against whoever it lands next to.
+    expect(legalTargetIndices(players, 0)).toEqual([1]);
   });
 });
 

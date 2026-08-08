@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpDown, Lock } from "lucide-react";
-import { buildTeams, canSwap, type LineupPlayer } from "@/lib/lineup";
+import { buildTeams, legalTargetIndices, movePlayer, type LineupPlayer } from "@/lib/lineup";
 
 export interface LineupRosterPlayer extends LineupPlayer {
   klassierung: string;
@@ -30,6 +29,7 @@ export function LineupBuilder({ club, roster }: Props) {
   const [teamCount, setTeamCount] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [arrangement, setArrangement] = useState<LineupRosterPlayer[]>([]);
+  const [movingIndex, setMovingIndex] = useState<number | null>(null);
 
   const needed = teamCount * 4;
 
@@ -70,7 +70,11 @@ export function LineupBuilder({ club, roster }: Props) {
         teamCount,
       ).flatMap((t) => t.players),
     );
+    setMovingIndex(null);
   }
+
+  const legalTargets =
+    movingIndex !== null ? new Set(legalTargetIndices(arrangement, movingIndex)) : null;
 
   function toggle(id: string) {
     setSelectedIds((prev) => {
@@ -85,12 +89,17 @@ export function LineupBuilder({ club, roster }: Props) {
     });
   }
 
-  function swap(i: number, j: number) {
-    setArrangement((prev) => {
-      const next = [...prev];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
+  function clickPlayer(index: number) {
+    if (movingIndex === null) {
+      setMovingIndex(index);
+    } else if (index === movingIndex) {
+      setMovingIndex(null);
+    } else if (legalTargets?.has(index)) {
+      setArrangement((prev) => movePlayer(prev, movingIndex, index));
+      setMovingIndex(null);
+    } else {
+      setMovingIndex(index);
+    }
   }
 
   return (
@@ -148,78 +157,50 @@ export function LineupBuilder({ club, roster }: Props) {
       </div>
 
       {arrangement.length > 0 ? (
-        <div className="flex flex-col">
-          {Array.from({ length: Math.ceil(arrangement.length / 4) }, (_, teamIndex) => (
-            <div key={teamIndex} className={teamIndex > 0 ? "mt-3 border-t-2 pt-3" : ""}>
-              <p className="text-muted-foreground mb-1 text-xs font-medium uppercase">
-                Team {teamIndex + 1}
-              </p>
-              {arrangement.slice(teamIndex * 4, teamIndex * 4 + 4).map((p, slotIndex) => {
-                const i = teamIndex * 4 + slotIndex;
-                return (
-                  <div key={p.id}>
-                    <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm">
+        <div>
+          <p className="text-muted-foreground mb-2 text-xs">
+            {movingIndex === null
+              ? "Click a player to see where they could legally move."
+              : "Click a highlighted spot to move them there, or click them again to cancel."}
+          </p>
+          <div className="flex flex-col">
+            {Array.from({ length: Math.ceil(arrangement.length / 4) }, (_, teamIndex) => (
+              <div key={teamIndex} className={teamIndex > 0 ? "mt-3 border-t-2 pt-3" : ""}>
+                <p className="text-muted-foreground mb-1 text-xs font-medium uppercase">
+                  Team {teamIndex + 1}
+                </p>
+                {arrangement.slice(teamIndex * 4, teamIndex * 4 + 4).map((p, slotIndex) => {
+                  const i = teamIndex * 4 + slotIndex;
+                  const isMoving = i === movingIndex;
+                  const isLegalTarget = legalTargets?.has(i) ?? false;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => clickPlayer(i)}
+                      className={
+                        "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm " +
+                        (isMoving
+                          ? "bg-foreground text-background"
+                          : isLegalTarget
+                            ? "bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950 dark:hover:bg-emerald-900"
+                            : "hover:bg-accent hover:text-accent-foreground")
+                      }
+                    >
                       <span className="truncate">{p.name}</span>
-                      <span className="text-muted-foreground tabular-nums">{p.dtr}</span>
-                    </div>
-                    {i < arrangement.length - 1 && (
-                      <SwapDivider
-                        a={arrangement[i]}
-                        b={arrangement[i + 1]}
-                        sameTeam={slotIndex < 3}
-                        onSwap={() => swap(i, i + 1)}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+                      <span className="tabular-nums opacity-70">{p.dtr}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <p className="text-muted-foreground text-sm">
           Check players below to start building teams.
         </p>
       )}
-    </div>
-  );
-}
-
-function SwapDivider({
-  a,
-  b,
-  sameTeam,
-  onSwap,
-}: {
-  a: LineupPlayer;
-  b: LineupPlayer;
-  sameTeam: boolean;
-  onSwap: () => void;
-}) {
-  const legal = canSwap(a, b, sameTeam);
-  const gap = Math.abs(a.dtr - b.dtr);
-
-  if (legal) {
-    return (
-      <button
-        type="button"
-        onClick={onSwap}
-        title={`Gap of ${gap} DTR — within tolerance, can swap`}
-        className="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-1.5 rounded-md px-2 py-0.5 text-xs"
-      >
-        <ArrowUpDown className="size-3" />
-        can swap
-      </button>
-    );
-  }
-
-  return (
-    <div
-      title={`Gap of ${gap} DTR — exceeds the ${sameTeam ? "team" : "club-wide"} tolerance`}
-      className="text-muted-foreground/60 flex items-center gap-1.5 px-2 py-0.5 text-xs"
-    >
-      <Lock className="size-3" />
-      {gap} DTR gap — can&apos;t swap
     </div>
   );
 }

@@ -4,12 +4,14 @@
  *
  * The rule: in a listed order (top = strongest), a pair is a violation if the
  * later-listed player's DTR is more than the applicable tolerance HIGHER than
- * the earlier-listed player's. For a lineup built by sorting DTR descending
- * and only ever adjusted by swapping adjacent players, checking a pair's own
- * DTR gap against tolerance is sufficient to know whether swapping them is
- * legal — an adjacent swap can't create a violation anywhere except between
- * the swapped pair itself, since every other pair's relative order is
- * untouched.
+ * the earlier-listed player's — and this applies to EVERY pair in the list,
+ * not just neighbors. A single adjacent swap starting from a fully
+ * DTR-sorted list can only ever create a new violation between the swapped
+ * pair itself, but that stops being true once several swaps compound: e.g.
+ * DTR 100, 70, 100, 125 has every adjacent gap within a 35-point tolerance,
+ * yet position 2 (70) and position 4 (125) violate it by 55. So arrangements
+ * are validated pairwise across the whole list (isValidArrangement), not
+ * just neighbor-by-neighbor.
  */
 
 export interface LineupPlayer {
@@ -51,9 +53,44 @@ export function toleranceFor(a: LineupPlayer, b: LineupPlayer, sameTeam: boolean
   return sameTeam ? TOLERANCE[tier].team : TOLERANCE[tier].club;
 }
 
-/** Whether two players — anywhere adjacent in the lineup — can legally swap places. */
-export function canSwap(a: LineupPlayer, b: LineupPlayer, sameTeam: boolean): boolean {
-  return Math.abs(a.dtr - b.dtr) <= toleranceFor(a, b, sameTeam);
+/**
+ * Whether the arrangement (index order = listed order, every 4 players a
+ * team) satisfies the tolerance rule for every pair, not just neighbors.
+ */
+export function isValidArrangement(players: LineupPlayer[]): boolean {
+  for (let i = 0; i < players.length; i++) {
+    for (let j = i + 1; j < players.length; j++) {
+      const sameTeam = Math.floor(i / 4) === Math.floor(j / 4);
+      const tolerance = toleranceFor(players[i], players[j], sameTeam);
+      if (players[j].dtr - players[i].dtr > tolerance) return false;
+    }
+  }
+  return true;
+}
+
+/** Moves the item at `from` to index `to`, shifting the rest — a plain array move, no mutation. */
+export function movePlayer<T>(list: T[], from: number, to: number): T[] {
+  const next = [...list];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
+/**
+ * Every index (other than `fromIndex` itself) that the player at `fromIndex`
+ * could legally move to — i.e. dropping them there, shifting everyone else
+ * up or down by one, still satisfies isValidArrangement. Assumes `players`
+ * is already valid before the move (true for anything this tool produces:
+ * buildTeams's sorted output is always valid, and every accepted move keeps
+ * it that way).
+ */
+export function legalTargetIndices(players: LineupPlayer[], fromIndex: number): number[] {
+  const legal: number[] = [];
+  for (let to = 0; to < players.length; to++) {
+    if (to === fromIndex) continue;
+    if (isValidArrangement(movePlayer(players, fromIndex, to))) legal.push(to);
+  }
+  return legal;
 }
 
 /**
