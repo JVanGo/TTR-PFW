@@ -106,7 +106,7 @@ export function RankingTable({ rows, clubs, selectedLevel, initialClub }: Props)
                   </Link>
                   {!row.isActive && (
                     <span className="bg-muted text-muted-foreground ml-2 inline-flex rounded-full px-2 py-0.5 text-xs">
-                      not on ranking
+                      inactive
                     </span>
                   )}
                 </td>

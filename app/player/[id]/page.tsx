@@ -93,7 +93,7 @@ export default async function PlayerPage({ params }: PageProps) {
             {player.club ?? "—"}
             {!player.is_active && (
               <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                not on ranking
+                inactive
               </span>
             )}
           </p>
