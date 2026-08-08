@@ -63,14 +63,20 @@ async function fetchLatestTtrByPlayer(
   // Each page is a fully-ordered slice (Postgres sorts before applying the
   // range), so fetching pages in parallel and processing them back in page
   // order is safe — unlike the sequential version, this doesn't wait on ~80
-  // round-trips one at a time.
-  const pages = await Promise.all(Array.from({ length: pageCount }, (_, i) => query(i)));
-
+  // round-trips one at a time. Concurrency is capped, though: firing every
+  // page at once exhausted the connection pool (both locally and, likely,
+  // on Supabase's pooler under load).
+  const CONCURRENCY = 8;
   const latest = new Map<string, number>();
-  for (const { data, error } of pages) {
-    if (error) throw new Error(`fetchLatestTtrByPlayer: ${error.message}`);
-    for (const row of (data ?? []) as MatchRow[]) {
-      if (!latest.has(row.player_id)) latest.set(row.player_id, row.new_ttr);
+  for (let start = 0; start < pageCount; start += CONCURRENCY) {
+    const batch = await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, pageCount - start) }, (_, i) => query(start + i)),
+    );
+    for (const { data, error } of batch) {
+      if (error) throw new Error(`fetchLatestTtrByPlayer: ${error.message}`);
+      for (const row of (data ?? []) as MatchRow[]) {
+        if (!latest.has(row.player_id)) latest.set(row.player_id, row.new_ttr);
+      }
     }
   }
   return latest;
