@@ -13,6 +13,9 @@ export interface RankingRow {
   isActive: boolean;
   dtr: number;
   klassierung: Klassierung;
+  /** Non-null age_category (youth per the PDF's Ersteinstufung categories) — used by the Lineup Builder. */
+  isYouth: boolean;
+  isKader: boolean;
 }
 
 interface PlayerRow {
@@ -23,6 +26,8 @@ interface PlayerRow {
   club: string | null;
   is_active: boolean;
   classement_points: number | null;
+  age_category: string | null;
+  is_kader: boolean;
 }
 
 interface MatchRow {
@@ -94,7 +99,7 @@ export async function getRankingRows(supabase: SupabaseClient): Promise<RankingR
     fetchAllRows<PlayerRow>(
       supabase,
       "players",
-      "id, name, class, pfw, club, is_active, classement_points",
+      "id, name, class, pfw, club, is_active, classement_points, age_category, is_kader",
     ),
     fetchLatestTtrByPlayer(supabase, CURRENT_SEASON),
   ]);
@@ -110,6 +115,8 @@ export async function getRankingRows(supabase: SupabaseClient): Promise<RankingR
       isActive: p.is_active,
       dtr,
       klassierung: klassierungForDtr(dtr),
+      isYouth: p.age_category != null,
+      isKader: p.is_kader,
     };
   });
 

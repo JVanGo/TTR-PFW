@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRankingRows } from "@/lib/ranking";
 import { KLASSIERUNG_BANDS, type Klassierung } from "@/lib/klassierung";
 import { LevelPills } from "@/components/ranking/LevelPills";
-import { RankingTable } from "@/components/ranking/RankingTable";
+import { ClubRankingView } from "@/components/ranking/ClubRankingView";
 
 interface PageProps {
   searchParams: Promise<{ level?: string; club?: string }>;
@@ -49,7 +49,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
           total={all.length}
           club={initialClub || null}
         />
-        <RankingTable
+        <ClubRankingView
           rows={filtered}
           clubs={clubs}
           selectedLevel={selectedLevel ?? "All"}

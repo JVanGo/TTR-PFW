@@ -17,6 +17,7 @@
     "import:fltt-catalog": "tsx scripts/import-fltt-catalog.ts",
     "import:age-categories": "tsx scripts/import-age-categories.ts",
     "import:classement-points": "tsx scripts/import-classement-points.ts",
+    "import:kader": "tsx scripts/import-kader.ts",
     "simulate:season-ttr": "tsx scripts/simulate-season-ttr.ts",
     "prepare": "husky"
   },

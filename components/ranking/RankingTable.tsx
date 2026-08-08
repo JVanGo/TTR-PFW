@@ -17,14 +17,14 @@ interface Props {
   rows: RankingTableRow[];
   clubs: string[];
   selectedLevel: string;
-  initialClub: string;
+  club: string;
+  onClubChange: (club: string) => void;
 }
 
 const PAGE_SIZE = 50;
 
-export function RankingTable({ rows, clubs, selectedLevel, initialClub }: Props) {
+export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }: Props) {
   const [search, setSearch] = useState("");
-  const [club, setClub] = useState(initialClub);
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
 
@@ -64,7 +64,7 @@ export function RankingTable({ rows, clubs, selectedLevel, initialClub }: Props)
         />
         <select
           value={club}
-          onChange={(e) => setClub(e.target.value)}
+          onChange={(e) => onClubChange(e.target.value)}
           className="border-input bg-background focus:ring-ring rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-2 focus:outline-none"
           aria-label="Filter by club"
         >
