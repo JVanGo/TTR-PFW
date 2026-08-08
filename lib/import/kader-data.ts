@@ -14,9 +14,8 @@ export interface KaderEntry {
 // how the player is actually stored in `players` (confirmed by exact club
 // match): GOMES-MATOS -> GOMES MATOS, SCHUDER-MINDEN -> SCHUDER MINDEN
 // (hyphens vs. spaces), HUESO -> HUESO MUTH, OBERTI -> OBERTI SCAFATO
-// (PDF truncated a compound surname), XIA Aaron -> XIA Aaron (Xunming).
-// "BODEVING Nicolas" (Wolz, Aufbaugruppe) has no exact match — the closest
-// is "BODEVING Jean-Nicolas" (also Wolz), left unmatched rather than assumed.
+// (PDF truncated a compound surname), XIA Aaron -> XIA Aaron (Xunming),
+// BODEVING Nicolas -> BODEVING Jean-Nicolas (confirmed with Jeff, same person).
 
 export const KADER_PLAYERS: KaderEntry[] = [
   // A-Kader
@@ -68,7 +67,7 @@ export const KADER_PLAYERS: KaderEntry[] = [
   // Aufbaugruppe
   { name: "ARMANI Lorenzo", club: "Nouspelt" },
   { name: "COSNIER Eva", club: "Diddeleng" },
-  { name: "BODEVING Nicolas", club: "Wolz" },
+  { name: "BODEVING Jean-Nicolas", club: "Wolz" },
   { name: "KIRSCH Charlyn", club: "Housen" },
   { name: "BOUDART Matheo", club: "Hueschtert-Folscht" },
   { name: "SCHOELLEN Sophia", club: "Recken" },
