@@ -29,7 +29,11 @@ const REGRESSION_OFFSET = 587.68;
 // which would have let some C1 players outrank some B3 players. Shifting the
 // whole regression up by a flat amount puts B3's floor exactly on C1's new
 // ceiling instead — continuous, no overlap, no cliff.
-const REGRESSION_SHIFT = 175;
+// Dropped 175 -> 165 on 2026-08-08 to track the D2 anchor correction below
+// (1000 -> 1025) — that raised every classement value including C1's
+// ceiling, so the regression shift had to come down by the same 10 points
+// to keep B3's floor lined up with it.
+const REGRESSION_SHIFT = 165;
 
 // A ceiling on the *estimate* only — a real player's TTR can still climb past
 // this during the season simulation via actual match results, same as any
@@ -48,12 +52,13 @@ const CLASSEMENT_LEVEL: Partial<Record<PlayerClass, number>> = {
 
 // Each classement spans 17 points: -5,5 (about to drop a classement) to +11,5
 // (about to be promoted). Stacking all six levels end to end gives one
-// continuous scale (no cliffs between classes), anchored on two points
-// confirmed with Jeff (2026-08-07): D2's 0 points is 1000 TTR, and C2's +6
-// points is 1325 TTR.
+// continuous scale (no cliffs between classes), anchored on two points:
+// D2's 0 points is 1025 TTR (corrected 2026-08-08 — Jeff's original spec
+// said 1000, which was a mistake), and C2's +6 points is 1325 TTR
+// (confirmed with Jeff 2026-08-07).
 const CLASSEMENT_SPAN = 17;
 const ANCHOR_A_SCORE = 0 + CLASSEMENT_SPAN * CLASSEMENT_LEVEL.D2!; // D2, 0 points
-const ANCHOR_A_TTR = 1000;
+const ANCHOR_A_TTR = 1025;
 const ANCHOR_B_SCORE = 6 + CLASSEMENT_SPAN * CLASSEMENT_LEVEL.C2!; // C2, +6 points
 const ANCHOR_B_TTR = 1325;
 const CLASSEMENT_SCALE = (ANCHOR_B_TTR - ANCHOR_A_TTR) / (ANCHOR_B_SCORE - ANCHOR_A_SCORE);
