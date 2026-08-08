@@ -28,34 +28,39 @@ export function LineupBuilder({ club, roster }: Props) {
   const sortedRoster = [...roster].sort((a, b) => b.dtr - a.dtr || a.name.localeCompare(b.name));
 
   const [teamCount, setTeamCount] = useState(1);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => topDtrIds(sortedRoster, 4));
-  const [arrangement, setArrangement] = useState<LineupRosterPlayer[]>(() =>
-    buildTeams(
-      sortedRoster.filter((p) => selectedIds.has(p.id)),
-      1,
-    ).flatMap((t) => t.players),
-  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [arrangement, setArrangement] = useState<LineupRosterPlayer[]>([]);
 
-  // Reset the selection default and arrangement whenever the club (roster) or
-  // team count changes — render-time state adjustment, not an effect, so no
-  // setState-in-effect cascade (same pattern used in RankingTable).
-  const resetKey = `${club}|${teamCount}`;
-  const [prevResetKey, setPrevResetKey] = useState(resetKey);
-  if (resetKey !== prevResetKey) {
-    setPrevResetKey(resetKey);
-    const nextSelected = topDtrIds(sortedRoster, teamCount * 4);
-    setSelectedIds(nextSelected);
-    setArrangement(
-      buildTeams(
-        sortedRoster.filter((p) => nextSelected.has(p.id)),
-        teamCount,
-      ).flatMap((t) => t.players),
-    );
+  const needed = teamCount * 4;
+
+  // Starting fresh on a new club — render-time state adjustment, not an
+  // effect, so no setState-in-effect cascade (same pattern used in RankingTable).
+  const [prevClub, setPrevClub] = useState(club);
+  if (club !== prevClub) {
+    setPrevClub(club);
+    setSelectedIds(new Set());
   }
 
-  // Whenever the actual set of selected players changes (a checkbox toggle),
-  // re-sort fresh — manual swaps only persist until the roster changes again.
-  const selectionKey = Array.from(selectedIds).sort().join(",");
+  // Shrinking the team count below the current selection — trim down to the
+  // new capacity, keeping the highest-DTR picks.
+  const [prevTeamCount, setPrevTeamCount] = useState(teamCount);
+  if (teamCount !== prevTeamCount) {
+    setPrevTeamCount(teamCount);
+    if (selectedIds.size > needed) {
+      setSelectedIds(
+        topDtrIds(
+          sortedRoster.filter((p) => selectedIds.has(p.id)),
+          needed,
+        ),
+      );
+    }
+  }
+
+  // Whenever the actual set of selected players (or the team count) changes,
+  // rebuild the arrangement fresh — manual swaps only persist until then.
+  // Partial selections still render: teams fill in one player at a time
+  // rather than waiting for a full quota.
+  const selectionKey = `${Array.from(selectedIds).sort().join(",")}|${teamCount}`;
   const [prevSelectionKey, setPrevSelectionKey] = useState(selectionKey);
   if (selectionKey !== prevSelectionKey) {
     setPrevSelectionKey(selectionKey);
@@ -67,14 +72,15 @@ export function LineupBuilder({ club, roster }: Props) {
     );
   }
 
-  const needed = teamCount * 4;
-  const ready = selectedIds.size === needed && arrangement.length === needed;
-
   function toggle(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        if (next.size >= needed) return prev;
+        next.add(id);
+      }
       return next;
     });
   }
@@ -141,11 +147,11 @@ export function LineupBuilder({ club, roster }: Props) {
         </div>
       </div>
 
-      {ready ? (
+      {arrangement.length > 0 ? (
         <div className="flex flex-col">
-          {Array.from({ length: teamCount }, (_, teamIndex) => (
-            <div key={teamIndex}>
-              <p className="text-muted-foreground mt-2 text-xs font-medium uppercase">
+          {Array.from({ length: Math.ceil(arrangement.length / 4) }, (_, teamIndex) => (
+            <div key={teamIndex} className={teamIndex > 0 ? "mt-3 border-t-2 pt-3" : ""}>
+              <p className="text-muted-foreground mb-1 text-xs font-medium uppercase">
                 Team {teamIndex + 1}
               </p>
               {arrangement.slice(teamIndex * 4, teamIndex * 4 + 4).map((p, slotIndex) => {
@@ -172,7 +178,7 @@ export function LineupBuilder({ club, roster }: Props) {
         </div>
       ) : (
         <p className="text-muted-foreground text-sm">
-          Select exactly {needed} player{needed === 1 ? "" : "s"} to build the lineup.
+          Check players below to start building teams.
         </p>
       )}
     </div>
