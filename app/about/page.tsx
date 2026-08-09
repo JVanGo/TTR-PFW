@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getRankingRows } from "@/lib/ranking";
 import { bucketizeDtr } from "@/lib/dtr-distribution";
 import { DtrDistributionChart } from "@/components/about/DtrDistributionChart";
+import { TOLERANCE } from "@/lib/lineup";
 
 // See app/page.tsx for why: without a cookie-bound client, Next would try to
 // statically prerender this page at build time by hitting the live database
@@ -52,6 +53,57 @@ export default async function AboutPage() {
       <div className="mt-4 rounded-md border p-2">
         <DtrDistributionChart buckets={buckets} />
       </div>
+
+      <h2 className="mt-8 text-lg font-semibold">Team lineup rules (Mannschaftsaufstellung)</h2>
+      <p className="text-muted-foreground mt-2 text-sm leading-6">
+        The Lineup Builder on the{" "}
+        <Link href="/ranking" className="underline">
+          Ranking page
+        </Link>{" "}
+        splits a club&apos;s checked-off players into teams of 4, ranked strongest to weakest by DTR
+        — normally a player can&apos;t be listed ahead of anyone with a meaningfully higher DTR,
+        since that would misrepresent the playing order. But small gaps are allowed, so two players
+        close in strength can still be swapped without that counting as out of order. How much of a
+        gap counts as &quot;small&quot; depends on two things: whether the swap is within one team
+        or between two different teams of the same club (team swaps have to stay closer together),
+        and whether either player involved is a youth player or on the Kader (the national squad),
+        both of which loosen the limit.
+      </p>
+      <div className="mt-4 overflow-x-auto rounded-md border">
+        <table className="w-full min-w-[480px] text-sm">
+          <thead className="bg-muted/80 text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left font-medium">Allowed DTR gap</th>
+              <th className="px-3 py-2 text-right font-medium">Within one team</th>
+              <th className="px-3 py-2 text-right font-medium">Across the club</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t">
+              <td className="px-3 py-2">Everyone</td>
+              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.base.team}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.base.club}</td>
+            </tr>
+            <tr className="border-t">
+              <td className="px-3 py-2">Either player is a youth player</td>
+              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.youth.team}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.youth.club}</td>
+            </tr>
+            <tr className="border-t">
+              <td className="px-3 py-2">Either player is on the Kader</td>
+              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.kader.team}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.kader.club}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="text-muted-foreground mt-2 text-sm leading-6">
+        These don&apos;t stack — a youth player who&apos;s also on the Kader gets the more generous
+        Kader limit, not both added together. The rule is also checked between every pair of players
+        in the lineup, not just neighbors: a chain of small swaps can otherwise add up to two
+        players ending up further apart than the limit allows, even though each individual swap
+        looked fine.
+      </p>
 
       <h2 className="mt-8 text-lg font-semibold">
         Historical note: the original PFW-based estimate
