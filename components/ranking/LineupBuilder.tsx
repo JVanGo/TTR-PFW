@@ -163,7 +163,7 @@ export function LineupBuilder({ club, roster }: Props) {
                   onChange={() => toggle(p.id)}
                   aria-label={`Include ${p.name}`}
                 />
-                <span className="flex-1 truncate">{p.name}</span>
+                <span className="min-w-0 flex-1">{p.name}</span>
                 {p.isKader && (
                   <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                     Kader
@@ -212,8 +212,8 @@ export function LineupBuilder({ club, roster }: Props) {
                             : "hover:bg-accent hover:text-accent-foreground")
                       }
                     >
-                      <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                        <span className="truncate">{p.name}</span>
+                      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                        <span className="min-w-0">{p.name}</span>
                         {p.isKader && (
                           <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                             Kader
