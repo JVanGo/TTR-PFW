@@ -210,17 +210,6 @@ export default async function PlayerPage({ params }: PageProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-t">
-                    <td className="px-3 py-2 whitespace-nowrap">—</td>
-                    <td className="text-muted-foreground px-3 py-2">Season start</td>
-                    <td className="px-3 py-2">—</td>
-                    <td className="px-3 py-2 text-right tabular-nums">—</td>
-                    <td className="px-3 py-2 text-right tabular-nums">—</td>
-                    <td className="text-muted-foreground px-3 py-2 text-center font-medium">—</td>
-                    <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
-                    <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{startingDtr ?? "—"}</td>
-                  </tr>
                   {reverseMatches.map((m) => (
                     <tr key={m.id} className="border-t">
                       <td className="px-3 py-2 whitespace-nowrap">{formatDate(m.match_date)}</td>
@@ -266,6 +255,17 @@ export default async function PlayerPage({ params }: PageProps) {
                       <td className="px-3 py-2 text-right tabular-nums">{m.new_ttr}</td>
                     </tr>
                   ))}
+                  <tr className="border-t">
+                    <td className="px-3 py-2 whitespace-nowrap">—</td>
+                    <td className="text-muted-foreground px-3 py-2">Season start</td>
+                    <td className="px-3 py-2">—</td>
+                    <td className="px-3 py-2 text-right tabular-nums">—</td>
+                    <td className="px-3 py-2 text-right tabular-nums">—</td>
+                    <td className="text-muted-foreground px-3 py-2 text-center font-medium">—</td>
+                    <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
+                    <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{startingDtr ?? "—"}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
