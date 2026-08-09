@@ -119,7 +119,24 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
     const kl: PlayerClass = isPlayerClass(p.class) ? p.class : "D3";
     const ageCategory = isAgeCategory(p.age_category) ? p.age_category : null;
     const seasonStart = estimateTtr(Number(p.pfw), kl, p.classement_points);
-    const dtr = latestTtrByPlayer.get(p.id) ?? seasonStart ?? ersteinstufungFor(ageCategory);
+
+    let dtr: number;
+    if (latestTtrByPlayer.has(p.id)) {
+      dtr = latestTtrByPlayer.get(p.id)!;
+    } else if (seasonStart != null) {
+      dtr = seasonStart;
+    } else if (kl === "D3") {
+      // No classement points on file and never promoted past D3 — a true
+      // beginner, with nothing to go on but their age bracket's own
+      // starting point.
+      dtr = ersteinstufungFor(ageCategory);
+    } else {
+      // Already placed above D3 by FLTT, just missing a points value in our
+      // data — use that class's own zero-point anchor rather than guessing
+      // a beginner's rating for someone who plainly isn't one.
+      dtr = estimateTtr(Number(p.pfw), kl, 0)!;
+    }
+
     return {
       id: p.id,
       name: p.name,
