@@ -153,11 +153,7 @@ export default async function PlayerPage({ params }: PageProps) {
         <Link href="/about" className="underline">
           {t("howItWorks")}
         </Link>
-        {rankPosition !== null &&
-          t("rankOf", {
-            rank: rankPosition.toLocaleString(),
-            total: totalPlayers.toLocaleString(),
-          })}
+        {rankPosition !== null && t("rankOf", { rank: rankPosition, total: totalPlayers })}
       </p>
 
       {!player.is_active && (

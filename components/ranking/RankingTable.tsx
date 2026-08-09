@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 
 export interface RankingTableRow {
@@ -26,6 +26,7 @@ const PAGE_SIZE = 50;
 
 export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }: Props) {
   const t = useTranslations("RankingTable");
+  const format = useFormatter();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
@@ -100,7 +101,7 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
             {pageRows.map((row) => (
               <tr key={row.id} className="hover:bg-accent/40 border-t">
                 <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">
-                  {row.rank.toLocaleString()}
+                  {format.number(row.rank)}
                 </td>
                 <td className="px-3 py-2">
                   <Link href={`/player/${row.id}`} className="font-medium hover:underline">

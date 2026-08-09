@@ -25,7 +25,7 @@
     "readMore": "Read more →",
     "browseRanking": "Browse the full ranking →",
     "clubsHeading": "Clubs",
-    "clubsSubtitle": "Browse players by club — {count} clubs in total."
+    "clubsSubtitle": "Browse players by club — {count, number} clubs in total."
   },
   "PlayerSearch": {
     "placeholder": "Search for a player by name…",
@@ -44,7 +44,7 @@
     "searchAriaLabel": "Search players by name",
     "clubFilterAriaLabel": "Filter by club",
     "allClubs": "All clubs",
-    "showing": "Showing {count} players",
+    "showing": "Showing {count, number} players",
     "inClass": " in Class {level}",
     "atClub": " at {club}",
     "columnRank": "#",
@@ -78,7 +78,7 @@
     "inactiveBadge": "inactive",
     "inactiveNotice": "This player is not in the current Verbandsrangliste.",
     "howItWorks": "How DTR works →",
-    "rankOf": " · #{rank} of {total} by DTR.",
+    "rankOf": " · #{rank, number} of {total, number} by DTR.",
     "dtrLabel": "DTR",
     "notAvailable": "Not available",
     "matchesPlayed": "Matches played",
@@ -112,7 +112,7 @@
     "confidenceHeading": "Confidence",
     "confidenceBody": "DTR is recalculated from real match results, not estimated — the more matches a player has played this season, the more it reflects their actual current form.",
     "distributionHeading": "Current rating distribution",
-    "distributionSubtitle": "How today's {count} DTR values are spread out, grouped into bands of 100 points.",
+    "distributionSubtitle": "How today's {count, number} DTR values are spread out, grouped into bands of 100 points.",
     "lineupRulesHeading": "Team lineup rules (Mannschaftsaufstellung)",
     "lineupRulesIntro1": "The Lineup Builder on the",
     "lineupRulesRankingLink": "Ranking page",

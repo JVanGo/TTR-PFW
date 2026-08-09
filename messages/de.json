@@ -25,7 +25,7 @@
     "readMore": "Mehr erfahren →",
     "browseRanking": "Zur vollständigen Rangliste →",
     "clubsHeading": "Vereine",
-    "clubsSubtitle": "Spieler nach Verein durchsuchen — {count} Vereine insgesamt."
+    "clubsSubtitle": "Spieler nach Verein durchsuchen — {count, number} Vereine insgesamt."
   },
   "PlayerSearch": {
     "placeholder": "Spieler nach Namen suchen…",
@@ -44,7 +44,7 @@
     "searchAriaLabel": "Spieler nach Namen suchen",
     "clubFilterAriaLabel": "Nach Verein filtern",
     "allClubs": "Alle Vereine",
-    "showing": "{count} Spieler werden angezeigt",
+    "showing": "{count, number} Spieler werden angezeigt",
     "inClass": ", Klasse {level}",
     "atClub": ", Verein {club}",
     "columnRank": "#",
@@ -78,7 +78,7 @@
     "inactiveBadge": "inaktiv",
     "inactiveNotice": "Dieser Spieler ist nicht in der aktuellen Verbandsrangliste.",
     "howItWorks": "Wie DTR funktioniert →",
-    "rankOf": " · #{rank} von {total} nach DTR.",
+    "rankOf": " · #{rank, number} von {total, number} nach DTR.",
     "dtrLabel": "DTR",
     "notAvailable": "Nicht verfügbar",
     "matchesPlayed": "Gespielte Partien",
@@ -112,7 +112,7 @@
     "confidenceHeading": "Zuverlässigkeit",
     "confidenceBody": "DTR wird aus echten Spielergebnissen neu berechnet, nicht geschätzt — je mehr Partien ein Spieler in dieser Saison gespielt hat, desto genauer spiegelt der Wert seine aktuelle Form wider.",
     "distributionHeading": "Aktuelle Verteilung der Bewertungen",
-    "distributionSubtitle": "Wie sich die {count} aktuellen DTR-Werte verteilen, gruppiert in 100-Punkte-Bänder.",
+    "distributionSubtitle": "Wie sich die {count, number} aktuellen DTR-Werte verteilen, gruppiert in 100-Punkte-Bänder.",
     "lineupRulesHeading": "Mannschaftsaufstellung",
     "lineupRulesIntro1": "Die Mannschaftsaufstellung auf der",
     "lineupRulesRankingLink": "Rangliste-Seite",

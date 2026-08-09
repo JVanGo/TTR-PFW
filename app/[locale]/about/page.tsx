@@ -35,7 +35,7 @@ export default async function AboutPage() {
 
       <h2 className="mt-8 text-lg font-semibold">{t("distributionHeading")}</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
-        {t("distributionSubtitle", { count: rows.length.toLocaleString() })}
+        {t("distributionSubtitle", { count: rows.length })}
       </p>
       <div className="mt-4 rounded-md border p-2">
         <DtrDistributionChart buckets={buckets} />

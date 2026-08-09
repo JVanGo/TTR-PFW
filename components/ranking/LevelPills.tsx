@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getFormatter } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { KLASSIERUNG_BANDS } from "@/lib/klassierung";
 
@@ -11,6 +11,7 @@ interface Props {
 
 export async function LevelPills({ selected, counts, total, club }: Props) {
   const t = await getTranslations("LevelPills");
+  const format = await getFormatter();
   const clubParam = club ? `&club=${encodeURIComponent(club)}` : "";
   const entries: Array<{ label: string; href: string; count: number; active: boolean }> = [
     {
@@ -42,7 +43,7 @@ export async function LevelPills({ selected, counts, total, club }: Props) {
           }
         >
           <span className="font-medium">{p.label}</span>
-          <span className="ml-1 tabular-nums opacity-70">({p.count.toLocaleString()})</span>
+          <span className="ml-1 tabular-nums opacity-70">({format.number(p.count)})</span>
         </Link>
       ))}
     </div>
