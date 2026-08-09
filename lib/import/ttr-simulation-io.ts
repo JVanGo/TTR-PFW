@@ -492,6 +492,14 @@ export async function runSeasonSimulation(
         ? estimateTtr(pfw, cls as PlayerClass, classementPoints)
         : null;
     }
+    // Still nothing, and not a true beginner (D3): FLTT already placed this
+    // player above D3 through real results, just without a points value on
+    // file — use that class's own zero-point anchor instead of falling
+    // through to simulateSeason()'s age-based newcomer default below, which
+    // is only appropriate for D3 (no track record at all).
+    if (startingTtr == null && isPlayerClass(cls) && cls !== "D3") {
+      startingTtr = estimateTtr(pfw, cls as PlayerClass, 0);
+    }
     return {
       id: p.id,
       name: p.name,
