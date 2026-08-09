@@ -24,7 +24,7 @@ export default async function PlayerPage({ params }: PageProps) {
 
   const { data: player, error } = await supabase
     .from("players")
-    .select("id, name, club, is_active")
+    .select("id, name, club, is_active, is_kader, age_category")
     .eq("id", id)
     .maybeSingle();
 
@@ -88,6 +88,16 @@ export default async function PlayerPage({ params }: PageProps) {
             {klassierung && (
               <span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-xs font-medium">
                 {klassierung}
+              </span>
+            )}
+            {player.is_kader && (
+              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                Kader
+              </span>
+            )}
+            {player.age_category && (
+              <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-900 dark:bg-blue-950 dark:text-blue-200">
+                {player.age_category}
               </span>
             )}{" "}
             {player.club ?? "—"}

@@ -212,8 +212,20 @@ export function LineupBuilder({ club, roster }: Props) {
                             : "hover:bg-accent hover:text-accent-foreground")
                       }
                     >
-                      <span className="truncate">{p.name}</span>
-                      <span className="tabular-nums opacity-70">{p.dtr}</span>
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <span className="truncate">{p.name}</span>
+                        {p.isKader && (
+                          <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                            Kader
+                          </span>
+                        )}
+                        {p.isYouth && (
+                          <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[10px]">
+                            Youth
+                          </span>
+                        )}
+                      </span>
+                      <span className="ml-2 shrink-0 tabular-nums opacity-70">{p.dtr}</span>
                     </button>
                   );
                 })}
