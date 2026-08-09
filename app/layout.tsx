@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -19,45 +18,23 @@ export const metadata: Metadata = {
     "The Luxembourg table tennis federation ranking, with a DTR rating calculated from real season match results for every player.",
 };
 
+/**
+ * The true root layout — the only place `<html>`/`<body>` can be rendered,
+ * shared by both the localized public site (app/[locale]/**) and the
+ * English-only admin/login area (app/admin/**, app/login/**), which sit
+ * outside the [locale] segment. `lang` is a static default rather than
+ * locale-aware: this layout can't see which locale a nested page picked,
+ * and it's just an accessibility/SEO attribute — the actual content is
+ * correctly localized regardless via app/[locale]/layout.tsx.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="bg-background text-foreground flex min-h-full flex-col">
-        <header className="border-b">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-4 py-4 sm:px-6">
-            <Link href="/" className="text-base font-semibold tracking-tight sm:text-lg">
-              FLTT Ranking
-            </Link>
-            <nav className="flex items-center gap-4 text-sm font-medium">
-              <Link href="/ranking" className="hover:underline">
-                Rankings
-              </Link>
-              <Link href="/about" className="hover:underline">
-                About
-              </Link>
-            </nav>
-          </div>
-        </header>
-        <main className="flex-1">{children}</main>
-        <footer className="bg-muted/40 mt-12 border-t">
-          <div className="text-muted-foreground mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <p>
-              FLTT ranking with DTR, calculated from real season match results — see{" "}
-              <Link href="/about" className="underline">
-                how it works
-              </Link>
-              .
-            </p>
-            <Link href="/login" className="hover:underline">
-              Admin
-            </Link>
-          </div>
-        </footer>
-      </body>
+    <html lang="de" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="bg-background text-foreground flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

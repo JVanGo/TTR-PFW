@@ -1,6 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useTranslations } from "next-intl";
 import type { DtrBucket } from "@/lib/dtr-distribution";
 
 interface Props {
@@ -10,9 +11,10 @@ interface Props {
 interface TooltipRenderProps {
   active?: boolean;
   payload?: ReadonlyArray<{ payload?: DtrBucket }>;
+  countLabel: (count: number) => string;
 }
 
-function ChartTooltip({ active, payload }: TooltipRenderProps) {
+function ChartTooltip({ active, payload, countLabel }: TooltipRenderProps) {
   if (!active || !payload || payload.length === 0) return null;
   const bucket = payload[0].payload;
   if (!bucket) return null;
@@ -21,14 +23,13 @@ function ChartTooltip({ active, payload }: TooltipRenderProps) {
       <p className="font-medium">
         {bucket.start}–{bucket.end}
       </p>
-      <p>
-        {bucket.count.toLocaleString()} {bucket.count === 1 ? "player" : "players"}
-      </p>
+      <p>{countLabel(bucket.count)}</p>
     </div>
   );
 }
 
 export function DtrDistributionChart({ buckets }: Props) {
+  const t = useTranslations("DtrDistributionChart");
   if (buckets.length === 0) return null;
 
   return (
@@ -44,6 +45,7 @@ export function DtrDistributionChart({ buckets }: Props) {
               <ChartTooltip
                 active={active ?? false}
                 payload={payload as unknown as TooltipRenderProps["payload"]}
+                countLabel={(count) => t("tooltipCount", { count })}
               />
             )}
           />

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { buildTeams, legalTargetIndices, movePlayer, type LineupPlayer } from "@/lib/lineup";
 import { Button } from "@/components/ui/button";
 
@@ -30,6 +31,7 @@ function topDtrIds(players: LineupRosterPlayer[], count: number): Set<string> {
 }
 
 export function LineupBuilder({ club, roster }: Props) {
+  const t = useTranslations("LineupBuilder");
   const sortedRoster = [...roster].sort((a, b) => b.dtr - a.dtr || a.name.localeCompare(b.name));
 
   const [teamCount, setTeamCount] = useState(1);
@@ -74,7 +76,7 @@ export function LineupBuilder({ club, roster }: Props) {
       buildTeams(
         sortedRoster.filter((p) => selectedIds.has(p.id)),
         teamCount,
-      ).flatMap((t) => t.players),
+      ).flatMap((team) => team.players),
     );
     setMovingIndex(null);
   }
@@ -111,12 +113,12 @@ export function LineupBuilder({ club, roster }: Props) {
   return (
     <div className="flex flex-col gap-4 rounded-md border p-4">
       <div>
-        <h2 className="font-semibold">Lineup Builder</h2>
+        <h2 className="font-semibold">{t("heading")}</h2>
         <p className="text-muted-foreground text-xs">{club}</p>
       </div>
 
       <label className="flex items-center gap-2 text-sm">
-        Number of teams
+        {t("numberOfTeams")}
         <span className="flex items-center gap-1">
           <Button
             type="button"
@@ -124,7 +126,7 @@ export function LineupBuilder({ club, roster }: Props) {
             size="icon-sm"
             disabled={teamCount <= 1}
             onClick={() => setTeamCount((n) => clampTeamCount(n - 1))}
-            aria-label="Fewer teams"
+            aria-label={t("fewerTeams")}
           >
             <Minus />
           </Button>
@@ -142,7 +144,7 @@ export function LineupBuilder({ club, roster }: Props) {
             size="icon-sm"
             disabled={teamCount >= MAX_TEAMS}
             onClick={() => setTeamCount((n) => clampTeamCount(n + 1))}
-            aria-label="More teams"
+            aria-label={t("moreTeams")}
           >
             <Plus />
           </Button>
@@ -151,7 +153,7 @@ export function LineupBuilder({ club, roster }: Props) {
 
       <div>
         <p className="text-muted-foreground mb-1 text-xs">
-          {selectedIds.size} of {needed} players selected
+          {t("selectedCount", { selected: selectedIds.size, needed })}
         </p>
         <div className="max-h-64 overflow-y-auto rounded-md border">
           <ul className="divide-y">
@@ -161,17 +163,17 @@ export function LineupBuilder({ club, roster }: Props) {
                   type="checkbox"
                   checked={selectedIds.has(p.id)}
                   onChange={() => toggle(p.id)}
-                  aria-label={`Include ${p.name}`}
+                  aria-label={t("includePlayer", { name: p.name })}
                 />
                 <span className="min-w-0 flex-1">{p.name}</span>
                 {p.isKader && (
                   <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                    Kader
+                    {t("kaderBadge")}
                   </span>
                 )}
                 {p.isYouth && (
                   <span className="bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px]">
-                    Youth
+                    {t("youthBadge")}
                   </span>
                 )}
                 <span className="text-muted-foreground w-12 text-right tabular-nums">{p.dtr}</span>
@@ -184,15 +186,13 @@ export function LineupBuilder({ club, roster }: Props) {
       {arrangement.length > 0 ? (
         <div>
           <p className="text-muted-foreground mb-2 text-xs">
-            {movingIndex === null
-              ? "Click a player to see where they could legally move."
-              : "Click a highlighted spot to move them there, or click them again to cancel."}
+            {movingIndex === null ? t("clickToMove") : t("clickHighlighted")}
           </p>
           <div className="flex flex-col">
             {Array.from({ length: Math.ceil(arrangement.length / 4) }, (_, teamIndex) => (
               <div key={teamIndex} className={teamIndex > 0 ? "mt-3 border-t-2 pt-3" : ""}>
                 <p className="text-muted-foreground mb-1 text-xs font-medium uppercase">
-                  Team {teamIndex + 1}
+                  {t("team", { number: teamIndex + 1 })}
                 </p>
                 {arrangement.slice(teamIndex * 4, teamIndex * 4 + 4).map((p, slotIndex) => {
                   const i = teamIndex * 4 + slotIndex;
@@ -216,12 +216,12 @@ export function LineupBuilder({ club, roster }: Props) {
                         <span className="min-w-0">{p.name}</span>
                         {p.isKader && (
                           <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                            Kader
+                            {t("kaderBadge")}
                           </span>
                         )}
                         {p.isYouth && (
                           <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[10px]">
-                            Youth
+                            {t("youthBadge")}
                           </span>
                         )}
                       </span>
@@ -234,9 +234,7 @@ export function LineupBuilder({ club, roster }: Props) {
           </div>
         </div>
       ) : (
-        <p className="text-muted-foreground text-sm">
-          Check players below to start building teams.
-        </p>
+        <p className="text-muted-foreground text-sm">{t("checkPlayers")}</p>
       )}
     </div>
   );

@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 export interface RankingTableRow {
   id: string;
@@ -24,6 +25,7 @@ interface Props {
 const PAGE_SIZE = 50;
 
 export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }: Props) {
+  const t = useTranslations("RankingTable");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
@@ -56,19 +58,19 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
         <input
           type="search"
           inputMode="search"
-          placeholder="Search by name…"
+          placeholder={t("searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="border-input bg-background focus:ring-ring rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-2 focus:outline-none"
-          aria-label="Search players by name"
+          aria-label={t("searchAriaLabel")}
         />
         <select
           value={club}
           onChange={(e) => onClubChange(e.target.value)}
           className="border-input bg-background focus:ring-ring rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-2 focus:outline-none"
-          aria-label="Filter by club"
+          aria-label={t("clubFilterAriaLabel")}
         >
-          <option value="">All clubs</option>
+          <option value="">{t("allClubs")}</option>
           {clubs.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -78,20 +80,20 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
       </div>
 
       <p className="text-muted-foreground text-sm">
-        Showing {filtered.length.toLocaleString()} players
-        {selectedLevel !== "All" && ` in Class ${selectedLevel}`}
-        {club && ` at ${club}`}.
+        {t("showing", { count: filtered.length })}
+        {selectedLevel !== "All" && t("inClass", { level: selectedLevel })}
+        {club && t("atClub", { club })}.
       </p>
 
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-muted/60 text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 text-right font-medium">#</th>
-              <th className="px-3 py-2 text-left font-medium">Name</th>
-              <th className="px-3 py-2 text-left font-medium">Club</th>
-              <th className="px-3 py-2 text-left font-medium">Class</th>
-              <th className="px-3 py-2 text-right font-medium">DTR</th>
+              <th className="px-3 py-2 text-right font-medium">{t("columnRank")}</th>
+              <th className="px-3 py-2 text-left font-medium">{t("columnName")}</th>
+              <th className="px-3 py-2 text-left font-medium">{t("columnClub")}</th>
+              <th className="px-3 py-2 text-left font-medium">{t("columnClass")}</th>
+              <th className="px-3 py-2 text-right font-medium">{t("columnDtr")}</th>
             </tr>
           </thead>
           <tbody>
@@ -106,7 +108,7 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
                   </Link>
                   {!row.isActive && (
                     <span className="bg-muted text-muted-foreground ml-2 inline-flex rounded-full px-2 py-0.5 text-xs">
-                      inactive
+                      {t("inactiveBadge")}
                     </span>
                   )}
                 </td>
@@ -118,7 +120,7 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
             {pageRows.length === 0 && (
               <tr>
                 <td colSpan={5} className="text-muted-foreground px-3 py-10 text-center">
-                  No players match the current filters.
+                  {t("noResults")}
                 </td>
               </tr>
             )}
@@ -134,10 +136,10 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
             disabled={currentPage === 1}
             className="border-input rounded-md border px-3 py-1.5 disabled:opacity-40"
           >
-            ← Previous
+            {t("previous")}
           </button>
           <span className="text-muted-foreground">
-            Page {currentPage} of {pageCount}
+            {t("pageOf", { current: currentPage, total: pageCount })}
           </span>
           <button
             type="button"
@@ -145,7 +147,7 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
             disabled={currentPage === pageCount}
             className="border-input rounded-md border px-3 py-1.5 disabled:opacity-40"
           >
-            Next →
+            {t("next")}
           </button>
         </div>
       )}

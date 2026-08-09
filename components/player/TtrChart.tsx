@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useLocale, useTranslations } from "next-intl";
 
 export interface TtrPoint {
   date: string;
@@ -23,8 +24,8 @@ interface Props {
   points: TtrPoint[];
 }
 
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString("en-GB", {
+function formatDate(d: string, locale: string): string {
+  return new Date(d).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     day: "2-digit",
     month: "short",
     year: "2-digit",
@@ -34,20 +35,24 @@ function formatDate(d: string): string {
 interface TooltipRenderProps {
   active?: boolean;
   payload?: ReadonlyArray<{ payload?: TtrPoint }>;
+  locale: string;
+  vsLabel: string;
+  dtrLabel: string;
 }
 
-function ChartTooltip({ active, payload }: TooltipRenderProps) {
+function ChartTooltip({ active, payload, locale, vsLabel, dtrLabel }: TooltipRenderProps) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload;
   if (!point) return null;
   return (
     <div className="bg-popover text-popover-foreground rounded-md border px-3 py-2 text-xs shadow-sm">
-      <p className="font-medium">{formatDate(point.date)}</p>
+      <p className="font-medium">{formatDate(point.date, locale)}</p>
       <p>
-        vs <span className="font-medium">{point.opponent}</span> · {point.score} · {point.result}
+        {vsLabel} <span className="font-medium">{point.opponent}</span> · {point.score} ·{" "}
+        {point.result}
       </p>
       <p>
-        DTR: {point.ttr}{" "}
+        {dtrLabel} {point.ttr}{" "}
         <span
           className={
             point.delta > 0
@@ -66,6 +71,8 @@ function ChartTooltip({ active, payload }: TooltipRenderProps) {
 }
 
 export function TtrChart({ points }: Props) {
+  const t = useTranslations("TtrChart");
+  const locale = useLocale();
   if (points.length === 0) return null;
   const ttrs = points.map((p) => p.ttr);
   const min = Math.min(...ttrs) - 10;
@@ -78,7 +85,7 @@ export function TtrChart({ points }: Props) {
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis
             dataKey="date"
-            tickFormatter={formatDate}
+            tickFormatter={(d: string) => formatDate(d, locale)}
             tick={{ fontSize: 11, fill: "currentColor" }}
             minTickGap={32}
           />
@@ -93,6 +100,9 @@ export function TtrChart({ points }: Props) {
               <ChartTooltip
                 active={active ?? false}
                 payload={payload as unknown as TooltipRenderProps["payload"]}
+                locale={locale}
+                vsLabel={t("vs")}
+                dtrLabel={t("dtrLabel")}
               />
             )}
           />

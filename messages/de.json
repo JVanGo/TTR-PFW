@@ -1,0 +1,139 @@
+{
+  "Metadata": {
+    "title": "FLTT DTR-Rangliste",
+    "description": "Die Rangliste des luxemburgischen Tischtennisverbands mit einer DTR-Bewertung, berechnet aus echten Saison-Spielergebnissen für jeden Spieler."
+  },
+  "Nav": {
+    "brand": "FLTT Ranking",
+    "rankings": "Rangliste",
+    "about": "Über"
+  },
+  "Footer": {
+    "tagline": "FLTT-Rangliste mit DTR, berechnet aus echten Saison-Spielergebnissen — siehe",
+    "howItWorksLink": "wie es funktioniert",
+    "admin": "Admin"
+  },
+  "LocaleSwitcher": {
+    "label": "Sprache",
+    "de": "Deutsch",
+    "en": "English"
+  },
+  "HomePage": {
+    "title": "FLTT DTR-Rangliste",
+    "intro1": "DTR (Dëschtennis-Rating) ist eine Bewertungszahl, die die tatsächliche Spielstärke jedes Spielers verfolgt und nach jeder Partie der Saison 2025-2026 neu berechnet wird. Sie basiert auf demselben System wie die deutsche TTR-Wertung: Wer gegen einen ähnlich stark bewerteten Gegner gewinnt, bekommt einige Punkte dazu; bei einer Niederlage werden Punkte abgezogen. Ein Sieg gegen einen deutlich stärkeren Spieler zählt mehr, eine Niederlage gegen einen deutlich schwächeren Spieler kostet mehr.",
+    "intro2": "Jeder Spieler ist mit einem Ausgangswert in die Saison gestartet: Erwachsene begannen bei 1025, jüngere Spieler niedriger (900 oder 850, je nach Altersklasse), da die Bewertung ihre tatsächliche Spielstärke noch nicht widerspiegeln konnte. Von dort aus hat jede Partie dieser Saison die Bewertung jedes Spielers nach oben oder unten bewegt, bis zum heutigen Stand.",
+    "readMore": "Mehr erfahren →",
+    "browseRanking": "Zur vollständigen Rangliste →",
+    "clubsHeading": "Vereine",
+    "clubsSubtitle": "Spieler nach Verein durchsuchen — {count} Vereine insgesamt."
+  },
+  "PlayerSearch": {
+    "placeholder": "Spieler nach Namen suchen…",
+    "ariaLabel": "Spieler nach Namen suchen",
+    "noResults": "Keine Spieler gefunden."
+  },
+  "RankingPage": {
+    "title": "FLTT DTR-Rangliste",
+    "subtitle": "Alle Spieler, sortiert nach aktuellem DTR — vom höchsten zum niedrigsten."
+  },
+  "LevelPills": {
+    "all": "Alle"
+  },
+  "RankingTable": {
+    "searchPlaceholder": "Nach Namen suchen…",
+    "searchAriaLabel": "Spieler nach Namen suchen",
+    "clubFilterAriaLabel": "Nach Verein filtern",
+    "allClubs": "Alle Vereine",
+    "showing": "{count} Spieler werden angezeigt",
+    "inClass": ", Klasse {level}",
+    "atClub": ", Verein {club}",
+    "columnRank": "#",
+    "columnName": "Name",
+    "columnClub": "Verein",
+    "columnClass": "Klasse",
+    "columnDtr": "DTR",
+    "inactiveBadge": "inaktiv",
+    "noResults": "Keine Spieler entsprechen den aktuellen Filtern.",
+    "previous": "← Zurück",
+    "next": "Weiter →",
+    "pageOf": "Seite {current} von {total}"
+  },
+  "LineupBuilder": {
+    "heading": "Mannschaftsaufstellung",
+    "numberOfTeams": "Anzahl Mannschaften",
+    "fewerTeams": "Weniger Mannschaften",
+    "moreTeams": "Mehr Mannschaften",
+    "includePlayer": "{name} einschließen",
+    "kaderBadge": "Kader",
+    "youthBadge": "Jugend",
+    "selectedCount": "{selected} von {needed} Spielern ausgewählt",
+    "clickToMove": "Klicke auf einen Spieler, um zu sehen, wohin er regelkonform verschoben werden kann.",
+    "clickHighlighted": "Klicke auf eine markierte Position, um ihn dorthin zu verschieben, oder klicke ihn erneut an, um abzubrechen.",
+    "team": "Mannschaft {number}",
+    "checkPlayers": "Wähle unten Spieler aus, um mit der Mannschaftsaufstellung zu beginnen."
+  },
+  "PlayerPage": {
+    "backToRanking": "← Zurück zur Rangliste",
+    "kaderBadge": "Kader",
+    "inactiveBadge": "inaktiv",
+    "inactiveNotice": "Dieser Spieler ist nicht in der aktuellen Verbandsrangliste.",
+    "howItWorks": "Wie DTR funktioniert →",
+    "rankOf": " · #{rank} von {total} nach DTR.",
+    "dtrLabel": "DTR",
+    "notAvailable": "Nicht verfügbar",
+    "matchesPlayed": "Gespielte Partien",
+    "hironn": "Hironn (Aug–Dec)",
+    "reckronn": "Réckronn (Jan–Apr)",
+    "seasonDtr": "Saison-DTR",
+    "matchHistory": "Spielverlauf",
+    "columnDate": "Datum",
+    "columnCompetition": "Wettbewerb",
+    "columnOpponent": "Gegner",
+    "columnOppDtr": "Gegner-DTR",
+    "columnScore": "Ergebnis",
+    "columnResult": "S/N",
+    "columnDelta": "Δ",
+    "columnK": "K",
+    "columnNewDtr": "Neuer DTR",
+    "seasonStart": "Saisonstart",
+    "noMatches": "Für diese Saison sind noch keine Partien erfasst."
+  },
+  "TtrChart": {
+    "vs": "gegen",
+    "dtrLabel": "DTR:"
+  },
+  "AboutPage": {
+    "title": "Über diese Seite",
+    "intro": "Diese Seite verfolgt einen DTR (Dëschtennis-Rating) für jeden Spieler der FLTT-Verbandsrangliste — eine Bewertung, die mit einem Ausgangswert beginnt und sich nach jeder Partie der Saison nach oben oder unten bewegt, genau wie die deutsche TTR-Wertung.",
+    "dataSourceHeading": "Woher die Daten stammen",
+    "dataSourceBody": "Die Spielverläufe stammen aus den FLTT-Spielexporten der Saison 2025-2026 und werden mit der DTR-Formel (siehe <code>DëschTennisRating.pdf</code>) verarbeitet, um für jeden Spieler eine DTR-Änderung pro Partie zu berechnen.",
+    "startingValuesHeading": "Ausgangswerte",
+    "startingValuesBody": "Jeder Spieler beginnt die Saison mit einem Ausgangswert statt mit einer von anderswo übernommenen Schätzung: Erwachsene starten bei 1025, Jugendliche niedriger je nach Altersklasse (900 für Cadets/Minimes, 850 für Benjamins/Poussins), da ein neuer Spieler noch keine Spielergebnisse aufgebaut hat, die seine tatsächliche Spielstärke widerspiegeln.",
+    "confidenceHeading": "Zuverlässigkeit",
+    "confidenceBody": "DTR wird aus echten Spielergebnissen neu berechnet, nicht geschätzt — je mehr Partien ein Spieler in dieser Saison gespielt hat, desto genauer spiegelt der Wert seine aktuelle Form wider.",
+    "distributionHeading": "Aktuelle Verteilung der Bewertungen",
+    "distributionSubtitle": "Wie sich die {count} aktuellen DTR-Werte verteilen, gruppiert in 100-Punkte-Bänder.",
+    "lineupRulesHeading": "Mannschaftsaufstellung",
+    "lineupRulesIntro1": "Die Mannschaftsaufstellung auf der",
+    "lineupRulesRankingLink": "Rangliste-Seite",
+    "lineupRulesIntro2": "teilt die ausgewählten Spieler eines Vereins in Mannschaften zu je 4 Spielern ein, sortiert nach DTR vom stärksten zum schwächsten — normalerweise darf ein Spieler nicht vor jemandem mit einem deutlich höheren DTR aufgeführt werden, da dies die Spielstärke-Reihenfolge verfälschen würde. Kleine Abstände sind jedoch erlaubt, sodass zwei ähnlich starke Spieler getauscht werden können, ohne dass dies als Verstoß gegen die Reihenfolge gilt. Wie groß ein „kleiner\" Abstand sein darf, hängt von zwei Dingen ab: ob der Tausch innerhalb einer Mannschaft oder zwischen zwei verschiedenen Mannschaften desselben Vereins stattfindet (mannschaftsintern muss der Abstand enger bleiben), und ob einer der beiden Spieler ein Jugendspieler oder Mitglied des Kaders (der Nationalauswahl) ist — beides lockert die Grenze.",
+    "tableGapHeader": "Erlaubter DTR-Abstand",
+    "tableTeamHeader": "Innerhalb einer Mannschaft",
+    "tableClubHeader": "Vereinsweit",
+    "tableEveryone": "Alle",
+    "tableYouth": "Einer der Spieler ist Jugendspieler",
+    "tableKader": "Einer der Spieler ist im Kader",
+    "lineupRulesFootnote": "Diese Werte addieren sich nicht — ein Jugendspieler, der auch im Kader ist, erhält die großzügigere Kader-Grenze, nicht beide zusammen. Die Regel wird außerdem zwischen jedem Spielerpaar der Aufstellung geprüft, nicht nur zwischen Nachbarn: Eine Kette kleiner Tausche kann sonst dazu führen, dass zwei Spieler am Ende weiter auseinanderliegen, als die Grenze erlaubt, obwohl jeder einzelne Tausch für sich genommen in Ordnung schien.",
+    "historicalNoteHeading": "Historischer Hinweis: die ursprüngliche PFW-basierte Schätzung",
+    "historicalNoteBody": "Bevor es die oben beschriebene DTR-Saisonsimulation gab, schätzte diese Seite eine deutsche TTR-Bewertung direkt aus der FLTT-PFW-Punktzahl und Klasse jedes Spielers, mittels einer Regression, die anhand von 41 Spielern ermittelt wurde, die in beiden Ranglisten auftauchten (PFW ≈ 0,596 × TTR − 588, R² = 0,78). Diese Schätzung wird auf der Seite nicht mehr angezeigt — DTR, berechnet aus echten Partien, hat sie ersetzt — sie ist hier aber als Referenz aufgeführt, da einige Ausgangswerte des DTR-Systems während der Entwicklung damit abgeglichen wurden.",
+    "furtherReadingHeading": "Weiterführende Informationen",
+    "furtherReadingFlttTitle": "FLTT IR-22 Performance System (PDF)",
+    "furtherReadingFlttBody": " — die offizielle PFW-Berechnung.",
+    "furtherReadingDttbTitle": "DTTB TTR-Erklärung",
+    "furtherReadingDttbBody": " — wie die deutsche TTR-Wertung berechnet wird.",
+    "backToRanking": "← Zurück zur Rangliste"
+  },
+  "DtrDistributionChart": {
+    "tooltipCount": "{count, plural, one {# Spieler} other {# Spieler}}"
+  }
+}

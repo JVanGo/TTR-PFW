@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations, getLocale } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRankingRows, CURRENT_SEASON } from "@/lib/ranking";
 import { TtrChart, type TtrPoint } from "@/components/player/TtrChart";
@@ -10,8 +11,8 @@ interface PageProps {
 
 const SEASON = CURRENT_SEASON;
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
+function formatDate(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -48,6 +49,8 @@ function computeStartingDtr(matches: MatchForStartingDtr[]): number | null {
 }
 
 export default async function PlayerPage({ params }: PageProps) {
+  const t = await getTranslations("PlayerPage");
+  const locale = await getLocale();
   const { id } = await params;
   const supabase = await createClient();
 
@@ -108,7 +111,7 @@ export default async function PlayerPage({ params }: PageProps) {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
       <Link href="/ranking" className="text-muted-foreground text-sm hover:underline">
-        ← Back to ranking
+        {t("backToRanking")}
       </Link>
 
       <header className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -122,7 +125,7 @@ export default async function PlayerPage({ params }: PageProps) {
             )}
             {player.is_kader && (
               <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                Kader
+                {t("kaderBadge")}
               </span>
             )}
             {player.age_category && (
@@ -133,35 +136,32 @@ export default async function PlayerPage({ params }: PageProps) {
             {player.club ?? "—"}
             {!player.is_active && (
               <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                inactive
+                {t("inactiveBadge")}
               </span>
             )}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-muted-foreground text-sm uppercase">DTR</p>
+          <p className="text-muted-foreground text-sm uppercase">{t("dtrLabel")}</p>
           <p className="text-4xl font-semibold tabular-nums sm:text-5xl">
-            {currentDtr ?? "Not available"}
+            {currentDtr ?? t("notAvailable")}
           </p>
         </div>
       </header>
 
       <p className="text-muted-foreground mt-3 text-sm">
         <Link href="/about" className="underline">
-          How DTR works →
+          {t("howItWorks")}
         </Link>
-        {rankPosition !== null && (
-          <>
-            {" "}
-            · #{rankPosition.toLocaleString()} of {totalPlayers.toLocaleString()} by DTR.
-          </>
-        )}
+        {rankPosition !== null &&
+          t("rankOf", {
+            rank: rankPosition.toLocaleString(),
+            total: totalPlayers.toLocaleString(),
+          })}
       </p>
 
       {!player.is_active && (
-        <p className="bg-muted/40 mt-3 rounded-md border p-3 text-sm">
-          This player is not in the current Verbandsrangliste.
-        </p>
+        <p className="bg-muted/40 mt-3 rounded-md border p-3 text-sm">{t("inactiveNotice")}</p>
       )}
 
       {matches.length > 0 ? (
@@ -169,50 +169,52 @@ export default async function PlayerPage({ params }: PageProps) {
           <section className="mt-8">
             <div className="grid grid-cols-3 gap-4">
               <div className="rounded-md border p-4">
-                <p className="text-muted-foreground text-xs uppercase">Matches played</p>
+                <p className="text-muted-foreground text-xs uppercase">{t("matchesPlayed")}</p>
                 <p className="mt-1 text-xl font-semibold tabular-nums">
                   {summary?.matches_played ?? matches.length}
                 </p>
               </div>
               <div className="rounded-md border p-4">
-                <p className="text-muted-foreground text-xs uppercase">Hironn (Aug–Dec)</p>
+                <p className="text-muted-foreground text-xs uppercase">{t("hironn")}</p>
                 <DeltaValue value={summary?.ttr_change_hironn ?? 0} />
               </div>
               <div className="rounded-md border p-4">
-                <p className="text-muted-foreground text-xs uppercase">Réckronn (Jan–Apr)</p>
+                <p className="text-muted-foreground text-xs uppercase">{t("reckronn")}</p>
                 <DeltaValue value={summary?.ttr_change_reckronn ?? 0} />
               </div>
             </div>
           </section>
 
           <section className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold">Season DTR</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("seasonDtr")}</h2>
             <div className="text-foreground rounded-md border p-2">
               <TtrChart points={chartPoints} />
             </div>
           </section>
 
           <section className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold">Match history</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("matchHistory")}</h2>
             <div className="max-h-[28rem] overflow-auto rounded-md border">
               <table className="w-full min-w-[720px] text-sm">
                 <thead className="bg-muted/80 text-muted-foreground sticky top-0">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium">Date</th>
-                    <th className="px-3 py-2 text-left font-medium">Competition</th>
-                    <th className="px-3 py-2 text-left font-medium">Opponent</th>
-                    <th className="px-3 py-2 text-right font-medium">Opp. DTR</th>
-                    <th className="px-3 py-2 text-right font-medium">Score</th>
-                    <th className="px-3 py-2 text-center font-medium">W/L</th>
-                    <th className="px-3 py-2 text-right font-medium">Δ</th>
-                    <th className="px-3 py-2 text-right font-medium">K</th>
-                    <th className="px-3 py-2 text-right font-medium">New DTR</th>
+                    <th className="px-3 py-2 text-left font-medium">{t("columnDate")}</th>
+                    <th className="px-3 py-2 text-left font-medium">{t("columnCompetition")}</th>
+                    <th className="px-3 py-2 text-left font-medium">{t("columnOpponent")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("columnOppDtr")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("columnScore")}</th>
+                    <th className="px-3 py-2 text-center font-medium">{t("columnResult")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("columnDelta")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("columnK")}</th>
+                    <th className="px-3 py-2 text-right font-medium">{t("columnNewDtr")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reverseMatches.map((m) => (
                     <tr key={m.id} className="border-t">
-                      <td className="px-3 py-2 whitespace-nowrap">{formatDate(m.match_date)}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {formatDate(m.match_date, locale)}
+                      </td>
                       <td className="text-muted-foreground px-3 py-2">{m.competition}</td>
                       <td className="px-3 py-2">
                         {m.opponent_player_id ? (
@@ -257,7 +259,7 @@ export default async function PlayerPage({ params }: PageProps) {
                   ))}
                   <tr className="border-t">
                     <td className="px-3 py-2 whitespace-nowrap">—</td>
-                    <td className="text-muted-foreground px-3 py-2">Season start</td>
+                    <td className="text-muted-foreground px-3 py-2">{t("seasonStart")}</td>
                     <td className="px-3 py-2">—</td>
                     <td className="px-3 py-2 text-right tabular-nums">—</td>
                     <td className="px-3 py-2 text-right tabular-nums">—</td>
@@ -273,7 +275,7 @@ export default async function PlayerPage({ params }: PageProps) {
         </>
       ) : (
         <p className="bg-muted/40 text-muted-foreground mt-8 rounded-md border p-6 text-sm">
-          No match history recorded for this season yet.
+          {t("noMatches")}
         </p>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { getRankingRows } from "@/lib/ranking";
 import { KLASSIERUNG_BANDS, type Klassierung } from "@/lib/klassierung";
 import { LevelPills } from "@/components/ranking/LevelPills";
@@ -12,6 +13,7 @@ function isKlassierung(value: unknown): value is Klassierung {
 }
 
 export default async function RankingPage({ searchParams }: PageProps) {
+  const t = await getTranslations("RankingPage");
   const sp = await searchParams;
   const selectedLevel = sp.level && isKlassierung(sp.level) ? sp.level : null;
   const initialClub = sp.club ?? "";
@@ -34,10 +36,8 @@ export default async function RankingPage({ searchParams }: PageProps) {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">FLTT DTR Ranking</h1>
-        <p className="text-muted-foreground text-sm">
-          Every player, ranked by current DTR — highest to lowest.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("title")}</h1>
+        <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
       </div>
 
       <div className="mt-5 flex flex-col gap-4">

@@ -1,7 +1,14 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { UnlocalizedHeader } from "@/components/UnlocalizedHeader";
 
+/**
+ * Admin isn't translated (see i18n plan — only Jeff uses it) and lives
+ * outside app/[locale]/, so it doesn't inherit that layout's header. This
+ * gives it its own small, English-only one instead of losing site chrome
+ * entirely.
+ */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const {
@@ -23,5 +30,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login?error=not_authorised");
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <UnlocalizedHeader label="Admin" />
+      <main className="flex-1">{children}</main>
+    </>
+  );
 }

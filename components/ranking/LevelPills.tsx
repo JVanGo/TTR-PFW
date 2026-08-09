@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { KLASSIERUNG_BANDS } from "@/lib/klassierung";
 
 interface Props {
@@ -8,11 +9,12 @@ interface Props {
   club: string | null;
 }
 
-export function LevelPills({ selected, counts, total, club }: Props) {
+export async function LevelPills({ selected, counts, total, club }: Props) {
+  const t = await getTranslations("LevelPills");
   const clubParam = club ? `&club=${encodeURIComponent(club)}` : "";
   const entries: Array<{ label: string; href: string; count: number; active: boolean }> = [
     {
-      label: "All",
+      label: t("all"),
       href: `/ranking?${club ? `club=${encodeURIComponent(club)}` : ""}`,
       count: total,
       active: selected === "All",

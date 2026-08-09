@@ -1,0 +1,139 @@
+{
+  "Metadata": {
+    "title": "FLTT DTR Ranking",
+    "description": "The Luxembourg table tennis federation ranking, with a DTR rating calculated from real season match results for every player."
+  },
+  "Nav": {
+    "brand": "FLTT Ranking",
+    "rankings": "Rankings",
+    "about": "About"
+  },
+  "Footer": {
+    "tagline": "FLTT ranking with DTR, calculated from real season match results — see",
+    "howItWorksLink": "how it works",
+    "admin": "Admin"
+  },
+  "LocaleSwitcher": {
+    "label": "Language",
+    "de": "Deutsch",
+    "en": "English"
+  },
+  "HomePage": {
+    "title": "FLTT DTR Ranking",
+    "intro1": "DTR (Dëschtennis-Rating) is a rating that tracks every player's real playing strength, recalculated after each match of the 2025-2026 season. It's based on the same system used for the German TTR rating: win a match against a similarly-rated opponent and your rating goes up by a handful of points; lose, and it goes down. Beating a much stronger player is worth more, losing to a much weaker one costs more.",
+    "intro2": "Every player started the season with a baseline rating: adult players began at 1025, younger players began lower (900 or 850, depending on age group) since the rating hasn't yet had a chance to reflect their real strength. From there, every match this season has moved each player's rating up or down to where it stands today.",
+    "readMore": "Read more →",
+    "browseRanking": "Browse the full ranking →",
+    "clubsHeading": "Clubs",
+    "clubsSubtitle": "Browse players by club — {count} clubs in total."
+  },
+  "PlayerSearch": {
+    "placeholder": "Search for a player by name…",
+    "ariaLabel": "Search players by name",
+    "noResults": "No players found."
+  },
+  "RankingPage": {
+    "title": "FLTT DTR Ranking",
+    "subtitle": "Every player, ranked by current DTR — highest to lowest."
+  },
+  "LevelPills": {
+    "all": "All"
+  },
+  "RankingTable": {
+    "searchPlaceholder": "Search by name…",
+    "searchAriaLabel": "Search players by name",
+    "clubFilterAriaLabel": "Filter by club",
+    "allClubs": "All clubs",
+    "showing": "Showing {count} players",
+    "inClass": " in Class {level}",
+    "atClub": " at {club}",
+    "columnRank": "#",
+    "columnName": "Name",
+    "columnClub": "Club",
+    "columnClass": "Class",
+    "columnDtr": "DTR",
+    "inactiveBadge": "inactive",
+    "noResults": "No players match the current filters.",
+    "previous": "← Previous",
+    "next": "Next →",
+    "pageOf": "Page {current} of {total}"
+  },
+  "LineupBuilder": {
+    "heading": "Lineup Builder",
+    "numberOfTeams": "Number of teams",
+    "fewerTeams": "Fewer teams",
+    "moreTeams": "More teams",
+    "includePlayer": "Include {name}",
+    "kaderBadge": "Kader",
+    "youthBadge": "Youth",
+    "selectedCount": "{selected} of {needed} players selected",
+    "clickToMove": "Click a player to see where they could legally move.",
+    "clickHighlighted": "Click a highlighted spot to move them there, or click them again to cancel.",
+    "team": "Team {number}",
+    "checkPlayers": "Check players below to start building teams."
+  },
+  "PlayerPage": {
+    "backToRanking": "← Back to ranking",
+    "kaderBadge": "Kader",
+    "inactiveBadge": "inactive",
+    "inactiveNotice": "This player is not in the current Verbandsrangliste.",
+    "howItWorks": "How DTR works →",
+    "rankOf": " · #{rank} of {total} by DTR.",
+    "dtrLabel": "DTR",
+    "notAvailable": "Not available",
+    "matchesPlayed": "Matches played",
+    "hironn": "Hironn (Aug–Dec)",
+    "reckronn": "Réckronn (Jan–Apr)",
+    "seasonDtr": "Season DTR",
+    "matchHistory": "Match history",
+    "columnDate": "Date",
+    "columnCompetition": "Competition",
+    "columnOpponent": "Opponent",
+    "columnOppDtr": "Opp. DTR",
+    "columnScore": "Score",
+    "columnResult": "W/L",
+    "columnDelta": "Δ",
+    "columnK": "K",
+    "columnNewDtr": "New DTR",
+    "seasonStart": "Season start",
+    "noMatches": "No match history recorded for this season yet."
+  },
+  "TtrChart": {
+    "vs": "vs",
+    "dtrLabel": "DTR:"
+  },
+  "AboutPage": {
+    "title": "About this site",
+    "intro": "This site tracks a DTR (Dëschtennis-Rating) for every player in the FLTT Verbandsrangliste — a rating that starts from a baseline value and moves up or down after every match of the season, the same way the German TTR rating works.",
+    "dataSourceHeading": "Where the data comes from",
+    "dataSourceBody": "Match histories are taken from the FLTT match exports for the 2025-2026 season and run through the DTR formula (see <code>DëschTennisRating.pdf</code>) to produce a per-match DTR change for every player.",
+    "startingValuesHeading": "Starting values",
+    "startingValuesBody": "Every player begins the season at a baseline rating rather than an estimate carried over from elsewhere: adult players start at 1025, and youth players start lower depending on their age group (900 for Cadets/Minimes, 850 for Benjamins/Poussins), since a new player hasn't yet built up match results that reflect their real strength.",
+    "confidenceHeading": "Confidence",
+    "confidenceBody": "DTR is recalculated from real match results, not estimated — the more matches a player has played this season, the more it reflects their actual current form.",
+    "distributionHeading": "Current rating distribution",
+    "distributionSubtitle": "How today's {count} DTR values are spread out, grouped into bands of 100 points.",
+    "lineupRulesHeading": "Team lineup rules (Mannschaftsaufstellung)",
+    "lineupRulesIntro1": "The Lineup Builder on the",
+    "lineupRulesRankingLink": "Ranking page",
+    "lineupRulesIntro2": "splits a club's checked-off players into teams of 4, ranked strongest to weakest by DTR — normally a player can't be listed ahead of anyone with a meaningfully higher DTR, since that would misrepresent the playing order. But small gaps are allowed, so two players close in strength can still be swapped without that counting as out of order. How much of a gap counts as \"small\" depends on two things: whether the swap is within one team or between two different teams of the same club (team swaps have to stay closer together), and whether either player involved is a youth player or on the Kader (the national squad), both of which loosen the limit.",
+    "tableGapHeader": "Allowed DTR gap",
+    "tableTeamHeader": "Within one team",
+    "tableClubHeader": "Across the club",
+    "tableEveryone": "Everyone",
+    "tableYouth": "Either player is a youth player",
+    "tableKader": "Either player is on the Kader",
+    "lineupRulesFootnote": "These don't stack — a youth player who's also on the Kader gets the more generous Kader limit, not both added together. The rule is also checked between every pair of players in the lineup, not just neighbors: a chain of small swaps can otherwise add up to two players ending up further apart than the limit allows, even though each individual swap looked fine.",
+    "historicalNoteHeading": "Historical note: the original PFW-based estimate",
+    "historicalNoteBody": "Before the DTR season simulation above existed, this site estimated a German TTR rating directly from each player's FLTT PFW score and class, using a regression fitted to 41 players who appeared in both rankings (PFW ≈ 0.596 × TTR − 588, R² = 0.78). That estimate is no longer shown on the site — DTR, calculated from real matches, replaced it — but it's kept here for reference since some of the DTR system's starting values were cross-checked against it during development.",
+    "furtherReadingHeading": "Further reading",
+    "furtherReadingFlttTitle": "FLTT IR-22 Performance System (PDF)",
+    "furtherReadingFlttBody": " — the official PFW computation.",
+    "furtherReadingDttbTitle": "DTTB TTR-Erklärung",
+    "furtherReadingDttbBody": " — how the German TTR is calculated.",
+    "backToRanking": "← Back to ranking"
+  },
+  "DtrDistributionChart": {
+    "tooltipCount": "{count, plural, one {# player} other {# players}}"
+  }
+}

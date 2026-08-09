@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { getRankingRows } from "@/lib/ranking";
 import { PlayerSearch } from "@/components/home/PlayerSearch";
 
@@ -10,6 +11,7 @@ import { PlayerSearch } from "@/components/home/PlayerSearch";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const t = await getTranslations("HomePage");
   const rows = await getRankingRows();
 
   const clubCounts = new Map<string, number>();
@@ -21,21 +23,12 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">FLTT DTR Ranking</h1>
-      <p className="text-muted-foreground mt-3 text-base leading-7">
-        DTR (Dëschtennis-Rating) is a rating that tracks every player&apos;s real playing strength,
-        recalculated after each match of the 2025-2026 season. It&apos;s based on the same system
-        used for the German TTR rating: win a match against a similarly-rated opponent and your
-        rating goes up by a handful of points; lose, and it goes down. Beating a much stronger
-        player is worth more, losing to a much weaker one costs more.
-      </p>
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{t("title")}</h1>
+      <p className="text-muted-foreground mt-3 text-base leading-7">{t("intro1")}</p>
       <p className="text-muted-foreground mt-4 text-base leading-7">
-        Every player started the season with a baseline rating: adult players began at 1025, younger
-        players began lower (900 or 850, depending on age group) since the rating hasn&apos;t yet
-        had a chance to reflect their real strength. From there, every match this season has moved
-        each player&apos;s rating up or down to where it stands today.{" "}
+        {t("intro2")}{" "}
         <Link href="/about" className="underline">
-          Read more →
+          {t("readMore")}
         </Link>
       </p>
 
@@ -48,14 +41,14 @@ export default async function HomePage() {
           href="/ranking"
           className="text-sm font-medium underline underline-offset-4 hover:no-underline"
         >
-          Browse the full ranking →
+          {t("browseRanking")}
         </Link>
       </div>
 
       <section className="mt-12">
-        <h2 className="text-lg font-semibold">Clubs</h2>
+        <h2 className="text-lg font-semibold">{t("clubsHeading")}</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          Browse players by club — {clubs.length.toLocaleString()} clubs in total.
+          {t("clubsSubtitle", { count: clubs.length })}
         </p>
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {clubs.map(([club, count]) => (

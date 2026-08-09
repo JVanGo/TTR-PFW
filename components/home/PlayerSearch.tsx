@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { searchPlayers, type PlayerSearchResult } from "@/lib/search";
 
 export function PlayerSearch() {
+  const t = useTranslations("PlayerSearch");
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlayerSearchResult[]>([]);
@@ -41,17 +43,17 @@ export function PlayerSearch() {
       <input
         type="search"
         inputMode="search"
-        placeholder="Search for a player by name…"
+        placeholder={t("placeholder")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => results.length > 0 && setOpen(true)}
         className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-2 focus:outline-none"
-        aria-label="Search players by name"
+        aria-label={t("ariaLabel")}
       />
       {showDropdown && (
         <div className="bg-popover text-popover-foreground absolute z-10 mt-1 w-full overflow-hidden rounded-md border shadow-md">
           {results.length === 0 ? (
-            <p className="text-muted-foreground px-3 py-2 text-sm">No players found.</p>
+            <p className="text-muted-foreground px-3 py-2 text-sm">{t("noResults")}</p>
           ) : (
             <ul>
               {results.map((r) => (
