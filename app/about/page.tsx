@@ -1,6 +1,18 @@
 import Link from "next/link";
+import { getRankingRows } from "@/lib/ranking";
+import { bucketizeDtr } from "@/lib/dtr-distribution";
+import { DtrDistributionChart } from "@/components/about/DtrDistributionChart";
 
-export default function AboutPage() {
+// See app/page.tsx for why: without a cookie-bound client, Next would try to
+// statically prerender this page at build time by hitting the live database
+// directly — getRankingRows() is already cached, so a per-request render is
+// cheap after the first hit.
+export const dynamic = "force-dynamic";
+
+export default async function AboutPage() {
+  const rows = await getRankingRows();
+  const buckets = bucketizeDtr(rows.map((r) => r.dtr));
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">About this site</h1>
@@ -31,6 +43,15 @@ export default function AboutPage() {
         DTR is recalculated from real match results, not estimated — the more matches a player has
         played this season, the more it reflects their actual current form.
       </p>
+
+      <h2 className="mt-8 text-lg font-semibold">Current rating distribution</h2>
+      <p className="text-muted-foreground mt-2 text-sm leading-6">
+        How today&apos;s {rows.length.toLocaleString()} DTR values are spread out, grouped into
+        bands of 100 points.
+      </p>
+      <div className="mt-4 rounded-md border p-2">
+        <DtrDistributionChart buckets={buckets} />
+      </div>
 
       <h2 className="mt-8 text-lg font-semibold">
         Historical note: the original PFW-based estimate
