@@ -1,11 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseRangliste, diffRangliste, type RanglistEntry } from "@/lib/import/verbandsrangliste";
 import { parseSaisonentwicklung, type ParsedMatch } from "@/lib/import/saisonentwicklung";
 import { nameKey } from "@/lib/name-key";
+import { RANKING_CACHE_TAG } from "@/lib/ranking";
 
 export interface RanglistImportState {
   status: "idle" | "success" | "error";
@@ -122,6 +123,7 @@ export async function importRangliste(
 
     revalidatePath("/");
     revalidatePath("/admin");
+    updateTag(RANKING_CACHE_TAG);
 
     return {
       status: "success",
@@ -225,6 +227,7 @@ export async function importMatches(
 
     revalidatePath("/");
     revalidatePath("/admin");
+    updateTag(RANKING_CACHE_TAG);
 
     return {
       status: "success",

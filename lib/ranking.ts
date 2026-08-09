@@ -1,7 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
+import { createPublicClient } from "@/lib/supabase/public";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { klassierungForDtr, type Klassierung } from "@/lib/klassierung";
+
+/** Tag used to invalidate the cached ranking after an admin edit or import. */
+export const RANKING_CACHE_TAG = "ranking";
 
 export const CURRENT_SEASON = "2025-2026";
 
@@ -94,7 +99,7 @@ async function fetchLatestTtrByPlayer(
  * `/ranking` and the player profile page read from here so the numbers
  * shown always agree.
  */
-export async function getRankingRows(supabase: SupabaseClient): Promise<RankingRow[]> {
+async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[]> {
   const [players, latestTtrByPlayer] = await Promise.all([
     fetchAllRows<PlayerRow>(
       supabase,
@@ -127,3 +132,17 @@ export async function getRankingRows(supabase: SupabaseClient): Promise<RankingR
 
   return withDtr.map((p, i) => ({ ...p, rank: i + 1 }));
 }
+
+/**
+ * Scanning every player and every match to build the ranking is expensive
+ * (~2,200 players, ~80k match rows) and was previously redone from scratch
+ * on every visit to the Home, Ranking, and Player pages — the main cause of
+ * the site feeling slow. The data barely changes (an admin edit, an import,
+ * or an out-of-band season re-simulation), so it's cached for 5 minutes and
+ * invalidated immediately on admin writes via `RANKING_CACHE_TAG`.
+ */
+export const getRankingRows = unstable_cache(
+  async (): Promise<RankingRow[]> => computeRankingRows(createPublicClient()),
+  ["ranking-rows"],
+  { revalidate: 300, tags: [RANKING_CACHE_TAG] },
+);

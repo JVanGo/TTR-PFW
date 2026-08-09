@@ -1,11 +1,16 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { getRankingRows } from "@/lib/ranking";
 import { PlayerSearch } from "@/components/home/PlayerSearch";
 
+// Render per-request rather than prerendering at build time: without a
+// cookie-bound client on this page, Next would otherwise try to statically
+// generate it during `next build` by hitting the live database directly
+// (no cache warmed yet), which is slow and unnecessary — getRankingRows()
+// is already cached, so a per-request render is cheap after the first hit.
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
-  const supabase = await createClient();
-  const rows = await getRankingRows(supabase);
+  const rows = await getRankingRows();
 
   const clubCounts = new Map<string, number>();
   for (const p of rows) {

@@ -1,10 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlayerClass, type PlayerClass } from "@/lib/conversions";
+import { RANKING_CACHE_TAG } from "@/lib/ranking";
 
 export interface ActionState {
   status: "idle" | "success" | "error";
@@ -85,6 +86,7 @@ export async function createPlayer(_: ActionState, formData: FormData): Promise<
   }
   revalidatePath("/admin");
   revalidatePath("/");
+  updateTag(RANKING_CACHE_TAG);
   return { status: "success", message: `Added ${parsed.name}.` };
 }
 
@@ -106,6 +108,7 @@ export async function updatePlayer(
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath(`/player/${id}`);
+  updateTag(RANKING_CACHE_TAG);
   return { status: "success", message: `Updated ${parsed.name}.` };
 }
 
@@ -116,6 +119,7 @@ export async function deletePlayer(id: string): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
   revalidatePath("/");
+  updateTag(RANKING_CACHE_TAG);
 }
 
 export async function signOut(): Promise<void> {

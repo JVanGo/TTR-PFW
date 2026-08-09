@@ -51,7 +51,7 @@ export default async function PlayerPage({ params }: PageProps) {
       .eq("player_id", player.id)
       .eq("season", SEASON)
       .maybeSingle(),
-    getRankingRows(supabase),
+    getRankingRows(),
   ]);
 
   if (matchesError) throw new Error(matchesError.message);

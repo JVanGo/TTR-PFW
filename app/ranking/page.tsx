@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { getRankingRows } from "@/lib/ranking";
 import { KLASSIERUNG_BANDS, type Klassierung } from "@/lib/klassierung";
 import { LevelPills } from "@/components/ranking/LevelPills";
@@ -17,8 +16,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
   const selectedLevel = sp.level && isKlassierung(sp.level) ? sp.level : null;
   const initialClub = sp.club ?? "";
 
-  const supabase = await createClient();
-  const all = await getRankingRows(supabase);
+  const all = await getRankingRows();
 
   const counts: Record<string, number> = {};
   for (const p of all) {

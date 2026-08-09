@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Local-only TTR data folder; not part of the app source.
     "TTR/**",
+    // Supabase CLI's generated local dev files (bundled edge functions, etc.), not app source.
+    "supabase/.temp/**",
   ]),
 ]);
 
