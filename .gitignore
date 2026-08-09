@@ -46,6 +46,7 @@ next-env.d.ts
 /Dataset/
 /initial-ttr-estimates.csv
 /initial-ttr-estimates.pdf
+/Export-Members*.xlsx
 
 # Claude Code local-only settings (per-user permissions, not shared)
 .claude/settings.local.json
