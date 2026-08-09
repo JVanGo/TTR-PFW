@@ -18,6 +18,35 @@ function formatDate(iso: string): string {
   });
 }
 
+interface MatchForStartingDtr {
+  match_date: string;
+  competition: string;
+  ttr_delta: number;
+  new_ttr: number;
+}
+
+/**
+ * The DTR a player began the season with, before any of this season's
+ * matches changed it. `matches` is sorted earliest-first, so the player's
+ * first calendar day of activity settles to their true starting number plus
+ * that day's total change — working backwards from it recovers the exact
+ * starting value the season simulation actually used, rather than
+ * re-guessing it. A youth growth bonus applies immediately (not batched with
+ * that day's other results), so if the first day has a real match or
+ * placement too, that row's settled total is preferred over the bonus row's
+ * intermediate one.
+ */
+function computeStartingDtr(matches: MatchForStartingDtr[]): number | null {
+  if (matches.length === 0) return null;
+  const earliestDate = matches[0].match_date;
+  const earliestDayRows = matches.filter((m) => m.match_date === earliestDate);
+  const settledRow =
+    earliestDayRows.find((m) => m.competition !== "Nachwuchs-Spielstärkezuwachs") ??
+    earliestDayRows[0];
+  const daySum = earliestDayRows.reduce((sum, m) => sum + m.ttr_delta, 0);
+  return settledRow.new_ttr - daySum;
+}
+
 export default async function PlayerPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
@@ -74,6 +103,7 @@ export default async function PlayerPage({ params }: PageProps) {
   }));
 
   const reverseMatches = [...matches].reverse();
+  const startingDtr = computeStartingDtr(matches);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
@@ -180,6 +210,17 @@ export default async function PlayerPage({ params }: PageProps) {
                   </tr>
                 </thead>
                 <tbody>
+                  <tr className="border-t">
+                    <td className="px-3 py-2 whitespace-nowrap">—</td>
+                    <td className="text-muted-foreground px-3 py-2">Season start</td>
+                    <td className="px-3 py-2">—</td>
+                    <td className="px-3 py-2 text-right tabular-nums">—</td>
+                    <td className="px-3 py-2 text-right tabular-nums">—</td>
+                    <td className="text-muted-foreground px-3 py-2 text-center font-medium">—</td>
+                    <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
+                    <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{startingDtr ?? "—"}</td>
+                  </tr>
                   {reverseMatches.map((m) => (
                     <tr key={m.id} className="border-t">
                       <td className="px-3 py-2 whitespace-nowrap">{formatDate(m.match_date)}</td>
