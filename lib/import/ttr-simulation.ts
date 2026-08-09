@@ -16,7 +16,7 @@ const INACTIVITY_BONUS = 4;
 const INACTIVITY_BONUS_MATCHES = 15;
 const YOUTH_GROWTH_BONUS = 12;
 
-const PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 24, 2: 16, 3: 8 };
+const PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 15, 2: 10, 3: 5 };
 
 // Competitions that never count towards the rating at all — no per-game
 // score, no placement bonus either, unlike TOU club tournaments.

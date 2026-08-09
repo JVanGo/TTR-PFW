@@ -383,8 +383,8 @@ describe("simulateSeason", () => {
     expect(summary.tournamentGamesExcluded).toBe(1);
     expect(summary.matchesGraded).toBe(0);
     expect(matchRows).toHaveLength(1);
-    expect(matchRows[0].ttrDelta).toBe(8);
-    expect(matchRows[0].newTtr).toBe(1008);
+    expect(matchRows[0].ttrDelta).toBe(5);
+    expect(matchRows[0].newTtr).toBe(1005);
   });
 
   it("excludes COU FELTEN matches entirely, with no placement bonus substitute", () => {
