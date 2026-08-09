@@ -53,6 +53,17 @@ function ageRule(category: AgeCategory | null): AgeRule {
   return category ? AGE_RULES[category] : ADULT_RULE;
 }
 
+/**
+ * The Ersteinstufung (season-starting rating) for an age category, or the
+ * adult default for none. Exported so lib/ranking.ts's own "no matches yet"
+ * fallback — used to show a DTR for players the simulation hasn't produced
+ * any rows for — stays age-aware instead of defaulting every such player to
+ * the flat adult value.
+ */
+export function ersteinstufungFor(category: AgeCategory | null): number {
+  return ageRule(category).ersteinstufung;
+}
+
 /** Win probability for a player rated `ttrSelf` against `ttrOpponent`. */
 export function winProbability(ttrSelf: number, ttrOpponent: number): number {
   return 1 / (1 + Math.pow(10, (ttrOpponent - ttrSelf) / 150));

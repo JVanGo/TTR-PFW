@@ -4,6 +4,12 @@ import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import { createPublicClient } from "@/lib/supabase/public";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { klassierungForDtr, type Klassierung } from "@/lib/klassierung";
+import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
+import { ersteinstufungFor } from "@/lib/import/ttr-simulation";
+
+function isAgeCategory(value: string | null): value is AgeCategory {
+  return value != null && (AGE_CATEGORIES as readonly string[]).includes(value);
+}
 
 /** Tag used to invalidate the cached ranking after an admin edit or import. */
 export const RANKING_CACHE_TAG = "ranking";
@@ -111,8 +117,9 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
 
   const withDtr = players.map((p) => {
     const kl: PlayerClass = isPlayerClass(p.class) ? p.class : "D3";
+    const ageCategory = isAgeCategory(p.age_category) ? p.age_category : null;
     const seasonStart = estimateTtr(Number(p.pfw), kl, p.classement_points);
-    const dtr = latestTtrByPlayer.get(p.id) ?? seasonStart ?? 1025;
+    const dtr = latestTtrByPlayer.get(p.id) ?? seasonStart ?? ersteinstufungFor(ageCategory);
     return {
       id: p.id,
       name: p.name,
@@ -120,7 +127,7 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
       isActive: p.is_active,
       dtr,
       klassierung: klassierungForDtr(dtr),
-      isYouth: p.age_category != null,
+      isYouth: ageCategory != null,
       isKader: p.is_kader,
     };
   });
