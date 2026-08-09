@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Minus, Plus } from "lucide-react";
 import { buildTeams, legalTargetIndices, movePlayer, type LineupPlayer } from "@/lib/lineup";
+import { Button } from "@/components/ui/button";
 
 export interface LineupRosterPlayer extends LineupPlayer {
   klassierung: string;
@@ -13,6 +15,10 @@ interface Props {
 }
 
 const MAX_TEAMS = 10;
+
+function clampTeamCount(n: number): number {
+  return Math.min(MAX_TEAMS, Math.max(1, n));
+}
 
 function topDtrIds(players: LineupRosterPlayer[], count: number): Set<string> {
   return new Set(
@@ -111,17 +117,36 @@ export function LineupBuilder({ club, roster }: Props) {
 
       <label className="flex items-center gap-2 text-sm">
         Number of teams
-        <input
-          type="number"
-          min={1}
-          max={MAX_TEAMS}
-          value={teamCount}
-          onChange={(e) => {
-            const n = Math.min(MAX_TEAMS, Math.max(1, Number(e.target.value) || 1));
-            setTeamCount(n);
-          }}
-          className="border-input bg-background w-16 rounded-md border px-2 py-1"
-        />
+        <span className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            disabled={teamCount <= 1}
+            onClick={() => setTeamCount((n) => clampTeamCount(n - 1))}
+            aria-label="Fewer teams"
+          >
+            <Minus />
+          </Button>
+          <input
+            type="number"
+            min={1}
+            max={MAX_TEAMS}
+            value={teamCount}
+            onChange={(e) => setTeamCount(clampTeamCount(Number(e.target.value) || 1))}
+            className="border-input bg-background w-12 rounded-md border px-2 py-1 text-center"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            disabled={teamCount >= MAX_TEAMS}
+            onClick={() => setTeamCount((n) => clampTeamCount(n + 1))}
+            aria-label="More teams"
+          >
+            <Plus />
+          </Button>
+        </span>
       </label>
 
       <div>
