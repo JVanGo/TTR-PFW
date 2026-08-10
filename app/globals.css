@@ -60,7 +60,10 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  /* Was oklch(0.556 0 0) — a user reported this was hard to read. Darkened
+     for stronger contrast against the white background; secondary text
+     (club names, table headers, timestamps, etc.) uses this everywhere. */
+  --muted-foreground: oklch(0.32 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -95,7 +98,9 @@
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  /* Was oklch(0.708 0 0) — the same readability fix as light mode, but
+     lighter here since this text sits on a dark background instead. */
+  --muted-foreground: oklch(0.82 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -126,5 +131,9 @@
   }
   html {
     @apply font-sans;
+    /* A user reported the site was hard to read — bump the base size
+       slightly; every text-* utility is rem-based so this scales the whole
+       site proportionally rather than needing to touch every component. */
+    font-size: 17px;
   }
 }
