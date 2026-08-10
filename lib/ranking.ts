@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
+import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
 import { createPublicClient } from "@/lib/supabase/public";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { klassierungForDtr, type Klassierung } from "@/lib/klassierung";
@@ -39,63 +40,6 @@ interface PlayerRow {
   classement_points: number | null;
   age_category: string | null;
   is_kader: boolean;
-}
-
-interface MatchRow {
-  player_id: string;
-  new_ttr: number;
-}
-
-/**
- * Latest DTR per player this season, read straight off `matches` instead of
- * the `player_season_summary` view. The view's "latest_ttr" is a correlated
- * subquery per player, and running that for every player at once (rather
- * than one player, like the profile page does) hits Postgres's statement
- * timeout. A single indexed, sorted scan of `matches` for the season is far
- * cheaper — same lesson as the Mongo season-query timeouts hit earlier in
- * this project: batch/scan once, don't query per-player at scale.
- */
-async function fetchLatestTtrByPlayer(
-  supabase: SupabaseClient,
-  season: string,
-): Promise<Map<string, number>> {
-  const pageSize = 1000;
-  const { count, error: countError } = await supabase
-    .from("matches")
-    .select("id", { count: "exact", head: true })
-    .eq("season", season);
-  if (countError) throw new Error(`fetchLatestTtrByPlayer: ${countError.message}`);
-
-  const pageCount = Math.ceil((count ?? 0) / pageSize);
-  const query = (page: number) =>
-    supabase
-      .from("matches")
-      .select("player_id, new_ttr")
-      .eq("season", season)
-      .order("match_date", { ascending: false })
-      .order("created_at", { ascending: false })
-      .range(page * pageSize, page * pageSize + pageSize - 1);
-
-  // Each page is a fully-ordered slice (Postgres sorts before applying the
-  // range), so fetching pages in parallel and processing them back in page
-  // order is safe — unlike the sequential version, this doesn't wait on ~80
-  // round-trips one at a time. Concurrency is capped, though: firing every
-  // page at once exhausted the connection pool (both locally and, likely,
-  // on Supabase's pooler under load).
-  const CONCURRENCY = 8;
-  const latest = new Map<string, number>();
-  for (let start = 0; start < pageCount; start += CONCURRENCY) {
-    const batch = await Promise.all(
-      Array.from({ length: Math.min(CONCURRENCY, pageCount - start) }, (_, i) => query(start + i)),
-    );
-    for (const { data, error } of batch) {
-      if (error) throw new Error(`fetchLatestTtrByPlayer: ${error.message}`);
-      for (const row of (data ?? []) as MatchRow[]) {
-        if (!latest.has(row.player_id)) latest.set(row.player_id, row.new_ttr);
-      }
-    }
-  }
-  return latest;
 }
 
 /**

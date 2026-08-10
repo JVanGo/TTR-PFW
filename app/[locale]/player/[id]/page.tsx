@@ -7,9 +7,8 @@ import { TtrChart, type TtrPoint } from "@/components/player/TtrChart";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ season?: string }>;
 }
-
-const SEASON = CURRENT_SEASON;
 
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
@@ -48,10 +47,11 @@ function computeStartingDtr(matches: MatchForStartingDtr[]): number | null {
   return settledRow.new_ttr - daySum;
 }
 
-export default async function PlayerPage({ params }: PageProps) {
+export default async function PlayerPage({ params, searchParams }: PageProps) {
   const t = await getTranslations("PlayerPage");
   const locale = await getLocale();
   const { id } = await params;
+  const { season: requestedSeason } = await searchParams;
   const supabase = await createClient();
 
   const { data: player, error } = await supabase
@@ -63,34 +63,43 @@ export default async function PlayerPage({ params }: PageProps) {
   if (error) throw new Error(`Failed to load player: ${error.message}`);
   if (!player) notFound();
 
-  const [
-    { data: matchesData, error: matchesError },
-    { data: summary, error: summaryError },
-    rankingRows,
-  ] = await Promise.all([
+  const { data: seasonSummaries, error: summariesError } = await supabase
+    .from("player_season_summary")
+    .select("season, matches_played, ttr_change_hironn, ttr_change_reckronn, latest_ttr")
+    .eq("player_id", player.id)
+    .order("season", { ascending: false });
+
+  if (summariesError) throw new Error(summariesError.message);
+
+  // Seasons this player has any data for, newest first — only shown as tabs
+  // once there's more than one. Falls back to the current season if the URL
+  // names one the player has no data for.
+  const seasons = (seasonSummaries ?? []).map((s) => s.season);
+  const selectedSeason =
+    requestedSeason && seasons.includes(requestedSeason) ? requestedSeason : CURRENT_SEASON;
+  const isCurrentSeason = selectedSeason === CURRENT_SEASON;
+  const summary = seasonSummaries?.find((s) => s.season === selectedSeason) ?? null;
+
+  const [{ data: matchesData, error: matchesError }, rankingRows] = await Promise.all([
     supabase
       .from("matches")
       .select(
         "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, created_at",
       )
       .eq("player_id", player.id)
-      .eq("season", SEASON)
+      .eq("season", selectedSeason)
       .order("match_date", { ascending: true })
       .order("created_at", { ascending: true }),
-    supabase
-      .from("player_season_summary")
-      .select("matches_played, ttr_change_hironn, ttr_change_reckronn, latest_ttr")
-      .eq("player_id", player.id)
-      .eq("season", SEASON)
-      .maybeSingle(),
     getRankingRows(),
   ]);
 
   if (matchesError) throw new Error(matchesError.message);
-  if (summaryError) throw new Error(summaryError.message);
 
   const matches = matchesData ?? [];
-  const ranking = rankingRows.find((r) => r.id === player.id);
+  // The live ranking (rank/klassierung) only ever reflects the current
+  // season — for a past season, the summary's own settled DTR is the only
+  // number that still means anything.
+  const ranking = isCurrentSeason ? rankingRows.find((r) => r.id === player.id) : undefined;
   const currentDtr = ranking?.dtr ?? summary?.latest_ttr ?? null;
   const klassierung = ranking?.klassierung ?? null;
   const rankPosition = ranking?.rank ?? null;
@@ -148,6 +157,25 @@ export default async function PlayerPage({ params }: PageProps) {
           </p>
         </div>
       </header>
+
+      {seasons.length > 1 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {seasons.map((s) => (
+            <Link
+              key={s}
+              href={`/player/${player.id}${s === CURRENT_SEASON ? "" : `?season=${s}`}`}
+              className={
+                "rounded-full px-3 py-1 text-xs font-medium " +
+                (s === selectedSeason
+                  ? "bg-foreground text-background"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70")
+              }
+            >
+              {s}
+            </Link>
+          ))}
+        </div>
+      )}
 
       <p className="text-muted-foreground mt-3 text-sm">
         <Link href="/about" className="underline">

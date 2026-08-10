@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
+import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
 import { fetchSeasonStartTtr, type SeasonStartTtr } from "@/lib/import/season-start-snapshot";
 import {
@@ -124,6 +125,12 @@ function previousTwoSeasons(current: string): [string, string] {
   const start = Number(current.split("-")[0]);
   const pad = (n: number) => String(((n % 100) + 100) % 100).padStart(2, "0");
   return [`${pad(start - 1)}-${pad(start)}`, `${pad(start - 2)}-${pad(start - 1)}`];
+}
+
+/** "2026-2027" -> "2025-2026" — the SEASON_LABEL immediately before `current`. */
+export function previousSeasonLabel(current: string): string {
+  const [startYear, endYear] = current.split("-").map(Number);
+  return `${startYear - 1}-${endYear - 1}`;
 }
 
 /**
@@ -366,6 +373,20 @@ export async function runSeasonSimulation(
   );
   log(`  ${supabasePlayers.length} players.`);
 
+  // A returning player's own final rating from the season we just simulated
+  // is a far better season-start estimate than re-deriving one from FLTT's
+  // classement/PFW export (which is what every source below this exists to
+  // approximate in the first place). Keyed by our own player_id, not
+  // name/club — it's the same Supabase `players` row across seasons, so none
+  // of the same-name disambiguation used elsewhere in this file is needed
+  // here. No-op for a season with no prior SEASON_LABEL data yet (e.g. today,
+  // there's no "2024-2025" row to find).
+  const priorSeasonDtrByPlayerId = await fetchLatestTtrByPlayer(
+    supabase,
+    previousSeasonLabel(SEASON_LABEL),
+  );
+  log(`  ${priorSeasonDtrByPlayerId.size} players carrying forward a prior-season DTR.`);
+
   // "Typical player in this class" stand-in for the SEASON_START_OVERRIDES
   // players, none of whom have a usable starting PFW — the median PFW-
   // regression estimate among today's active players in the same class.
@@ -440,6 +461,7 @@ export async function runSeasonSimulation(
 
   const seasonStartExportByFlttId = loadSeasonStartExport(log);
 
+  let priorSeasonHits = 0;
   let overrideHits = 0;
   let exportHits = 0;
   let seasonStartHits = 0;
@@ -452,8 +474,10 @@ export async function runSeasonSimulation(
     // Prefer the player's class/PFW/classement points as of the start of the
     // season over Supabase's `players` row, which only ever reflects the
     // latest catalog import — i.e. roughly where they ended up, not where
-    // they started. Best source first: a manual correction (SEASON_START_OVERRIDES)
-    // for a player whose export row had to be discarded, then FLTT's own
+    // they started. Best source first: their own final DTR from the season
+    // immediately prior (nothing to re-derive — they already have a real
+    // computed rating), then a manual correction (SEASON_START_OVERRIDES) for
+    // a player whose export row had to be discarded, then FLTT's own
     // season-start export when Jeff has one on hand, then a snapshot inferred
     // from their earliest match this season (see season-start-snapshot.ts for
     // why either beats today's catalog).
@@ -472,7 +496,12 @@ export async function runSeasonSimulation(
     // C1) straight to the flat newcomer/age default, skipping every real
     // fallback meant to catch exactly this case.
     let startingTtr: number | null = null;
-    if (overrideClass) {
+    const priorSeasonDtr = priorSeasonDtrByPlayerId.get(p.id);
+    if (priorSeasonDtr != null) {
+      priorSeasonHits++;
+      startingTtr = priorSeasonDtr;
+    }
+    if (startingTtr == null && overrideClass) {
       const est = medianTtrByClass.get(overrideClass) ?? null;
       if (est != null) {
         overrideHits++;
@@ -526,9 +555,10 @@ export async function runSeasonSimulation(
     };
   });
   log(
-    `  ${overrideHits} of ${players.length} players used a manual season-start correction; ` +
-      `${exportHits} more from FLTT's own export; ${seasonStartHits} more from their earliest match ` +
-      `this season; the rest fall back to today's catalog class/PFW.`,
+    `  ${priorSeasonHits} of ${players.length} players carried forward their prior-season DTR; ` +
+      `${overrideHits} more used a manual season-start correction; ${exportHits} more from FLTT's ` +
+      `own export; ${seasonStartHits} more from their earliest match this season; the rest fall ` +
+      `back to today's catalog class/PFW.`,
   );
 
   // Fallback static rating for opponents we can't resolve to a tracked player:
