@@ -1,7 +1,9 @@
 /**
  * Populate players.age_category from the FLTT member registry export, against
- * PRODUCTION Supabase. Safe to re-run (upsert-style: only touches
- * age_category on matched players).
+ * PRODUCTION Supabase. Safe to re-run — the export is treated as the
+ * complete, authoritative youth roster, so anyone previously tagged with a
+ * category but missing from this run's export (aged out of every category)
+ * is reset back to adult, not just left stale.
  *
  * Reads Supabase credentials from .env.prod-seed (gitignored, manually
  * populated). Refuses to run unless the URL contains "supabase.co" (cloud)
@@ -60,7 +62,8 @@ async function main() {
   const summary = await applyAgeCategoriesToSupabase(supabase, entries, (msg) => console.log(msg));
   console.log("Done.");
   console.log(
-    `  matched=${summary.matched} unmatched=${summary.unmatched} ambiguous=${summary.ambiguous.length}`,
+    `  matched=${summary.matched} unmatched=${summary.unmatched} ambiguous=${summary.ambiguous.length} ` +
+      `cleared=${summary.cleared.length}`,
   );
 }
 

@@ -41,7 +41,8 @@ async function main() {
   const summary = await applyAgeCategoriesToSupabase(supabase, entries, (msg) => console.log(msg));
   console.log("Done.");
   console.log(
-    `  matched=${summary.matched} unmatched=${summary.unmatched} ambiguous=${summary.ambiguous.length}`,
+    `  matched=${summary.matched} unmatched=${summary.unmatched} ambiguous=${summary.ambiguous.length} ` +
+      `cleared=${summary.cleared.length}`,
   );
 }
 

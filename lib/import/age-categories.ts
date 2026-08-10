@@ -68,17 +68,28 @@ export interface BuildAgeCategoryUpdatesResult {
   unmatched: number;
   ambiguous: AmbiguousNameKey[];
   updates: AgeCategoryUpdate[];
+  /** Player ids to reset back to adult (age_category = null) — currently tagged
+   * with a youth category but no longer listed in this export, i.e. aged out. */
+  cleared: string[];
 }
 
 interface PlayerRow {
   id: string;
   name_key: string;
+  age_category: string | null;
 }
 
 /**
  * Pure: resolve parsed age-category entries against known players by
  * nameKey(). A nameKey shared by two entries with different categories is
  * reported as ambiguous (first-seen category wins) rather than guessed at.
+ *
+ * Each export is treated as the complete, authoritative youth roster as of
+ * that moment (mirrors diffRangliste's toDeactivate) — a player who ages out
+ * of every youth category simply stops appearing in it, so anyone currently
+ * tagged with a category but absent from this export is reset back to adult
+ * rather than keeping a stale category (and its K-bonus, starting rating,
+ * and Lineup Builder tolerances) forever.
  */
 export function buildAgeCategoryUpdates(
   entries: AgeCategoryEntry[],
@@ -118,7 +129,12 @@ export function buildAgeCategoryUpdates(
     }
   }
 
-  return { matched, unmatched, ambiguous, updates };
+  const updatedIds = new Set(updates.map((u) => u.id));
+  const cleared = players
+    .filter((p) => p.age_category != null && !updatedIds.has(p.id))
+    .map((p) => p.id);
+
+  return { matched, unmatched, ambiguous, updates, cleared };
 }
 
 export async function applyAgeCategoriesToSupabase(
@@ -127,7 +143,7 @@ export async function applyAgeCategoriesToSupabase(
   log: (message: string) => void = () => {},
 ): Promise<BuildAgeCategoryUpdatesResult> {
   log("Loading existing players from Supabase...");
-  const players = await fetchAllRows<PlayerRow>(supabase, "players", "id, name_key");
+  const players = await fetchAllRows<PlayerRow>(supabase, "players", "id, name_key, age_category");
   log(`  ${players.length} existing players.`);
 
   const result = buildAgeCategoryUpdates(entries, players);
@@ -137,7 +153,10 @@ export async function applyAgeCategoriesToSupabase(
       `  Ambiguous name "${ambig.nameKey}": categories ${ambig.categories.join(", ")} — using ${ambig.categories[0]}.`,
     );
   }
-  log(`  ${result.matched} matched, ${result.unmatched} unmatched (not in players table).`);
+  log(
+    `  ${result.matched} matched, ${result.unmatched} unmatched (not in players table), ` +
+      `${result.cleared.length} reset to adult (no longer in this export).`,
+  );
 
   log(`Updating ${result.updates.length} players' age category...`);
   for (let i = 0; i < result.updates.length; i += 200) {
@@ -149,6 +168,18 @@ export async function applyAgeCategoriesToSupabase(
     );
     const failed = results.find((r) => r.error);
     if (failed?.error) throw new Error(failed.error.message);
+  }
+
+  if (result.cleared.length > 0) {
+    log(`Clearing age category for ${result.cleared.length} players aged out of every category...`);
+    for (let i = 0; i < result.cleared.length; i += 200) {
+      const chunk = result.cleared.slice(i, i + 200);
+      const { error } = await supabase
+        .from("players")
+        .update({ age_category: null })
+        .in("id", chunk);
+      if (error) throw new Error(error.message);
+    }
   }
 
   return result;
