@@ -421,11 +421,18 @@ export async function runSeasonSimulation(
     return candidates.find((c) => clubKey(c.club) === clubKey(knownClub))?.flttPlayerId ?? null;
   }
 
+  // Keyed by identityKey (name + club), not name alone — two different real
+  // players can share a name (see identityKey's own comment), and a plain
+  // name_key lookup here would let one's career-match history silently
+  // overwrite the other's, wrongly swaying the newcomer/inactivity K-bonus.
   const priorStatsByNameKey = new Map<string, PriorSeasonStats>();
   for (const row of priorSeasonAgg) {
-    const key = catalogByFlttId.get(row._id)?.nameKey;
-    if (!key) continue;
-    priorStatsByNameKey.set(key, { count: row.count, lastIsoDate: row.lastIsoDate });
+    const info = catalogByFlttId.get(row._id);
+    if (!info) continue;
+    priorStatsByNameKey.set(identityKey(info.nameKey, info.club), {
+      count: row.count,
+      lastIsoDate: row.lastIsoDate,
+    });
   }
 
   const isAgeCategory = (v: string | null): v is AgeCategory =>
@@ -437,7 +444,7 @@ export async function runSeasonSimulation(
   let exportHits = 0;
   let seasonStartHits = 0;
   const players: SimPlayer[] = supabasePlayers.map((p) => {
-    const prior = priorStatsByNameKey.get(p.name_key);
+    const prior = priorStatsByNameKey.get(identityKey(p.name_key, p.club));
     const cls = p.class;
     const pfw = Number(p.pfw);
     const classementPoints = p.classement_points == null ? null : Number(p.classement_points);
