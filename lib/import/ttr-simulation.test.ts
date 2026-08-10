@@ -116,6 +116,44 @@ describe("simulateSeason", () => {
     expect(matchRows).toHaveLength(2);
   });
 
+  it("doesn't double-count a match when a name-collision opponent resolves on one side but not the other", () => {
+    // Two different real players share the name "Alice" (identityKey =
+    // nameKey|club). Resolving Bob from Alice(clubx)'s own row is
+    // unambiguous (his name is unique), but resolving "Alice" from Bob's own
+    // row failed upstream (ambiguous name, no club match) and fell back to
+    // the bare, unqualified nameKey.
+    const players = [
+      player({ id: "a", name: "Alice", nameKey: "alice|clubx", startingTtr: 1100 }),
+      player({ id: "a2", name: "Alice", nameKey: "alice|cluby", startingTtr: 1100 }),
+      player({ id: "b", name: "Bob", nameKey: "bob|clubb", startingTtr: 1100 }),
+    ];
+    const matches = [
+      match({ sortKey: "1", playerNameKey: "bob|clubb", opponentNameKey: "alice", won: false }),
+      match({
+        sortKey: "2",
+        playerNameKey: "alice|clubx",
+        opponentNameKey: "bob|clubb",
+        won: true,
+      }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map([["alice", 1050]]),
+      matches,
+      placements: [],
+      youthGrowthPeriods: IRRELEVANT_GROWTH_PERIODS,
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    expect(summary.matchesGraded).toBe(2); // one real match, one row per side
+    expect(matchRows).toHaveLength(2);
+    const bobRows = matchRows.filter((r) => r.playerId === "b");
+    expect(bobRows).toHaveLength(1);
+    // The surviving row came from the successfully-tracked pair (a real
+    // opponent), not the untracked/static-fallback placeholder.
+    expect(bobRows[0].opponentPlayerId).toBe("a");
+  });
+
   it("keeps a player's rating stable across a matchday: same-day matches don't see each other's movement", () => {
     const players = [
       player({ id: "a", name: "Alice", startingTtr: 1100 }),

@@ -195,22 +195,51 @@ function reverseScore(score: string | null): string | null {
   return `${parts[1]}-${parts[0]}`;
 }
 
+/** The name-only part of an identityKey ("claude schmit|mëllerdall" -> "claude schmit"). */
+function bareNameKeyOf(identity: string): string {
+  return identity.split("|")[0];
+}
+
 /**
  * Mongo stores one row per participant, so a real match between two tracked
  * players shows up twice (once per perspective). Dedupe by (unordered pair of
  * players, date, competition) and keep only the first row seen — the second
  * row encodes the exact same match and would otherwise double-process it.
+ *
+ * That dedup only fires when BOTH rows resolve their opponent to a tracked
+ * identity. Two different real players can share a name (see identityKey) —
+ * when that name's own per-match club field doesn't cleanly match either
+ * candidate's season catalog club, resolving *that* player as someone
+ * else's opponent can fail even though their own row (self-identified via
+ * flttPlayerId, not by name) resolves fine. One real match then produces two
+ * events: a correctly "tracked" one from the successfully-resolved side, and
+ * an "untracked" one from the failing side — double-counting the failing
+ * side's own player (they get both their own untracked row AND the mirror
+ * row the tracked pair produces for them). A first pass records, for every
+ * successfully-tracked row, the (other player, date, competition, this
+ * player's bare name) it covers, so the second pass can recognize an
+ * untracked row as that same real match and drop it instead of duplicating it.
  */
 function canonicalizeMatches(
   matches: RawSeasonMatch[],
   playerNameKeys: Set<string>,
 ): CanonicalMatch[] {
+  const trackedMirrorCoverage = new Set<string>();
+  for (const m of matches) {
+    if (!playerNameKeys.has(m.opponentNameKey)) continue;
+    trackedMirrorCoverage.add(
+      `${m.opponentNameKey}|${m.isoDate}|${m.competition}|${bareNameKeyOf(m.playerNameKey)}`,
+    );
+  }
+
   const seenPairs = new Set<string>();
   const canonical: CanonicalMatch[] = [];
 
   for (const m of matches) {
     const opponentTracked = playerNameKeys.has(m.opponentNameKey);
     if (!opponentTracked) {
+      const mirrorKey = `${m.playerNameKey}|${m.isoDate}|${m.competition}|${m.opponentNameKey}`;
+      if (trackedMirrorCoverage.has(mirrorKey)) continue;
       canonical.push({
         isoDate: m.isoDate,
         sortKey: m.sortKey,

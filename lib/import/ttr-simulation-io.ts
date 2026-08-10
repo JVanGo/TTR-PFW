@@ -341,10 +341,21 @@ export interface RunSeasonSimulationResult {
   matchRowCount: number;
 }
 
-export async function runSeasonSimulation(
+export interface SeasonSimulationResult {
+  matchRows: OutputMatchRow[];
+  summary: SimulationSummary;
+}
+
+/**
+ * Fetches Mongo/Supabase inputs and runs the season simulation — everything
+ * `runSeasonSimulation` does except the destructive delete+insert into
+ * `matches`. Split out so an audit script can recompute the season and diff
+ * it against what's actually stored in prod without writing anything.
+ */
+export async function computeSeasonSimulation(
   supabase: SupabaseClient,
   log: (message: string) => void = () => {},
-): Promise<RunSeasonSimulationResult> {
+): Promise<SeasonSimulationResult> {
   log("Fetching season data from MongoDB...");
   const {
     seasonMatches,
@@ -671,6 +682,15 @@ export async function runSeasonSimulation(
       `youthGrowthBonuses=${summary.youthGrowthBonusesApplied} ` +
       `droppedNoOpponentRating=${summary.droppedNoOpponentRating} unresolvedPlayers=${summary.unresolvedPlayers}`,
   );
+
+  return { matchRows, summary };
+}
+
+export async function runSeasonSimulation(
+  supabase: SupabaseClient,
+  log: (message: string) => void = () => {},
+): Promise<RunSeasonSimulationResult> {
+  const { matchRows, summary } = await computeSeasonSimulation(supabase, log);
 
   log(`Replacing matches for season ${SEASON_LABEL}...`);
   const { error: deleteError } = await supabase.from("matches").delete().eq("season", SEASON_LABEL);
