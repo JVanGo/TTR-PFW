@@ -22,7 +22,10 @@ export async function LevelPills({ selected, counts, total, club }: Props) {
     },
     ...KLASSIERUNG_BANDS.map((band) => ({
       label: band,
-      href: `/ranking?level=${band}${clubParam}`,
+      // encodeURIComponent matters here: "18+" has a literal "+", which in a
+      // query string is the form-encoded space character — left unencoded,
+      // the page would read the level back as "18 " and fail to match.
+      href: `/ranking?level=${encodeURIComponent(band)}${clubParam}`,
       count: counts[band] ?? 0,
       active: selected === band,
     })),
