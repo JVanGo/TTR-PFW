@@ -134,6 +134,7 @@
     "backToRanking": "← Back to ranking"
   },
   "DtrDistributionChart": {
-    "tooltipCount": "{count, plural, one {# player} other {# players}}"
+    "tooltipCount": "{count, plural, one {# player} other {# players}}",
+    "clickHint": "Click to view class {klassierung} in the rankings →"
   }
 }
