@@ -131,9 +131,5 @@
   }
   html {
     @apply font-sans;
-    /* A user reported the site was hard to read — bump the base size
-       slightly; every text-* utility is rem-based so this scales the whole
-       site proportionally rather than needing to touch every component. */
-    font-size: 17px;
   }
 }
