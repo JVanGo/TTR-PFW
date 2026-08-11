@@ -86,7 +86,7 @@ export default async function AboutPage() {
       <ul className="text-muted-foreground mt-2 list-disc pl-6 text-sm leading-6">
         <li>
           <a
-            href="https://www.fltt.lu/wp-content/uploads/2024/09/IR-22-Performance-System.pdf"
+            href="/ir-22-performance-system-v42.pdf"
             target="_blank"
             rel="noreferrer"
             className="underline"
@@ -97,7 +97,7 @@ export default async function AboutPage() {
         </li>
         <li>
           <a
-            href="https://www.mytischtennis.de/clicktt/TTR-Berechnung"
+            href="/beschreibung-der-andro-rangliste.pdf"
             target="_blank"
             rel="noreferrer"
             className="underline"
