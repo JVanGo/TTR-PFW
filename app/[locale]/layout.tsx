@@ -3,7 +3,6 @@ import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
-import NextLink from "next/link";
 import { routing } from "@/i18n/routing";
 import { Link } from "@/i18n/navigation";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -34,7 +33,6 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   const t = await getTranslations("Nav");
-  const tFooter = await getTranslations("Footer");
 
   return (
     <NextIntlClientProvider>
@@ -55,22 +53,6 @@ export default async function LocaleLayout({
         </div>
       </header>
       <main className="flex-1">{children}</main>
-      <footer className="bg-muted/40 mt-12 border-t">
-        <div className="text-muted-foreground mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>
-            {tFooter("tagline")}{" "}
-            <Link href="/about" className="underline">
-              {tFooter("howItWorksLink")}
-            </Link>
-            .
-          </p>
-          {/* Plain next/link, not the locale-aware one: /login lives
-              outside app/[locale]/ and must never get an /en prefix. */}
-          <NextLink href="/login" className="hover:underline">
-            {tFooter("admin")}
-          </NextLink>
-        </div>
-      </footer>
     </NextIntlClientProvider>
   );
 }

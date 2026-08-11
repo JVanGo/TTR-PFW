@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRankingRows, CURRENT_SEASON } from "@/lib/ranking";
 import { TtrChart, type TtrPoint } from "@/components/player/TtrChart";
+import { SiteFooter } from "@/components/SiteFooter";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -118,191 +119,196 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
   const startingDtr = computeStartingDtr(matches);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
-      <Link href="/ranking" className="text-muted-foreground text-sm hover:underline">
-        {t("backToRanking")}
-      </Link>
-
-      <header className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{player.name}</h1>
-          <p className="text-muted-foreground text-sm">
-            {klassierung && (
-              <span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-                {klassierung}
-              </span>
-            )}
-            {player.is_kader && (
-              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                {t("kaderBadge")}
-              </span>
-            )}
-            {player.age_category && (
-              <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-900 dark:bg-blue-950 dark:text-blue-200">
-                {player.age_category}
-              </span>
-            )}{" "}
-            {player.club ?? "—"}
-            {!player.is_active && (
-              <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                {t("inactiveBadge")}
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-muted-foreground text-sm uppercase">{t("dtrLabel")}</p>
-          <p className="text-4xl font-semibold tabular-nums sm:text-5xl">
-            {currentDtr ?? t("notAvailable")}
-          </p>
-        </div>
-      </header>
-
-      {seasons.length > 1 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {seasons.map((s) => (
-            <Link
-              key={s}
-              href={`/player/${player.id}${s === CURRENT_SEASON ? "" : `?season=${s}`}`}
-              className={
-                "rounded-full px-3 py-1 text-xs font-medium " +
-                (s === selectedSeason
-                  ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground hover:bg-muted/70")
-              }
-            >
-              {s}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      <p className="text-muted-foreground mt-3 text-sm">
-        <Link href="/about" className="underline">
-          {t("howItWorks")}
+    <>
+      <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
+        <Link href="/ranking" className="text-muted-foreground text-sm hover:underline">
+          {t("backToRanking")}
         </Link>
-        {rankPosition !== null && t("rankOf", { rank: rankPosition, total: totalPlayers })}
-      </p>
 
-      {!player.is_active && (
-        <p className="bg-muted/40 mt-3 rounded-md border p-3 text-sm">{t("inactiveNotice")}</p>
-      )}
+        <header className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{player.name}</h1>
+            <p className="text-muted-foreground text-sm">
+              {klassierung && (
+                <span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+                  {klassierung}
+                </span>
+              )}
+              {player.is_kader && (
+                <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                  {t("kaderBadge")}
+                </span>
+              )}
+              {player.age_category && (
+                <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-900 dark:bg-blue-950 dark:text-blue-200">
+                  {player.age_category}
+                </span>
+              )}{" "}
+              {player.club ?? "—"}
+              {!player.is_active && (
+                <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                  {t("inactiveBadge")}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-muted-foreground text-sm uppercase">{t("dtrLabel")}</p>
+            <p className="text-4xl font-semibold tabular-nums sm:text-5xl">
+              {currentDtr ?? t("notAvailable")}
+            </p>
+          </div>
+        </header>
 
-      {matches.length > 0 ? (
-        <>
-          <section className="mt-8">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-md border p-4">
-                <p className="text-muted-foreground text-xs uppercase">{t("matchesPlayed")}</p>
-                <p className="mt-1 text-xl font-semibold tabular-nums">
-                  {summary?.matches_played ?? matches.length}
-                </p>
-              </div>
-              <div className="rounded-md border p-4">
-                <p className="text-muted-foreground text-xs uppercase">{t("hironn")}</p>
-                <DeltaValue value={summary?.ttr_change_hironn ?? 0} />
-              </div>
-              <div className="rounded-md border p-4">
-                <p className="text-muted-foreground text-xs uppercase">{t("reckronn")}</p>
-                <DeltaValue value={summary?.ttr_change_reckronn ?? 0} />
-              </div>
-            </div>
-          </section>
+        {seasons.length > 1 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {seasons.map((s) => (
+              <Link
+                key={s}
+                href={`/player/${player.id}${s === CURRENT_SEASON ? "" : `?season=${s}`}`}
+                className={
+                  "rounded-full px-3 py-1 text-xs font-medium " +
+                  (s === selectedSeason
+                    ? "bg-foreground text-background"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70")
+                }
+              >
+                {s}
+              </Link>
+            ))}
+          </div>
+        )}
 
-          <section className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold">{t("seasonDtr")}</h2>
-            <div className="text-foreground rounded-md border p-2">
-              <TtrChart points={chartPoints} />
-            </div>
-          </section>
-
-          <section className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold">{t("matchHistory")}</h2>
-            <div className="max-h-[28rem] overflow-auto rounded-md border">
-              <table className="w-full min-w-[720px] text-sm">
-                <thead className="bg-muted/80 text-muted-foreground sticky top-0">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-medium">{t("columnDate")}</th>
-                    <th className="px-3 py-2 text-left font-medium">{t("columnCompetition")}</th>
-                    <th className="px-3 py-2 text-left font-medium">{t("columnOpponent")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("columnOppDtr")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("columnScore")}</th>
-                    <th className="px-3 py-2 text-center font-medium">{t("columnResult")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("columnDelta")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("columnK")}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t("columnNewDtr")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reverseMatches.map((m) => (
-                    <tr key={m.id} className="border-t">
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        {formatDate(m.match_date, locale)}
-                      </td>
-                      <td className="text-muted-foreground px-3 py-2">{m.competition}</td>
-                      <td className="px-3 py-2">
-                        {m.opponent_player_id ? (
-                          <Link
-                            href={`/player/${m.opponent_player_id}`}
-                            className="hover:underline"
-                          >
-                            {m.opponent_name}
-                          </Link>
-                        ) : (
-                          <span>{m.opponent_name}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{m.opponent_ttr ?? "—"}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{m.score ?? "—"}</td>
-                      <td
-                        className={
-                          "px-3 py-2 text-center font-medium " +
-                          (m.result === "W" ? "text-emerald-600" : "text-red-600")
-                        }
-                      >
-                        {m.result}
-                      </td>
-                      <td
-                        className={
-                          "px-3 py-2 text-right tabular-nums " +
-                          (m.ttr_delta > 0
-                            ? "text-emerald-600"
-                            : m.ttr_delta < 0
-                              ? "text-red-600"
-                              : "text-muted-foreground")
-                        }
-                      >
-                        {m.ttr_delta > 0 ? "+" : ""}
-                        {m.ttr_delta}
-                      </td>
-                      <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">
-                        {m.k_factor ?? "—"}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{m.new_ttr}</td>
-                    </tr>
-                  ))}
-                  <tr className="border-t">
-                    <td className="px-3 py-2 whitespace-nowrap">—</td>
-                    <td className="text-muted-foreground px-3 py-2">{t("seasonStart")}</td>
-                    <td className="px-3 py-2">—</td>
-                    <td className="px-3 py-2 text-right tabular-nums">—</td>
-                    <td className="px-3 py-2 text-right tabular-nums">—</td>
-                    <td className="text-muted-foreground px-3 py-2 text-center font-medium">—</td>
-                    <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
-                    <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{startingDtr ?? "—"}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
-      ) : (
-        <p className="bg-muted/40 text-muted-foreground mt-8 rounded-md border p-6 text-sm">
-          {t("noMatches")}
+        <p className="text-muted-foreground mt-3 text-sm">
+          <Link href="/about" className="underline">
+            {t("howItWorks")}
+          </Link>
+          {rankPosition !== null && t("rankOf", { rank: rankPosition, total: totalPlayers })}
         </p>
-      )}
-    </div>
+
+        {!player.is_active && (
+          <p className="bg-muted/40 mt-3 rounded-md border p-3 text-sm">{t("inactiveNotice")}</p>
+        )}
+
+        {matches.length > 0 ? (
+          <>
+            <section className="mt-8">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="rounded-md border p-4">
+                  <p className="text-muted-foreground text-xs uppercase">{t("matchesPlayed")}</p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums">
+                    {summary?.matches_played ?? matches.length}
+                  </p>
+                </div>
+                <div className="rounded-md border p-4">
+                  <p className="text-muted-foreground text-xs uppercase">{t("hironn")}</p>
+                  <DeltaValue value={summary?.ttr_change_hironn ?? 0} />
+                </div>
+                <div className="rounded-md border p-4">
+                  <p className="text-muted-foreground text-xs uppercase">{t("reckronn")}</p>
+                  <DeltaValue value={summary?.ttr_change_reckronn ?? 0} />
+                </div>
+              </div>
+            </section>
+
+            <section className="mt-8">
+              <h2 className="mb-3 text-lg font-semibold">{t("seasonDtr")}</h2>
+              <div className="text-foreground rounded-md border p-2">
+                <TtrChart points={chartPoints} />
+              </div>
+            </section>
+
+            <section className="mt-8">
+              <h2 className="mb-3 text-lg font-semibold">{t("matchHistory")}</h2>
+              <div className="max-h-[28rem] overflow-auto rounded-md border">
+                <table className="w-full min-w-[720px] text-sm">
+                  <thead className="bg-muted/80 text-muted-foreground sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium">{t("columnDate")}</th>
+                      <th className="px-3 py-2 text-left font-medium">{t("columnCompetition")}</th>
+                      <th className="px-3 py-2 text-left font-medium">{t("columnOpponent")}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t("columnOppDtr")}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t("columnScore")}</th>
+                      <th className="px-3 py-2 text-center font-medium">{t("columnResult")}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t("columnDelta")}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t("columnK")}</th>
+                      <th className="px-3 py-2 text-right font-medium">{t("columnNewDtr")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reverseMatches.map((m) => (
+                      <tr key={m.id} className="border-t">
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {formatDate(m.match_date, locale)}
+                        </td>
+                        <td className="text-muted-foreground px-3 py-2">{m.competition}</td>
+                        <td className="px-3 py-2">
+                          {m.opponent_player_id ? (
+                            <Link
+                              href={`/player/${m.opponent_player_id}`}
+                              className="hover:underline"
+                            >
+                              {m.opponent_name}
+                            </Link>
+                          ) : (
+                            <span>{m.opponent_name}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {m.opponent_ttr ?? "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{m.score ?? "—"}</td>
+                        <td
+                          className={
+                            "px-3 py-2 text-center font-medium " +
+                            (m.result === "W" ? "text-emerald-600" : "text-red-600")
+                          }
+                        >
+                          {m.result}
+                        </td>
+                        <td
+                          className={
+                            "px-3 py-2 text-right tabular-nums " +
+                            (m.ttr_delta > 0
+                              ? "text-emerald-600"
+                              : m.ttr_delta < 0
+                                ? "text-red-600"
+                                : "text-muted-foreground")
+                          }
+                        >
+                          {m.ttr_delta > 0 ? "+" : ""}
+                          {m.ttr_delta}
+                        </td>
+                        <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">
+                          {m.k_factor ?? "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{m.new_ttr}</td>
+                      </tr>
+                    ))}
+                    <tr className="border-t">
+                      <td className="px-3 py-2 whitespace-nowrap">—</td>
+                      <td className="text-muted-foreground px-3 py-2">{t("seasonStart")}</td>
+                      <td className="px-3 py-2">—</td>
+                      <td className="px-3 py-2 text-right tabular-nums">—</td>
+                      <td className="px-3 py-2 text-right tabular-nums">—</td>
+                      <td className="text-muted-foreground px-3 py-2 text-center font-medium">—</td>
+                      <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
+                      <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">—</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{startingDtr ?? "—"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </>
+        ) : (
+          <p className="bg-muted/40 text-muted-foreground mt-8 rounded-md border p-6 text-sm">
+            {t("noMatches")}
+          </p>
+        )}
+      </div>
+      <SiteFooter />
+    </>
   );
 }
 
