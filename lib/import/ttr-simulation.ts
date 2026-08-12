@@ -103,6 +103,10 @@ export interface RawSeasonMatch {
   opponentName: string;
   score: string | null;
   won: boolean;
+  /** True when this row was matched against a Forfaits.xlsx entry as a
+   * confirmed clean-sweep forfeit (see lib/import/forfeits.ts) — scored as a
+   * zero-delta "FF" instead of a normal win/loss. */
+  isForfeit: boolean;
 }
 
 export interface RawSeasonPlacement {
@@ -137,7 +141,7 @@ export interface OutputMatchRow {
   opponentPlayerId: string | null;
   opponentTtr: number | null;
   score: string | null;
-  result: "W" | "L";
+  result: "W" | "L" | "FF";
   ttrDelta: number;
   newTtr: number;
   /** The Änderungskonstante (K) applied to this match, or null for a tournament-placement bonus. */
@@ -146,6 +150,7 @@ export interface OutputMatchRow {
 
 export interface SimulationSummary {
   matchesGraded: number;
+  forfeitsApplied: number;
   tournamentGamesExcluded: number;
   nonRatedGamesExcluded: number;
   placementBonusesApplied: number;
@@ -184,6 +189,7 @@ interface CanonicalMatch {
   competition: string;
   /** Score as recorded from `a`'s perspective (e.g. "3-2"), or null if unavailable. */
   score: string | null;
+  isForfeit: boolean;
   a: { playerNameKey: string; won: boolean };
   b: CanonicalSide;
 }
@@ -232,6 +238,21 @@ function canonicalizeMatches(
     );
   }
 
+  // Mongo stores one row per participant, so a tracked-vs-tracked match's two
+  // mirrored rows can independently carry different `isForfeit` values — only
+  // the forfeiting player's OWN row was matched against Forfaits.xlsx, never
+  // their opponent's. The dedup loop below keeps just one of the two raw rows
+  // (whichever is encountered first) as canonical; without this map, a
+  // forfeit's flag would be silently lost whenever the opponent's
+  // (non-flagged) row happened to be the one kept.
+  const forfeitByPairKey = new Map<string, boolean>();
+  for (const m of matches) {
+    if (!m.isForfeit || !playerNameKeys.has(m.opponentNameKey)) continue;
+    const pairKey =
+      [m.playerNameKey, m.opponentNameKey].sort().join("|") + "|" + m.isoDate + "|" + m.competition;
+    forfeitByPairKey.set(pairKey, true);
+  }
+
   const seenPairs = new Set<string>();
   const canonical: CanonicalMatch[] = [];
 
@@ -245,6 +266,7 @@ function canonicalizeMatches(
         sortKey: m.sortKey,
         competition: m.competition,
         score: m.score,
+        isForfeit: m.isForfeit,
         a: { playerNameKey: m.playerNameKey, won: m.won },
         b: { kind: "untracked", opponentName: m.opponentName, won: !m.won },
       });
@@ -260,6 +282,7 @@ function canonicalizeMatches(
       sortKey: m.sortKey,
       competition: m.competition,
       score: m.score,
+      isForfeit: forfeitByPairKey.get(pairKey) ?? false,
       a: { playerNameKey: m.playerNameKey, won: m.won },
       b: { kind: "tracked", playerNameKey: m.opponentNameKey, won: !m.won },
     });
@@ -303,6 +326,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   const trackedNameKeys = new Set(playerByNameKey.keys());
   const summary: SimulationSummary = {
     matchesGraded: 0,
+    forfeitsApplied: 0,
     tournamentGamesExcluded: 0,
     nonRatedGamesExcluded: 0,
     placementBonusesApplied: 0,
@@ -335,6 +359,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     const played = new Set<string>();
     for (const m of canonicalMatches) {
       if (m.isoDate < period.start || m.isoDate >= period.end) continue;
+      if (m.isForfeit) continue; // a forfeit isn't "having played"
       played.add(m.a.playerNameKey);
       if (m.b.kind === "tracked") played.add(m.b.playerNameKey);
     }
@@ -482,6 +507,49 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
       }
 
       const ttrASnapshot = stateA.ttr; // frozen: not mutated until this day settles
+
+      // A confirmed forfeit (see lib/import/forfeits.ts): no rating change for
+      // either side, and it doesn't count as a played match — no addDelta/
+      // addMatchPlayed, so career-match count and the inactivity bonus are
+      // untouched. Still shown in history with the real opponent/score for
+      // context, just with result "FF" instead of a computed win/loss.
+      if (match.isForfeit) {
+        dayRows.push({
+          settleKey: match.a.playerNameKey,
+          playerId: stateA.id,
+          matchDate: match.isoDate,
+          competition: match.competition,
+          opponentName: match.b.kind === "untracked" ? match.b.opponentName : opponentDisplayName,
+          opponentPlayerId,
+          opponentTtr: Math.round(ttrBSnapshot),
+          score: match.score,
+          result: "FF",
+          ttrDelta: 0,
+          newTtr: 0,
+          kFactor: null,
+        });
+        summary.forfeitsApplied++;
+
+        if (stateB && stateBKey) {
+          dayRows.push({
+            settleKey: stateBKey,
+            playerId: stateB.id,
+            matchDate: match.isoDate,
+            competition: match.competition,
+            opponentName: playerByNameKey.get(match.a.playerNameKey)?.name ?? "",
+            opponentPlayerId: stateA.id,
+            opponentTtr: Math.round(ttrASnapshot),
+            score: reverseScore(match.score),
+            result: "FF",
+            ttrDelta: 0,
+            newTtr: 0,
+            kFactor: null,
+          });
+          summary.forfeitsApplied++;
+        }
+        continue;
+      }
+
       const kA = kFactor(stateA);
       const paWinA = winProbability(ttrASnapshot, ttrBSnapshot);
       const resultA: 0 | 1 = match.a.won ? 1 : 0;

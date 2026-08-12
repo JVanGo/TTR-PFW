@@ -74,7 +74,7 @@ interface StoredMatchRow {
   opponent_player_id: string | null;
   opponent_ttr: number | null;
   score: string | null;
-  result: "W" | "L";
+  result: "W" | "L" | "FF";
   ttr_delta: number;
   new_ttr: number;
   k_factor: number | null;
@@ -150,9 +150,20 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
   for (const r of rows) {
     const isGrowthBonus = r.competition === "Nachwuchs-Spielstärkezuwachs";
     const isPlacement = r.opponent_name.startsWith("Tournament — ");
-    const isRegularMatch = !isGrowthBonus && !isPlacement;
+    const isForfeit = r.result === "FF";
+    const isRegularMatch = !isGrowthBonus && !isPlacement && !isForfeit;
 
-    if (isRegularMatch) {
+    if (isForfeit) {
+      if (r.ttr_delta !== 0) {
+        findings.push({
+          category: "Forfeit with a non-zero point change",
+          detail: `${describe(r)} — Δ=${r.ttr_delta}`,
+        });
+      }
+      if (r.k_factor != null) {
+        findings.push({ category: "Forfeit has a K-factor set", detail: describe(r) });
+      }
+    } else if (isRegularMatch) {
       if (r.k_factor == null || !VALID_K_FACTORS.has(r.k_factor)) {
         findings.push({ category: "Invalid K-factor", detail: `${describe(r)} — K=${r.k_factor}` });
       }
@@ -268,7 +279,9 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
         category: "Tracked opponent has no matching row on their own side",
         detail: describe(r),
       });
-    } else if (mirror.result === r.result) {
+    } else if (mirror.result === r.result && r.result !== "FF") {
+      // Both sides legitimately show "FF" for a real forfeit — only a
+      // matching W/W or L/L pair is a bug.
       findings.push({
         category: "Both sides of a match recorded the same result",
         detail: `${describe(r)} — both marked ${r.result}`,

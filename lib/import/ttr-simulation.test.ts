@@ -29,6 +29,7 @@ function match(
     opponentName: overrides.opponentNameKey,
     score: "3-0",
     won: true,
+    isForfeit: false,
     ...overrides,
   };
 }
@@ -706,5 +707,168 @@ describe("simulateSeason", () => {
     const row = matchRows.find((r) => r.playerId === "a")!;
     // Cadet Ersteinstufung is 900, same as Bob -> 50% win prob.
     expect(row.opponentTtr).toBe(900);
+  });
+
+  describe("forfeits", () => {
+    it("scores a forfeited match as FF/zero-delta for both tracked sides, ratings unchanged", () => {
+      const players = [
+        player({ id: "a", name: "Alice", startingTtr: 1100 }),
+        player({ id: "b", name: "Bob", startingTtr: 1100 }),
+      ];
+      const matches = [
+        match({
+          playerNameKey: "alice",
+          opponentNameKey: "bob",
+          won: false,
+          score: "0-3",
+          isForfeit: true,
+        }),
+      ];
+      const { matchRows, summary } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches,
+        placements: [],
+        youthGrowthPeriods: IRRELEVANT_GROWTH_PERIODS,
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      expect(summary.forfeitsApplied).toBe(2);
+      expect(summary.matchesGraded).toBe(0);
+      const alice = matchRows.find((r) => r.playerId === "a")!;
+      const bob = matchRows.find((r) => r.playerId === "b")!;
+      expect(alice.result).toBe("FF");
+      expect(bob.result).toBe("FF");
+      expect(alice.ttrDelta).toBe(0);
+      expect(bob.ttrDelta).toBe(0);
+      expect(alice.newTtr).toBe(1100);
+      expect(bob.newTtr).toBe(1100);
+      expect(alice.kFactor).toBeNull();
+      expect(bob.kFactor).toBeNull();
+    });
+
+    it("doesn't count a forfeit toward career-match count or consume the inactivity bonus", () => {
+      const players = [
+        player({
+          id: "a",
+          name: "Rusty Veteran",
+          startingTtr: 1100,
+          careerMatchesBeforeSeason: 100,
+          lastMatchIsoDateBeforeSeason: "2023-01-01", // stale -> inactivity bonus active
+        }),
+        player({ id: "b", name: "Bob", startingTtr: 1100 }),
+        player({ id: "c", name: "Carol", startingTtr: 1100 }),
+      ];
+      const matches = [
+        match({
+          sortKey: "1",
+          playerNameKey: "rusty veteran",
+          opponentNameKey: "bob",
+          won: false,
+          score: "0-3",
+          isForfeit: true,
+        }),
+        // A second, real match for the same player right after — if the
+        // forfeit had wrongly consumed an inactivity-bonus match or bumped
+        // career count, this delta would be smaller than the plain +4
+        // inactivity/newcomer-free K=20 -> +10 expected here.
+        match({
+          sortKey: "2",
+          isoDate: "2025-09-02",
+          playerNameKey: "rusty veteran",
+          opponentNameKey: "carol",
+          won: true,
+        }),
+      ];
+      const { matchRows } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches,
+        placements: [],
+        youthGrowthPeriods: IRRELEVANT_GROWTH_PERIODS,
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      const realRow = matchRows.find((r) => r.playerId === "a" && r.result !== "FF")!;
+      // K=16+4(inactivity)=20 -> delta=10. If the forfeit had consumed the
+      // inactivity bonus or nudged career-match bookkeeping, this would differ.
+      expect(realRow.ttrDelta).toBe(10);
+    });
+
+    it("excludes a forfeit from youth-growth-bonus eligibility for that Teilrunde", () => {
+      const players = [
+        player({ id: "a", name: "Cadet Player", startingTtr: 1000, ageCategory: "Cadet" }),
+        player({ id: "d", name: "Filler", startingTtr: 1000 }),
+      ];
+      const matches = [
+        match({
+          isoDate: "2025-09-01",
+          playerNameKey: "cadet player",
+          opponentNameKey: "filler",
+          won: false,
+          score: "0-3",
+          isForfeit: true,
+        }),
+      ];
+      const { matchRows } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches,
+        placements: [],
+        youthGrowthPeriods: [{ start: SEASON_START, end: YOUTH_GROWTH_DATE }],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      expect(
+        matchRows.some(
+          (r) => r.playerId === "a" && r.competition === "Nachwuchs-Spielstärkezuwachs",
+        ),
+      ).toBe(false);
+    });
+
+    it("keeps the forfeit flag even when the opponent's (non-forfeit) mirrored row is seen first", () => {
+      const players = [
+        player({ id: "a", name: "Alice", startingTtr: 1100 }),
+        player({ id: "b", name: "Bob", startingTtr: 1100 }),
+      ];
+      // Same real match, two Mongo perspectives — only Alice's own row was
+      // matched against Forfaits.xlsx, but Bob's (opponent) row is listed
+      // FIRST here, mimicking arbitrary Mongo fetch order.
+      const matches = [
+        match({
+          sortKey: "1",
+          playerNameKey: "bob",
+          opponentNameKey: "alice",
+          won: true,
+          score: "3-0",
+          isForfeit: false,
+        }),
+        match({
+          sortKey: "2",
+          playerNameKey: "alice",
+          opponentNameKey: "bob",
+          won: false,
+          score: "0-3",
+          isForfeit: true,
+        }),
+      ];
+      const { matchRows, summary } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches,
+        placements: [],
+        youthGrowthPeriods: IRRELEVANT_GROWTH_PERIODS,
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      expect(summary.forfeitsApplied).toBe(2);
+      expect(summary.matchesGraded).toBe(0);
+      const alice = matchRows.find((r) => r.playerId === "a")!;
+      const bob = matchRows.find((r) => r.playerId === "b")!;
+      expect(alice.result).toBe("FF");
+      expect(bob.result).toBe("FF");
+      expect(alice.ttrDelta).toBe(0);
+      expect(bob.ttrDelta).toBe(0);
+    });
   });
 });

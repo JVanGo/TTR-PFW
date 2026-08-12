@@ -17,7 +17,7 @@ export interface TtrPoint {
   opponent: string;
   delta: number;
   score: string;
-  result: "W" | "L";
+  result: "W" | "L" | "FF";
 }
 
 interface Props {

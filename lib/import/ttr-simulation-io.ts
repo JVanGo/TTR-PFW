@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
+import { matchForfeits, readForfeitsFile, type MatchCandidateRow } from "@/lib/import/forfeits";
+import { FORFEIT_OVERRIDES } from "@/lib/import/forfeit-overrides";
 import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
 import { fetchSeasonStartTtr, type SeasonStartTtr } from "@/lib/import/season-start-snapshot";
@@ -81,11 +83,26 @@ interface MongoPlayerMatchDoc {
   // blanked-out competition doesn't (a) break match-pair dedup between two
   // tracked players' mirrored rows, or (b) let a TOU game slip past the
   // tournament-exclusion filter.
-  rencontres?: { competition?: string };
+  // `round`/`matchLabel` are used to match this row against Forfaits.xlsx
+  // entries (see resolveCompetition/matchForfeits below) — otherwise unused
+  // by the rest of the pipeline.
+  rencontres?: { competition?: string; round?: string; matchLabel?: string };
   // Opponent's club at match time, when a Performance-table row was joined —
   // used to disambiguate two different players who share a name (see
   // playersByNameKey below). Not present on every row.
   performance?: { opponentClub?: string | null } | null;
+}
+
+/** The top-level `competition` is sourced from the Performance-table row and
+ * is blank whenever that source cell was blank (including for most TOU
+ * tournament games) — `rencontres.competition` comes from the Rencontres
+ * table instead and is reliably populated. Prefer it as a fallback so a
+ * blanked-out competition doesn't (a) break match-pair dedup between two
+ * tracked players' mirrored rows, (b) let a TOU game slip past the
+ * tournament-exclusion filter, or (c) fail to match a Forfaits.xlsx entry's
+ * half-season "(Rx)" marker. */
+function resolveCompetition(m: Pick<MongoPlayerMatchDoc, "competition" | "rencontres">): string {
+  return m.competition?.trim() || m.rencontres?.competition?.trim() || "";
 }
 
 interface MongoTournamentPlacementDoc {
@@ -261,6 +278,8 @@ async function fetchMongoData(season: string) {
               isoDate: 1,
               competition: 1,
               "rencontres.competition": 1,
+              "rencontres.round": 1,
+              "rencontres.matchLabel": 1,
               "performance.opponentClub": 1,
               score: 1,
               won: 1,
@@ -375,6 +394,27 @@ export async function computeSeasonSimulation(
         "rather than the reverse, since that's true for the vast majority of players.",
     );
   }
+
+  const forfeitEntries = readForfeitsFile();
+  const forfeitCandidateRows: MatchCandidateRow[] = seasonMatches.map((m) => ({
+    id: m.id,
+    flttPlayerId: m.flttPlayerId,
+    round: m.rencontres?.round != null ? Number(m.rencontres.round) : null,
+    competition: resolveCompetition(m),
+    matchLabel: m.rencontres?.matchLabel ?? null,
+    score: m.score,
+    isoDate: m.isoDate,
+  }));
+  const { forfeitedRowIds, reviewLines } = matchForfeits(
+    forfeitCandidateRows,
+    forfeitEntries,
+    FORFEIT_OVERRIDES,
+  );
+  for (const line of reviewLines) log(`  [forfeit review] ${line}`);
+  log(
+    `  ${forfeitedRowIds.size} forfeited rows detected from ${forfeitEntries.length} ` +
+      `Forfaits.xlsx entries (${reviewLines.length} flagged for manual review).`,
+  );
 
   log("Loading players from Supabase...");
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(
@@ -620,11 +660,10 @@ export async function computeSeasonSimulation(
     );
     if (!opponentPlayer && opponentCandidates.length > 1) ambiguousOpponent++;
 
-    const competition = m.competition?.trim() || m.rencontres?.competition?.trim() || "";
     matches.push({
       sortKey: m.id,
       isoDate: m.isoDate,
-      competition,
+      competition: resolveCompetition(m),
       playerNameKey: identityKey(selfPlayer.name_key, selfPlayer.club),
       opponentNameKey: opponentPlayer
         ? identityKey(opponentPlayer.name_key, opponentPlayer.club)
@@ -632,6 +671,7 @@ export async function computeSeasonSimulation(
       opponentName: m.opponentName,
       score: m.score,
       won: m.won,
+      isForfeit: forfeitedRowIds.has(m.id),
     });
   }
 
@@ -677,7 +717,8 @@ export async function computeSeasonSimulation(
   });
 
   log(
-    `  graded=${summary.matchesGraded} tournamentGamesExcluded=${summary.tournamentGamesExcluded} ` +
+    `  graded=${summary.matchesGraded} forfeitsApplied=${summary.forfeitsApplied} ` +
+      `tournamentGamesExcluded=${summary.tournamentGamesExcluded} ` +
       `nonRatedGamesExcluded=${summary.nonRatedGamesExcluded} placementBonuses=${summary.placementBonusesApplied} ` +
       `youthGrowthBonuses=${summary.youthGrowthBonusesApplied} ` +
       `droppedNoOpponentRating=${summary.droppedNoOpponentRating} unresolvedPlayers=${summary.unresolvedPlayers}`,

@@ -112,7 +112,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
     opponent: m.opponent_name,
     delta: m.ttr_delta,
     score: m.score ?? "",
-    result: m.result as "W" | "L",
+    result: m.result as "W" | "L" | "FF",
   }));
 
   const reverseMatches = [...matches].reverse();
@@ -261,7 +261,11 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
                         <td
                           className={
                             "px-3 py-2 text-center font-medium " +
-                            (m.result === "W" ? "text-emerald-600" : "text-red-600")
+                            (m.result === "W"
+                              ? "text-emerald-600"
+                              : m.result === "L"
+                                ? "text-red-600"
+                                : "text-muted-foreground")
                           }
                         >
                           {m.result}
