@@ -4,7 +4,9 @@ import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions"
 import { nameKey } from "@/lib/name-key";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import {
+  excludeKnownFalsePositives,
   findMarkerOnlyForfeits,
+  FORFEIT_EXCLUSIONS,
   matchForfeits,
   readForfeitsFile,
   type MatchCandidateRow,
@@ -420,6 +422,7 @@ export async function computeSeasonSimulation(
     matchLabel: m.rencontres?.matchLabel ?? null,
     score: m.score,
     isoDate: m.isoDate,
+    opponentName: m.opponentName,
     hasForfeitMarker: hasForfeitMarker(m),
   }));
   const { forfeitedRowIds: xlsxForfeitedRowIds, reviewLines } = matchForfeits(
@@ -444,7 +447,11 @@ export async function computeSeasonSimulation(
         `present in Forfaits.xlsx at all.`,
     );
   }
-  const forfeitedRowIds = new Set([...xlsxForfeitedRowIds, ...markerOnlyRowIds]);
+  const forfeitedRowIds = excludeKnownFalsePositives(
+    forfeitCandidateRows,
+    new Set([...xlsxForfeitedRowIds, ...markerOnlyRowIds]),
+    FORFEIT_EXCLUSIONS,
+  );
 
   log("Loading players from Supabase...");
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(

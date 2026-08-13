@@ -131,6 +131,7 @@ export interface MatchCandidateRow {
   matchLabel: string | null;
   score: string | null;
   isoDate: string;
+  opponentName: string;
   /** True when FLTT's own source data privately flags this exact row as a
    * forfeit (a `"forfeit":true` marker buried in the raw Rencontres cell,
    * only ever present on the forfeiting player's own row) — see
@@ -315,4 +316,66 @@ export function findMarkerOnlyForfeits(
   }
 
   return { forfeitedRowIds, noteLines };
+}
+
+export interface ForfeitExclusion {
+  flttPlayerId: string;
+  name: string;
+  isoDate: string;
+  opponentName: string;
+  note: string;
+}
+
+/**
+ * A known false positive: a specific board that both detection paths (a
+ * clean "0-3" from Forfaits.xlsx, or FLTT's own internal marker) would
+ * otherwise treat as a forfeit, but Jeff has personally confirmed was a real,
+ * played match — a genuine blowout loss just happens to look identical to a
+ * forfeit from the score alone. Applied last, after both detection paths
+ * have run, so it can veto either one regardless of which found it.
+ *
+ * Confirmed for real with Jeff on 2026-08-13: BRITTNACHER Jürgen's
+ * Forfaits.xlsx entry (S-1.4/XG-0142, Zolwer 1's 2025-10-11 tie at
+ * Beetebuerg-P. 2) matched two "0-3" boards — his real forfeit was against
+ * HAMROUNI Slim, but the *other* board that same day, against BIERNACKI
+ * Kacper, was a real match that just ended 0-3.
+ */
+export const FORFEIT_EXCLUSIONS: ForfeitExclusion[] = [
+  {
+    flttPlayerId: "25817",
+    name: "BRITTNACHER Jürgen",
+    isoDate: "2025-10-11",
+    opponentName: "BIERNACKI Kacper",
+    note:
+      "Real match, not a forfeit — his teammate's board that same day (vs HAMROUNI Slim, same " +
+      "tie) is the actual forfeit and should stay FF.",
+  },
+];
+
+/**
+ * Removes any row matching a `FORFEIT_EXCLUSIONS` entry from an
+ * already-computed forfeit set — applied once, centrally, to the combined
+ * result of `matchForfeits` and `findMarkerOnlyForfeits`, so a known false
+ * positive is vetoed regardless of which detection path produced it.
+ */
+export function excludeKnownFalsePositives(
+  rows: MatchCandidateRow[],
+  forfeitedRowIds: Set<string>,
+  exclusions: ForfeitExclusion[],
+): Set<string> {
+  if (exclusions.length === 0) return forfeitedRowIds;
+  const excludedRowIds = new Set(
+    rows
+      .filter((r) =>
+        exclusions.some(
+          (e) =>
+            e.flttPlayerId === r.flttPlayerId &&
+            e.isoDate === r.isoDate &&
+            e.opponentName === r.opponentName,
+        ),
+      )
+      .map((r) => r.id),
+  );
+  if (excludedRowIds.size === 0) return forfeitedRowIds;
+  return new Set([...forfeitedRowIds].filter((id) => !excludedRowIds.has(id)));
 }

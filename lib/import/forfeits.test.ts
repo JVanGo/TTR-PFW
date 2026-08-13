@@ -2,7 +2,9 @@ import * as XLSX from "xlsx";
 import { describe, expect, it } from "vitest";
 import {
   type ForfeitEntry,
+  type ForfeitExclusion,
   type MatchCandidateRow,
+  excludeKnownFalsePositives,
   findMarkerOnlyForfeits,
   matchForfeits,
   parseForfeits,
@@ -96,6 +98,7 @@ describe("matchForfeits", () => {
       matchLabel: "Lenneng 4 - Bäerdref 2",
       score: "0-3",
       isoDate: "2026-04-18",
+      opponentName: "Bäerdref 2 Opponent",
       hasForfeitMarker: false,
       ...overrides,
     };
@@ -290,6 +293,7 @@ describe("findMarkerOnlyForfeits", () => {
       matchLabel: "Lëntgen 4 - Stroossen 2",
       score: "0-3",
       isoDate: "2026-01-24",
+      opponentName: "PENG Michael Yitong",
       hasForfeitMarker: true,
       ...overrides,
     };
@@ -319,5 +323,53 @@ describe("findMarkerOnlyForfeits", () => {
     const rows = [row({ id: "a", hasForfeitMarker: false })];
     const result = findMarkerOnlyForfeits(rows, new Set());
     expect(result.forfeitedRowIds.size).toBe(0);
+  });
+});
+
+describe("excludeKnownFalsePositives", () => {
+  function row(overrides: Partial<MatchCandidateRow>): MatchCandidateRow {
+    return {
+      id: "id",
+      flttPlayerId: "25817",
+      round: 4,
+      competition: "CH SEN N2-D5 (R1)",
+      matchLabel: "Beetebuerg-P. 2 - Zolwer 1",
+      score: "0-3",
+      isoDate: "2025-10-11",
+      opponentName: "BIERNACKI Kacper",
+      hasForfeitMarker: false,
+      ...overrides,
+    };
+  }
+
+  // Confirmed with real data (BRITTNACHER Jürgen, 2026-08-13): a real,
+  // played match that just ended 0-3, wrongly swept in by the general
+  // pattern alongside his teammate's actual forfeit that same day.
+  const exclusion: ForfeitExclusion = {
+    flttPlayerId: "25817",
+    name: "BRITTNACHER Jürgen",
+    isoDate: "2025-10-11",
+    opponentName: "BIERNACKI Kacper",
+    note: "test exclusion",
+  };
+
+  it("removes a row matching an exclusion from an already-computed forfeit set", () => {
+    const rows = [row({ id: "biernacki" }), row({ id: "hamrouni", opponentName: "HAMROUNI Slim" })];
+    const result = excludeKnownFalsePositives(rows, new Set(["biernacki", "hamrouni"]), [
+      exclusion,
+    ]);
+    expect(result).toEqual(new Set(["hamrouni"]));
+  });
+
+  it("leaves the set untouched when nothing matches an exclusion", () => {
+    const rows = [row({ id: "hamrouni", opponentName: "HAMROUNI Slim" })];
+    const result = excludeKnownFalsePositives(rows, new Set(["hamrouni"]), [exclusion]);
+    expect(result).toEqual(new Set(["hamrouni"]));
+  });
+
+  it("is a no-op with an empty exclusion list", () => {
+    const rows = [row({ id: "biernacki" })];
+    const result = excludeKnownFalsePositives(rows, new Set(["biernacki"]), []);
+    expect(result).toEqual(new Set(["biernacki"]));
   });
 });
