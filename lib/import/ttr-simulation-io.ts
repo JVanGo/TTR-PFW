@@ -3,7 +3,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
-import { matchForfeits, readForfeitsFile, type MatchCandidateRow } from "@/lib/import/forfeits";
+import {
+  findMarkerOnlyForfeits,
+  matchForfeits,
+  readForfeitsFile,
+  type MatchCandidateRow,
+} from "@/lib/import/forfeits";
 import { FORFEIT_OVERRIDES } from "@/lib/import/forfeit-overrides";
 import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
@@ -84,9 +89,11 @@ interface MongoPlayerMatchDoc {
   // tracked players' mirrored rows, or (b) let a TOU game slip past the
   // tournament-exclusion filter.
   // `round`/`matchLabel` are used to match this row against Forfaits.xlsx
-  // entries (see resolveCompetition/matchForfeits below) — otherwise unused
-  // by the rest of the pipeline.
-  rencontres?: { competition?: string; round?: string; matchLabel?: string };
+  // entries (see resolveCompetition/matchForfeits below); `points` is a raw
+  // source cell that's usually blank but sometimes carries a JSON blob with
+  // FLTT's own private "forfeit":true marker — see hasForfeitMarker below.
+  // Otherwise unused by the rest of the pipeline.
+  rencontres?: { competition?: string; round?: string; matchLabel?: string; points?: string };
   // Opponent's club at match time, when a Performance-table row was joined —
   // used to disambiguate two different players who share a name (see
   // playersByNameKey below). Not present on every row.
@@ -103,6 +110,14 @@ interface MongoPlayerMatchDoc {
  * half-season "(Rx)" marker. */
 function resolveCompetition(m: Pick<MongoPlayerMatchDoc, "competition" | "rencontres">): string {
   return m.competition?.trim() || m.rencontres?.competition?.trim() || "";
+}
+
+/** `rencontres.points` is normally blank, but on some rows carries a raw JSON
+ * blob straight from FLTT's own source with its own "forfeit":true/false
+ * flag — see findMarkerOnlyForfeits in lib/import/forfeits.ts for why this is
+ * treated as a secondary detection source, not the primary one. */
+function hasForfeitMarker(m: Pick<MongoPlayerMatchDoc, "rencontres">): boolean {
+  return (m.rencontres?.points ?? "").includes('"forfeit":true');
 }
 
 interface MongoTournamentPlacementDoc {
@@ -280,6 +295,7 @@ async function fetchMongoData(season: string) {
               "rencontres.competition": 1,
               "rencontres.round": 1,
               "rencontres.matchLabel": 1,
+              "rencontres.points": 1,
               "performance.opponentClub": 1,
               score: 1,
               won: 1,
@@ -404,17 +420,31 @@ export async function computeSeasonSimulation(
     matchLabel: m.rencontres?.matchLabel ?? null,
     score: m.score,
     isoDate: m.isoDate,
+    hasForfeitMarker: hasForfeitMarker(m),
   }));
-  const { forfeitedRowIds, reviewLines } = matchForfeits(
+  const { forfeitedRowIds: xlsxForfeitedRowIds, reviewLines } = matchForfeits(
     forfeitCandidateRows,
     forfeitEntries,
     FORFEIT_OVERRIDES,
   );
   for (const line of reviewLines) log(`  [forfeit review] ${line}`);
   log(
-    `  ${forfeitedRowIds.size} forfeited rows detected from ${forfeitEntries.length} ` +
+    `  ${xlsxForfeitedRowIds.size} forfeited rows detected from ${forfeitEntries.length} ` +
       `Forfaits.xlsx entries (${reviewLines.length} flagged for manual review).`,
   );
+
+  const { forfeitedRowIds: markerOnlyRowIds, noteLines } = findMarkerOnlyForfeits(
+    forfeitCandidateRows,
+    xlsxForfeitedRowIds,
+  );
+  for (const line of noteLines) log(`  [forfeit note] ${line}`);
+  if (markerOnlyRowIds.size > 0) {
+    log(
+      `  ${markerOnlyRowIds.size} more forfeited rows found via FLTT's own internal marker, not ` +
+        `present in Forfaits.xlsx at all.`,
+    );
+  }
+  const forfeitedRowIds = new Set([...xlsxForfeitedRowIds, ...markerOnlyRowIds]);
 
   log("Loading players from Supabase...");
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(

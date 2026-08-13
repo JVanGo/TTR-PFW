@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   type ForfeitEntry,
   type MatchCandidateRow,
+  findMarkerOnlyForfeits,
   matchForfeits,
   parseForfeits,
   parseSpT,
@@ -18,9 +19,9 @@ function buildWorkbook(sheets: Record<string, Record<string, unknown>[]>): Buffe
 }
 
 describe("parseSpT", () => {
-  it("decodes family-half.round, ignoring the leading family letters", () => {
-    expect(parseSpT("S-2.8")).toEqual({ half: 2, round: 8 });
-    expect(parseSpT("MIN-1.3")).toEqual({ half: 1, round: 3 });
+  it("decodes family-half.round", () => {
+    expect(parseSpT("S-2.8")).toEqual({ family: "S", half: 2, round: 8 });
+    expect(parseSpT("MIN-1.3")).toEqual({ family: "MIN", half: 1, round: 3 });
   });
 
   it("returns null for an unrecognized shape", () => {
@@ -95,12 +96,14 @@ describe("matchForfeits", () => {
       matchLabel: "Lenneng 4 - Bäerdref 2",
       score: "0-3",
       isoDate: "2026-04-18",
+      hasForfeitMarker: false,
       ...overrides,
     };
   }
   function entry(overrides: Partial<ForfeitEntry> = {}): ForfeitEntry {
     return {
       flttPlayerId: "1",
+      family: "S",
       half: 2,
       round: 8,
       team: "Lenneng 4",
@@ -123,12 +126,25 @@ describe("matchForfeits", () => {
     expect(result.reviewLines).toEqual([]);
   });
 
-  it("flags an entry whose matched games include no 0-3 board at all", () => {
+  it("flags an entry whose matched games include neither forfeit score at all", () => {
     const rows = [row({ id: "a", score: "1-3" }), row({ id: "b", score: "2-3" })];
     const result = matchForfeits(rows, [entry()]);
     expect(result.forfeitedRowIds.size).toBe(0);
     expect(result.reviewLines).toHaveLength(1);
-    expect(result.reviewLines[0]).toContain('none with the "0-3" forfeit score');
+    expect(result.reviewLines[0]).toContain('none with a "0-3"/"0-0" forfeit score');
+  });
+
+  it('treats a "0-0" board as a forfeit too, within a named entry', () => {
+    // Confirmed with Jeff on 2026-08-13 (RAGNACCI Tun, CONG Zhaoping): a
+    // regular single-sided forfeit sometimes gets recorded as "0-0" instead
+    // of "0-3" by mistake. Only trusted here, scoped to a player Forfaits.xlsx
+    // already names as having forfeited this exact tie — not a general
+    // "0-0 always means forfeit" rule (a real mutual double-forfeit also
+    // legitimately shows "0-0").
+    const rows = [row({ id: "a", score: "0-0" }), row({ id: "b", score: "0-3" })];
+    const result = matchForfeits(rows, [entry()]);
+    expect(result.forfeitedRowIds).toEqual(new Set(["a", "b"]));
+    expect(result.reviewLines).toEqual([]);
   });
 
   it("applies an override to every matched candidate, bypassing the score check entirely", () => {
@@ -146,6 +162,52 @@ describe("matchForfeits", () => {
     const result = matchForfeits(rows, [entry()], overrides);
     expect(result.forfeitedRowIds).toEqual(new Set(["a", "b"]));
     expect(result.reviewLines).toEqual([]);
+  });
+
+  it("narrows an override to one specific date when round+half+team alone still matches multiple ties", () => {
+    // Confirmed with real data (SWARTENBROUCKX Gaetan, NL1) — a competition
+    // whose round numbers aren't unique across the season, so round+half+team
+    // still lands on more than one real tie. Would otherwise hit the
+    // multi-date bail-out below, which is why the override check runs first.
+    const rows = [
+      row({ id: "real-1", score: "0-3", isoDate: "2026-01-24" }),
+      row({ id: "real-2", score: "0-3", isoDate: "2026-01-24" }),
+      row({ id: "unrelated-1", score: "3-0", isoDate: "2026-03-15" }),
+      row({ id: "unrelated-2", score: "0-3", isoDate: "2026-03-15" }),
+    ];
+    const overrides: ForfeitOverride[] = [
+      {
+        flttPlayerId: "1",
+        name: "SWARTENBROUCKX Gaetan",
+        half: 2,
+        round: 8,
+        team: "Lenneng 4",
+        isoDate: "2026-01-24",
+        note: "test override",
+      },
+    ];
+    const result = matchForfeits(rows, [entry()], overrides);
+    expect(result.forfeitedRowIds).toEqual(new Set(["real-1", "real-2"]));
+    expect(result.reviewLines).toEqual([]);
+  });
+
+  it("flags an override whose isoDate doesn't match any candidate", () => {
+    const rows = [row({ id: "a", score: "0-3", isoDate: "2025-09-01" })];
+    const overrides: ForfeitOverride[] = [
+      {
+        flttPlayerId: "1",
+        name: "APEL Bob",
+        half: 2,
+        round: 8,
+        team: "Lenneng 4",
+        isoDate: "2099-01-01",
+        note: "test override",
+      },
+    ];
+    const result = matchForfeits(rows, [entry()], overrides);
+    expect(result.forfeitedRowIds.size).toBe(0);
+    expect(result.reviewLines).toHaveLength(1);
+    expect(result.reviewLines[0]).toContain("expects a game on 2099-01-01");
   });
 
   it("flags when no candidate game is found", () => {
@@ -175,6 +237,38 @@ describe("matchForfeits", () => {
     expect(result.reviewLines[0]).toContain("no matching game found");
   });
 
+  it("doesn't let a same round+half+team game from a DIFFERENT competition family contaminate the candidates", () => {
+    // Confirmed with real data (BONNE RAAD Timothée, "Stroossen 2") — a
+    // player can play the same team number in two different age-category
+    // leagues, and both can land on the same round number under the same
+    // "(Rx)" half tag. The family code (CH CAD vs CH MIN here) is what tells
+    // them apart.
+    const rows = [
+      row({ id: "cad", score: "0-3", competition: "CH CAD (R2)" }),
+      row({ id: "min", score: "3-1", competition: "CH MIN (R2)" }),
+    ];
+    const result = matchForfeits(rows, [entry({ family: "C" })]);
+    expect(result.forfeitedRowIds).toEqual(new Set(["cad"]));
+    expect(result.reviewLines).toEqual([]);
+  });
+
+  it("still matches a family across a differently-labeled competition for the same age category", () => {
+    // Confirmed with real data (CHOURIS Hector) — "CH CAD" (the regular
+    // league) and "M•supp CAD" (supplementary/makeup Cadets matches) are both
+    // family "C". An over-strict "starts with CH CAD" match wrongly excluded
+    // his own real forfeit here as "no matching game found".
+    const rows = [row({ id: "a", score: "0-3", competition: "M•supp CAD (R2)" })];
+    const result = matchForfeits(rows, [entry({ family: "C" })]);
+    expect(result.forfeitedRowIds).toEqual(new Set(["a"]));
+    expect(result.reviewLines).toEqual([]);
+  });
+
+  it("falls back to round+half+team alone for a family code with no known competition mapping", () => {
+    const rows = [row({ id: "a", score: "0-3", competition: "CH SEN N2-D5 (R2)" })];
+    const result = matchForfeits(rows, [entry({ family: "N" })]);
+    expect(result.forfeitedRowIds).toEqual(new Set(["a"]));
+  });
+
   it("gives multiple same-day forfeited boards their own row ids", () => {
     const rows = [
       row({ id: "a", score: "0-3" }),
@@ -183,5 +277,47 @@ describe("matchForfeits", () => {
     ];
     const result = matchForfeits(rows, [entry()]);
     expect(result.forfeitedRowIds).toEqual(new Set(["a", "b", "c"]));
+  });
+});
+
+describe("findMarkerOnlyForfeits", () => {
+  function row(overrides: Partial<MatchCandidateRow>): MatchCandidateRow {
+    return {
+      id: "id",
+      flttPlayerId: "26913",
+      round: 3,
+      competition: "CH CAD (R2)",
+      matchLabel: "Lëntgen 4 - Stroossen 2",
+      score: "0-3",
+      isoDate: "2026-01-24",
+      hasForfeitMarker: true,
+      ...overrides,
+    };
+  }
+
+  it("picks up a marked 0-3 row not already caught by the spreadsheet match", () => {
+    const rows = [row({ id: "a" }), row({ id: "b" })];
+    const result = findMarkerOnlyForfeits(rows, new Set());
+    expect(result.forfeitedRowIds).toEqual(new Set(["a", "b"]));
+    expect(result.noteLines).toHaveLength(2);
+  });
+
+  it("skips a row already found via Forfaits.xlsx, without duplicating or double-noting it", () => {
+    const rows = [row({ id: "a" }), row({ id: "b" })];
+    const result = findMarkerOnlyForfeits(rows, new Set(["a"]));
+    expect(result.forfeitedRowIds).toEqual(new Set(["b"]));
+    expect(result.noteLines).toHaveLength(1);
+  });
+
+  it("ignores a marked row that isn't an exact 0-3", () => {
+    const rows = [row({ id: "a", score: "1-3" })];
+    const result = findMarkerOnlyForfeits(rows, new Set());
+    expect(result.forfeitedRowIds.size).toBe(0);
+  });
+
+  it("ignores an unmarked row even if it happens to be 0-3", () => {
+    const rows = [row({ id: "a", hasForfeitMarker: false })];
+    const result = findMarkerOnlyForfeits(rows, new Set());
+    expect(result.forfeitedRowIds.size).toBe(0);
   });
 });
