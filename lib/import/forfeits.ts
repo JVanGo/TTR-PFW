@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import * as XLSX from "xlsx";
 import type { ForfeitOverride } from "@/lib/import/forfeit-overrides";
+import { nameKey } from "@/lib/name-key";
+import { isNonRatedCompetition, isTournamentCompetition } from "@/lib/import/ttr-simulation";
 
 // FLTT can produce a list of every forfeited game in a season (one row per
 // forfeiting player: which team tie, which player, no date or opponent name).
@@ -378,4 +380,148 @@ export function excludeKnownFalsePositives(
   );
   if (excludedRowIds.size === 0) return forfeitedRowIds;
   return new Set([...forfeitedRowIds].filter((id) => !excludedRowIds.has(id)));
+}
+
+/** A season match row plus the two extra fields `findPerformanceGapForfeits`
+ * needs beyond `MatchCandidateRow`: the player's own name (to find this row's
+ * mirror on the opponent's side) and whether FLTT's Performance table has a
+ * joined row for it. */
+export interface PerformanceGapRow extends MatchCandidateRow {
+  playerName: string;
+  hasPerformance: boolean;
+}
+
+// FLTT's Performance table is a rolling trailing-12-months window measured
+// from whenever it's crawled, NOT scoped to the FLTT season (which is itself
+// ~365 days long, July 1 - June 30) — confirmed with Jeff on 2026-08-15. A
+// match from early in the season legitimately falls out of that window well
+// before the season itself is a year old, with nothing forfeit-related about
+// it. Left unguarded, that would look EXACTLY like a real gap (a small,
+// otherwise-unexplained hole in an otherwise-normal player's history) the
+// longer this runs after the match was actually played — including every
+// time this is re-run during season-rollover work months after the season
+// ended. 335 days (~11 months) leaves roughly a month of safety margin under
+// the 365-day window for crawl lag and any imprecision in FLTT's exact
+// rolling-window boundary; a row older than that is excluded entirely rather
+// than risk flagging a real, already-rated match as a forfeit candidate.
+const PERFORMANCE_WINDOW_SAFETY_DAYS = 335;
+
+function daysBetween(earlierIsoDate: string, laterIsoDate: string): number {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round(
+    (Date.parse(`${laterIsoDate}T00:00:00Z`) - Date.parse(`${earlierIsoDate}T00:00:00Z`)) /
+      msPerDay,
+  );
+}
+
+export interface PerformanceGapResult {
+  /** Not a forfeit determination — just candidates worth a human look, same
+   * spirit as `ForfeitMatchResult.reviewLines`. Never merge into an applied
+   * forfeit set automatically; this signal hasn't earned that yet (see the
+   * doc comment below). */
+  reviewLines: string[];
+}
+
+/**
+ * A third, independent forfeit signal, alongside Forfaits.xlsx
+ * (`matchForfeits`) and FLTT's own internal marker (`findMarkerOnlyForfeits`):
+ * a game that's in a player's Rencontres ("Games recorded") history but has
+ * no joined row in their Performance table. Jeff's idea, spot-checked against
+ * fltt.lu directly for several real cases before building this (2026-08-14) —
+ * 3 confirmed real forfeits found this way that neither other method caught
+ * (HANSEN Finja x6, REFF Stefan x3, DECKER Serge x1), so the underlying idea
+ * is sound. But unlike the internal marker, this signal is NOT reliable
+ * enough to auto-apply — two distinct causes produce the exact same "missing
+ * Performance row" shape without being a forfeit at all, and both had to be
+ * filtered out before what's left is worth a human's attention:
+ *
+ * 1. Tournament (TOU) and cup (COU FELTEN) games never get a Performance row
+ *    regardless of outcome — excluded via `isTournamentCompetition` /
+ *    `isNonRatedCompetition`, same rule `simulateSeason` uses to exclude them
+ *    from rating entirely.
+ * 2. A forfeit only gets recorded against the FORFEITING player — the
+ *    opponent who won by default has a perfectly normal row that also lacks
+ *    a Performance entry (no real match was played for either side), with
+ *    nothing forfeit-related about it being "wrong". Filtered by looking up
+ *    each row's mirror (the same tie from the opponent's own perspective,
+ *    matched on date + competition + both players' names, since a match
+ *    between two tracked players is stored once per side — see
+ *    `Dataset/DATASET_HANDOFF.md` section 5.8) and dropping it silently
+ *    whenever that mirror is already a known forfeit.
+ *
+ * A third cause is real but NOT filtered here, because it can't be told apart
+ * from a genuine forfeit by looking at the row alone: FLTT Progress Tracker's
+ * own crawl of a player's Performance table can simply be stale/incomplete
+ * for that whole player — confirmed for real with POOS Piotr (2026-08-14),
+ * whose entire season showed zero joined Performance rows despite fltt.lu's
+ * live page having real Performance data for every one of his games. The
+ * tell distinguishing this from a real forfeit: Piotr had NO Performance rows
+ * anywhere all season, whereas Finja/Reff/Decker were otherwise normal
+ * players with a small gap on one specific day. So any player with zero
+ * Performance rows across their *entire* set of rated rows this season is
+ * skipped entirely (both their missing AND present rows) — there's no way to
+ * tell a real forfeit from a crawl gap for that player from this signal
+ * alone, and flagging every one of their games as a candidate would just be
+ * noise.
+ *
+ * A fourth cause, also not tellable apart from a real forfeit by looking at
+ * one row: the match has simply aged out of FLTT's trailing-12-months
+ * Performance window (see `PERFORMANCE_WINDOW_SAFETY_DAYS` above) — filtered
+ * by `nowIsoDate`, dropping anything old enough that it could plausibly have
+ * rolled off already.
+ *
+ * What's left after all of that still isn't a confirmed forfeit — it's a
+ * candidate worth Jeff checking against the live fltt.lu page, the same way
+ * every case above was checked, before it's added to Forfaits.xlsx or
+ * `forfeit-overrides.ts` by hand.
+ */
+export function findPerformanceGapForfeits(
+  rows: PerformanceGapRow[],
+  alreadyForfeited: Set<string>,
+  nowIsoDate: string,
+): PerformanceGapResult {
+  const ratedRows = rows.filter(
+    (r) =>
+      !isTournamentCompetition(r.competition) &&
+      !isNonRatedCompetition(r.competition) &&
+      daysBetween(r.isoDate, nowIsoDate) < PERFORMANCE_WINDOW_SAFETY_DAYS,
+  );
+
+  const playersWithSomePerformance = new Set<string>();
+  for (const r of ratedRows) {
+    if (r.hasPerformance) playersWithSomePerformance.add(r.flttPlayerId);
+  }
+
+  // "(R2)" / "(R1)" half-season suffix only — keep everything else (the
+  // family both halves of a competition share) so a mirror row can be found
+  // regardless of which half's rounding it's recorded under.
+  const family = (competition: string) => competition.replace(/\s*\(R\d+\)\s*$/, "").trim();
+  const mirrorIndex = new Map<string, PerformanceGapRow>();
+  for (const r of ratedRows) {
+    mirrorIndex.set(
+      `${nameKey(r.playerName)}|${r.isoDate}|${family(r.competition)}|${nameKey(r.opponentName)}`,
+      r,
+    );
+  }
+
+  const reviewLines: string[] = [];
+  for (const r of ratedRows) {
+    if (r.hasPerformance) continue;
+    if (alreadyForfeited.has(r.id)) continue;
+    if (!playersWithSomePerformance.has(r.flttPlayerId)) continue;
+
+    const mirror = mirrorIndex.get(
+      `${nameKey(r.opponentName)}|${r.isoDate}|${family(r.competition)}|${nameKey(r.playerName)}`,
+    );
+    // The winning side of an already-known forfeit — not a new candidate.
+    if (mirror && alreadyForfeited.has(mirror.id)) continue;
+
+    reviewLines.push(
+      `${r.flttPlayerId} ${r.playerName} vs ${r.opponentName} — ${r.isoDate} — ${r.competition} — ` +
+        `score ${r.score} — missing from the Performance table, not flagged by either other method — ` +
+        `check fltt.lu directly before treating as a forfeit`,
+    );
+  }
+
+  return { reviewLines };
 }

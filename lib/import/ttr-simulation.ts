@@ -22,9 +22,14 @@ const PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 15, 2: 10, 3: 5 };
 // score, no placement bonus either, unlike TOU club tournaments.
 const NON_RATED_COMPETITION_PREFIXES = ["COU FELTEN"];
 
-function isNonRatedCompetition(competition: string): boolean {
+export function isNonRatedCompetition(competition: string): boolean {
   const upper = competition.toUpperCase();
   return NON_RATED_COMPETITION_PREFIXES.some((prefix) => upper.startsWith(prefix));
+}
+
+export function isTournamentCompetition(competition: string): boolean {
+  const upper = competition.toUpperCase();
+  return upper.startsWith("TOU ") || upper === "TOU";
 }
 
 interface AgeRule {
@@ -337,7 +342,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
 
   const gradedMatches: RawSeasonMatch[] = [];
   for (const m of input.matches) {
-    if (m.competition.toUpperCase().startsWith("TOU ") || m.competition.toUpperCase() === "TOU") {
+    if (isTournamentCompetition(m.competition)) {
       summary.tournamentGamesExcluded++;
       continue;
     }

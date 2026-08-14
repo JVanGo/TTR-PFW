@@ -6,10 +6,12 @@ import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import {
   excludeKnownFalsePositives,
   findMarkerOnlyForfeits,
+  findPerformanceGapForfeits,
   FORFEIT_EXCLUSIONS,
   matchForfeits,
   readForfeitsFile,
   type MatchCandidateRow,
+  type PerformanceGapRow,
 } from "@/lib/import/forfeits";
 import { FORFEIT_OVERRIDES } from "@/lib/import/forfeit-overrides";
 import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
@@ -83,6 +85,10 @@ interface MongoPlayerMatchDoc {
   competition: string;
   score: string | null;
   won: boolean | null;
+  // Whether FLTT's Performance table has a row joined to this Rencontres
+  // match — see findPerformanceGapForfeits in lib/import/forfeits.ts for why
+  // this is a third (review-only, never auto-applied) forfeit signal.
+  hasPerformance: boolean;
   // The top-level `competition` is sourced from the Performance-table row and
   // is blank whenever that source cell was blank (including for most TOU
   // tournament games) — `rencontres.competition` comes from the Rencontres
@@ -301,6 +307,7 @@ async function fetchMongoData(season: string) {
               "performance.opponentClub": 1,
               score: 1,
               won: 1,
+              hasPerformance: 1,
             },
             maxTimeMS: 55_000,
           },
@@ -452,6 +459,28 @@ export async function computeSeasonSimulation(
     new Set([...xlsxForfeitedRowIds, ...markerOnlyRowIds]),
     FORFEIT_EXCLUSIONS,
   );
+
+  // Third, review-only signal — never folded into forfeitedRowIds, so it has
+  // zero effect on ratings. Surfaces candidates worth checking against
+  // fltt.lu by hand; see findPerformanceGapForfeits' doc comment for why this
+  // one isn't reliable enough to auto-apply the way the other two are.
+  const performanceGapRows: PerformanceGapRow[] = forfeitCandidateRows.map((r, i) => ({
+    ...r,
+    playerName: seasonMatches[i].playerName,
+    hasPerformance: seasonMatches[i].hasPerformance,
+  }));
+  const { reviewLines: performanceGapReviewLines } = findPerformanceGapForfeits(
+    performanceGapRows,
+    forfeitedRowIds,
+    new Date().toISOString().slice(0, 10),
+  );
+  for (const line of performanceGapReviewLines) log(`  [performance-gap review] ${line}`);
+  if (performanceGapReviewLines.length > 0) {
+    log(
+      `  ${performanceGapReviewLines.length} more candidates found via the Performance-table gap — ` +
+        `NOT applied as forfeits, needs a manual fltt.lu check first.`,
+    );
+  }
 
   log("Loading players from Supabase...");
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(

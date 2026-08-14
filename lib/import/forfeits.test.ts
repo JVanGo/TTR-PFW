@@ -4,8 +4,10 @@ import {
   type ForfeitEntry,
   type ForfeitExclusion,
   type MatchCandidateRow,
+  type PerformanceGapRow,
   excludeKnownFalsePositives,
   findMarkerOnlyForfeits,
+  findPerformanceGapForfeits,
   matchForfeits,
   parseForfeits,
   parseSpT,
@@ -371,5 +373,174 @@ describe("excludeKnownFalsePositives", () => {
     const rows = [row({ id: "biernacki" })];
     const result = excludeKnownFalsePositives(rows, new Set(["biernacki"]), []);
     expect(result).toEqual(new Set(["biernacki"]));
+  });
+});
+
+describe("findPerformanceGapForfeits", () => {
+  // A fixed "today" for every test below, chosen close to the rows' default
+  // isoDate so the trailing-12-month window doesn't accidentally swallow
+  // rows that aren't testing that behavior specifically.
+  const NOW = "2026-05-20";
+
+  function row(overrides: Partial<PerformanceGapRow>): PerformanceGapRow {
+    return {
+      id: "id",
+      flttPlayerId: "25657",
+      playerName: "HANSEN Finja",
+      round: 1,
+      competition: "CH JEU (R1)",
+      matchLabel: "Diddeleng 2 - Lénger 1",
+      score: "0-3",
+      isoDate: "2026-05-16",
+      opponentName: "VALENTE Noah",
+      hasForfeitMarker: false,
+      hasPerformance: false,
+      ...overrides,
+    };
+  }
+
+  // Confirmed for real against fltt.lu (2026-08-14): HANSEN Finja forfeited
+  // 6 games neither Forfaits.xlsx nor the internal marker caught, spread
+  // across 3 ties on one day — this is the shape one of those rows takes.
+  it("surfaces a missing-Performance row for an otherwise-normal player", () => {
+    const rows = [
+      row({ id: "target" }),
+      // Establishes the player has Performance data elsewhere this season —
+      // without this, the crawl-gap skip would swallow "target" too.
+      row({
+        id: "other-present",
+        opponentName: "SOMEONE ELSE",
+        isoDate: "2026-01-01",
+        hasPerformance: true,
+      }),
+      // The opponent's own mirror row — a normal row, not a known forfeit.
+      row({
+        id: "mirror",
+        flttPlayerId: "25618",
+        playerName: "VALENTE Noah",
+        opponentName: "HANSEN Finja",
+        score: "3-0",
+        hasPerformance: false,
+      }),
+    ];
+    const result = findPerformanceGapForfeits(rows, new Set(), NOW);
+    expect(result.reviewLines).toHaveLength(1);
+    expect(result.reviewLines[0]).toContain("HANSEN Finja");
+  });
+
+  it("excludes TOU tournaments and the COU FELTEN cup, same as the rating simulation", () => {
+    const rows = [
+      row({ id: "tou", competition: "TOU Diddeleng" }),
+      row({ id: "cup", competition: "COU FELTEN (Q)" }),
+    ];
+    const result = findPerformanceGapForfeits(rows, new Set(), NOW);
+    expect(result.reviewLines).toHaveLength(0);
+  });
+
+  it("silently drops the winning side of an already-known forfeit", () => {
+    const rows = [
+      row({
+        id: "loser",
+        flttPlayerId: "A",
+        playerName: "Loser Name",
+        opponentName: "Winner Name",
+        score: "0-3",
+      }),
+      row({
+        id: "winner",
+        flttPlayerId: "B",
+        playerName: "Winner Name",
+        opponentName: "Loser Name",
+        score: "3-0",
+      }),
+      row({
+        id: "a-present",
+        flttPlayerId: "A",
+        playerName: "Loser Name",
+        opponentName: "X",
+        isoDate: "2026-04-01",
+        hasPerformance: true,
+      }),
+      row({
+        id: "b-present",
+        flttPlayerId: "B",
+        playerName: "Winner Name",
+        opponentName: "Y",
+        isoDate: "2026-04-01",
+        hasPerformance: true,
+      }),
+    ];
+    // "loser" is already a known forfeit (e.g. from Forfaits.xlsx).
+    const result = findPerformanceGapForfeits(rows, new Set(["loser"]), NOW);
+    expect(result.reviewLines).toHaveLength(0);
+  });
+
+  // Confirmed with Jeff on 2026-08-15: FLTT's Performance table is a rolling
+  // trailing-12-months window measured from crawl time, not tied to the FLTT
+  // season. A match old enough to have plausibly rolled off that window must
+  // never be treated as a forfeit candidate — including during season
+  // rollover work, when this can run many months after the match was played.
+  it("excludes a match old enough to have rolled out of FLTT's 12-month Performance window", () => {
+    const rows = [
+      // Over a year before NOW — well past the window, even with a safety
+      // margin. Should be excluded purely on age, despite otherwise looking
+      // exactly like the surfaced HANSEN Finja case above.
+      row({ id: "aged-out", isoDate: "2025-01-01" }),
+      // Recent and present, so the player clearly isn't a Poos-Piotr-style
+      // whole-season crawl gap — isolates the age cutoff as the reason.
+      row({
+        id: "recent-present",
+        opponentName: "SOMEONE ELSE",
+        isoDate: "2026-05-01",
+        hasPerformance: true,
+      }),
+    ];
+    const result = findPerformanceGapForfeits(rows, new Set(), NOW);
+    expect(result.reviewLines).toHaveLength(0);
+  });
+
+  // Confirmed for real against fltt.lu (2026-08-14): POOS Piotr's entire
+  // season showed zero joined Performance rows despite fltt.lu's live page
+  // having real Performance data for every one of his games — a crawl gap in
+  // the source data, not a forfeit, and indistinguishable from a real
+  // forfeit by looking at any single row.
+  it("skips every row for a player with zero Performance rows anywhere this season", () => {
+    const rows = [
+      row({
+        id: "piotr-1",
+        flttPlayerId: "28049",
+        playerName: "POOS Piotr",
+        opponentName: "LAMBERTY Leonie",
+      }),
+      row({
+        id: "piotr-2",
+        flttPlayerId: "28049",
+        playerName: "POOS Piotr",
+        opponentName: "ZOLLER Philippe",
+      }),
+      row({
+        id: "piotr-3",
+        flttPlayerId: "28049",
+        playerName: "POOS Piotr",
+        opponentName: "KOVAL Niko",
+        score: "3-1",
+      }),
+    ];
+    const result = findPerformanceGapForfeits(rows, new Set(), NOW);
+    expect(result.reviewLines).toHaveLength(0);
+  });
+
+  it("doesn't re-surface a row that's already a known forfeit", () => {
+    const rows = [
+      row({ id: "known" }),
+      row({
+        id: "other-present",
+        opponentName: "SOMEONE ELSE",
+        isoDate: "2026-01-01",
+        hasPerformance: true,
+      }),
+    ];
+    const result = findPerformanceGapForfeits(rows, new Set(["known"]), NOW);
+    expect(result.reviewLines).toHaveLength(0);
   });
 });
