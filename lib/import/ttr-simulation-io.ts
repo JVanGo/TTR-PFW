@@ -14,6 +14,7 @@ import {
   type PerformanceGapRow,
 } from "@/lib/import/forfeits";
 import { FORFEIT_OVERRIDES } from "@/lib/import/forfeit-overrides";
+import { PERFORMANCE_GAP_CONFIRMED_FORFEITS } from "@/lib/import/performance-gap-confirmed-forfeits";
 import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
 import { fetchSeasonStartTtr, type SeasonStartTtr } from "@/lib/import/season-start-snapshot";
@@ -454,26 +455,37 @@ export async function computeSeasonSimulation(
         `present in Forfaits.xlsx at all.`,
     );
   }
-  const forfeitedRowIds = excludeKnownFalsePositives(
+  const knownForfeitedRowIds = excludeKnownFalsePositives(
     forfeitCandidateRows,
     new Set([...xlsxForfeitedRowIds, ...markerOnlyRowIds]),
     FORFEIT_EXCLUSIONS,
   );
 
-  // Third, review-only signal — never folded into forfeitedRowIds, so it has
-  // zero effect on ratings. Surfaces candidates worth checking against
-  // fltt.lu by hand; see findPerformanceGapForfeits' doc comment for why this
-  // one isn't reliable enough to auto-apply the way the other two are.
+  // Third signal. Two outcomes: rows matched against
+  // PERFORMANCE_GAP_CONFIRMED_FORFEITS (Jeff's own manual review — see that
+  // file's doc comment) ARE folded into forfeitedRowIds below, same as the
+  // other two sources. Everything else is still review-only, with zero
+  // effect on ratings — surfaced as candidates for Jeff to check against
+  // fltt.lu by hand; see findPerformanceGapForfeits' doc comment for why an
+  // unreviewed candidate isn't reliable enough to auto-apply.
   const performanceGapRows: PerformanceGapRow[] = forfeitCandidateRows.map((r, i) => ({
     ...r,
     playerName: seasonMatches[i].playerName,
     hasPerformance: seasonMatches[i].hasPerformance,
   }));
-  const { reviewLines: performanceGapReviewLines } = findPerformanceGapForfeits(
-    performanceGapRows,
-    forfeitedRowIds,
-    new Date().toISOString().slice(0, 10),
-  );
+  const { confirmedForfeitRowIds, reviewLines: performanceGapReviewLines } =
+    findPerformanceGapForfeits(
+      performanceGapRows,
+      knownForfeitedRowIds,
+      new Date().toISOString().slice(0, 10),
+      PERFORMANCE_GAP_CONFIRMED_FORFEITS,
+    );
+  if (confirmedForfeitRowIds.size > 0) {
+    log(
+      `  ${confirmedForfeitRowIds.size} more forfeited rows applied from Jeff's manual ` +
+        `performance-gap review (PERFORMANCE_GAP_CONFIRMED_FORFEITS).`,
+    );
+  }
   for (const line of performanceGapReviewLines) log(`  [performance-gap review] ${line}`);
   if (performanceGapReviewLines.length > 0) {
     log(
@@ -481,6 +493,7 @@ export async function computeSeasonSimulation(
         `NOT applied as forfeits, needs a manual fltt.lu check first.`,
     );
   }
+  const forfeitedRowIds = new Set([...knownForfeitedRowIds, ...confirmedForfeitRowIds]);
 
   log("Loading players from Supabase...");
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(
