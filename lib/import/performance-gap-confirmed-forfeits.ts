@@ -22,13 +22,14 @@ import type { PerformanceGapConfirmedForfeit } from "@/lib/import/forfeits";
  *    championship day, a single event spanning many age categories, which
  *    explains why so many incidents cluster there).
  * 3. The remaining 16 accepted in bulk given the track record across
- *    everything checked so far: only one false positive in the ENTIRE
- *    exercise — POOS Piotr, found during earlier exploratory work before
- *    this function's whole-player crawl-staleness filter existed
- *    specifically to exclude cases like his, so he was never actually a
- *    candidate in this list to begin with.
+ *    everything checked so far: zero false positives found within this
+ *    reviewed list itself. (POOS Piotr, mentioned in `findPerformanceGapForfeits`'
+ *    own doc comment as the case that motivated its whole-player
+ *    crawl-staleness filter, is NOT one of these 150 rows — that filter is
+ *    exactly why he never showed up as a candidate here at all, not
+ *    something excluded from this list after review.)
  *
- * Final tally: 72 of 73 deduped incidents (150 raw rows) confirmed.
+ * Final tally: all 73 deduped incidents (150 raw rows) confirmed.
  *
  * Entries below are keyed by (flttPlayerId, isoDate) — see
  * `findPerformanceGapForfeits`' own doc comment for why per-opponent

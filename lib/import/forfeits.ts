@@ -444,10 +444,12 @@ export interface PerformanceGapResult {
  * no joined row in their Performance table. Jeff's idea, spot-checked against
  * fltt.lu directly for several real cases before building this (2026-08-14).
  * A full manual review of the first season's 150 candidates (2026-08-15)
- * confirmed 72 of 73 deduped incidents as genuine forfeits, with only one
- * false positive (POOS Piotr, a whole-player crawl-staleness case — see
- * below) found across the entire exercise, well before this function
- * existed to filter it out automatically. See
+ * confirmed all 73 deduped incidents as genuine forfeits — zero false
+ * positives within that reviewed list. (POOS Piotr, the whole-player
+ * crawl-staleness case that motivated the filter below, showed up during
+ * EARLIER exploratory work, before this function's crawl-staleness check
+ * existed to exclude cases like his automatically — he was never actually
+ * one of these 150 candidates.) See
  * `lib/import/performance-gap-confirmed-forfeits.ts` for that review's full
  * history and the resulting confirmed list. Despite that strong track
  * record, this signal still isn't reliable enough to auto-apply for NEW,
