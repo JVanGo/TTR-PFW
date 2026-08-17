@@ -26,6 +26,7 @@ import { SEASON_START_OVERRIDES } from "@/lib/import/season-start-overrides";
 import {
   simulateSeason,
   CAREER_MATCH_THRESHOLD,
+  ersteinstufungFor,
   type OutputMatchRow,
   type RawSeasonMatch,
   type RawSeasonPlacement,
@@ -593,6 +594,7 @@ export async function computeSeasonSimulation(
 
   let priorSeasonHits = 0;
   let overrideHits = 0;
+  let youthErsteinstufungHits = 0;
   let exportHits = 0;
   let seasonStartHits = 0;
   const players: SimPlayer[] = supabasePlayers.map((p) => {
@@ -600,6 +602,7 @@ export async function computeSeasonSimulation(
     const cls = p.class;
     const pfw = Number(p.pfw);
     const classementPoints = p.classement_points == null ? null : Number(p.classement_points);
+    const ageCategory = isAgeCategory(p.age_category) ? p.age_category : null;
 
     // Prefer the player's class/PFW/classement points as of the start of the
     // season over Supabase's `players` row, which only ever reflects the
@@ -638,6 +641,25 @@ export async function computeSeasonSimulation(
         startingTtr = est;
       }
     }
+    // A D3 youth player's own classement points are essentially a
+    // placeholder (D3 is the bottom rung everyone starts in, so 0 or
+    // near-0 points is the norm, not a real performance signal) — every
+    // remaining source below (FLTT's export, the earliest-match heuristic,
+    // and the final catalog fallback) estimates a rating from those same
+    // classement points via estimateTtr(), which is calibrated for adult
+    // league players and lands well above the PDF's own age-based
+    // Ersteinstufung for a beginner (e.g. ~936 for a Poussin, vs. the
+    // PDF's 850). D3 is exactly the "no real track record yet" case the
+    // Ersteinstufung values are meant for, so this runs before any of
+    // those classement-based sources get a chance to claim the player.
+    // Non-D3 classes are left alone — being promoted past D3 is itself
+    // real, age-independent evidence, and a real prior-season DTR or a
+    // manual SEASON_START_OVERRIDES correction (both checked above) still
+    // wins over the flat default, same as for adults.
+    if (startingTtr == null && ageCategory != null && cls === "D3") {
+      youthErsteinstufungHits++;
+      startingTtr = ersteinstufungFor(ageCategory);
+    }
     if (startingTtr == null && exportSnapshot) {
       const est = estimateTtr(
         exportSnapshot.pfw,
@@ -671,7 +693,7 @@ export async function computeSeasonSimulation(
       name: p.name,
       nameKey: identityKey(p.name_key, p.club),
       startingTtr,
-      ageCategory: isAgeCategory(p.age_category) ? p.age_category : null,
+      ageCategory,
       // A timed-out query means "no data available", not "confirmed zero
       // matches" — defaulting to 0/null here would wrongly flag every
       // player as a brand-new, long-inactive newcomer. Assume the opposite
@@ -686,9 +708,10 @@ export async function computeSeasonSimulation(
   });
   log(
     `  ${priorSeasonHits} of ${players.length} players carried forward their prior-season DTR; ` +
-      `${overrideHits} more used a manual season-start correction; ${exportHits} more from FLTT's ` +
-      `own export; ${seasonStartHits} more from their earliest match this season; the rest fall ` +
-      `back to today's catalog class/PFW.`,
+      `${overrideHits} more used a manual season-start correction; ${youthErsteinstufungHits} more ` +
+      `used their age-based Ersteinstufung (D3 youth); ${exportHits} more from FLTT's own export; ` +
+      `${seasonStartHits} more from their earliest match this season; the rest fall back to today's ` +
+      `catalog class/PFW.`,
   );
 
   // Fallback static rating for opponents we can't resolve to a tracked player:
