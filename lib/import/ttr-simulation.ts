@@ -15,6 +15,8 @@ const INACTIVITY_MONTHS_THRESHOLD = 12;
 const INACTIVITY_BONUS = 4;
 const INACTIVITY_BONUS_MATCHES = 15;
 const YOUTH_GROWTH_BONUS = 12;
+const ERSTEINSTUFUNG_FLOOR_COMPETITION = "Ersteinstufung-Mindestwert";
+const ERSTEINSTUFUNG_FLOOR_OPPONENT_LABEL = "Starting ranking floor";
 
 const PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 15, 2: 10, 3: 5 };
 
@@ -160,6 +162,7 @@ export interface SimulationSummary {
   nonRatedGamesExcluded: number;
   placementBonusesApplied: number;
   youthGrowthBonusesApplied: number;
+  ersteinstufungFloorsApplied: number;
   droppedNoOpponentRating: number;
   unresolvedPlayers: number;
 }
@@ -336,6 +339,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     nonRatedGamesExcluded: 0,
     placementBonusesApplied: 0,
     youthGrowthBonusesApplied: 0,
+    ersteinstufungFloorsApplied: 0,
     droppedNoOpponentRating: 0,
     unresolvedPlayers: 0,
   };
@@ -390,6 +394,47 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   const growthDatesApplied = new Set<string>();
   const sortedGrowthDates = [...playedByPeriodEnd.keys()].sort();
 
+  // "Bei Jugendspielern gilt, dass sie, falls sie beim Erstellen einer
+  // Rangliste unter ihrem Ersteinstufungswert liegen, ihren DTR-Wert wieder
+  // auf diesen Ersteinstufungswert zurückgesetzt bekommen." The PDF names no
+  // periodic "Rangliste creation" date of its own, so this reuses the same
+  // Teilrunde-boundary dates as the growth bonus (the only recurring
+  // recompute point that exists). Unlike the growth bonus, there's no
+  // "played this period" condition — a floor-up is just a snapshot check
+  // against the player's current rating. Only the categories with their own
+  // below-adult Ersteinstufung value are in scope (Poussin/Benjamin/Minime/
+  // Cadet as of the current AGE_RULES table) — Junior/Espoirs already share
+  // the adult Ersteinstufung and are never floored by this rule.
+  const floorDatesApplied = new Set<string>();
+
+  const applyErsteinstufungFloorIfDue = (isoDate: string) => {
+    for (const floorDate of sortedGrowthDates) {
+      if (floorDatesApplied.has(floorDate) || isoDate < floorDate) continue;
+      for (const state of states.values()) {
+        const rule = ageRule(state.ageCategory);
+        if (rule.ersteinstufung >= ADULT_RULE.ersteinstufung) continue;
+        if (state.ttr >= rule.ersteinstufung) continue;
+        const newTtr = rule.ersteinstufung;
+        matchRows.push({
+          playerId: state.id,
+          matchDate: floorDate,
+          competition: ERSTEINSTUFUNG_FLOOR_COMPETITION,
+          opponentName: ERSTEINSTUFUNG_FLOOR_OPPONENT_LABEL,
+          opponentPlayerId: null,
+          opponentTtr: null,
+          score: null,
+          result: "W",
+          ttrDelta: newTtr - state.ttr,
+          newTtr,
+          kFactor: null,
+        });
+        state.ttr = newTtr;
+        summary.ersteinstufungFloorsApplied++;
+      }
+      floorDatesApplied.add(floorDate);
+    }
+  };
+
   const applyGrowthIfDue = (isoDate: string) => {
     for (const growthDate of sortedGrowthDates) {
       if (growthDatesApplied.has(growthDate) || isoDate < growthDate) continue;
@@ -432,6 +477,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   let i = 0;
   while (i < events.length) {
     const dayIso = events[i].isoDate;
+    applyErsteinstufungFloorIfDue(dayIso);
     applyGrowthIfDue(dayIso);
 
     const dayRows: DayRow[] = [];
@@ -625,7 +671,10 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   // date (e.g. no match yet on/after Aug 1), that period would otherwise
   // never get applied to anyone. Force each remaining period through once
   // events run out.
-  for (const growthDate of sortedGrowthDates) applyGrowthIfDue(growthDate);
+  for (const growthDate of sortedGrowthDates) {
+    applyErsteinstufungFloorIfDue(growthDate);
+    applyGrowthIfDue(growthDate);
+  }
 
   return { matchRows, summary };
 }

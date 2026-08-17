@@ -149,9 +149,10 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
 
   for (const r of rows) {
     const isGrowthBonus = r.competition === "Nachwuchs-Spielstärkezuwachs";
+    const isFloorReset = r.competition === "Ersteinstufung-Mindestwert";
     const isPlacement = r.opponent_name.startsWith("Tournament — ");
     const isForfeit = r.result === "FF";
-    const isRegularMatch = !isGrowthBonus && !isPlacement && !isForfeit;
+    const isRegularMatch = !isGrowthBonus && !isFloorReset && !isPlacement && !isForfeit;
 
     if (isForfeit) {
       if (r.ttr_delta !== 0) {
@@ -194,6 +195,25 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
       }
       if (r.k_factor != null) {
         findings.push({ category: "Youth growth bonus has a K-factor set", detail: describe(r) });
+      }
+    } else if (isFloorReset) {
+      if (r.ttr_delta <= 0) {
+        findings.push({
+          category: "Ersteinstufung floor-reset isn't a positive point change",
+          detail: `${describe(r)} — Δ=${r.ttr_delta}`,
+        });
+      }
+      if (r.result !== "W") {
+        findings.push({
+          category: "Ersteinstufung floor-reset isn't recorded as a win",
+          detail: describe(r),
+        });
+      }
+      if (r.k_factor != null) {
+        findings.push({
+          category: "Ersteinstufung floor-reset has a K-factor set",
+          detail: describe(r),
+        });
       }
     } else if (isPlacement) {
       const label = Object.keys(PLACEMENT_BONUS_BY_LABEL).find((l) => r.opponent_name.includes(l));
@@ -238,7 +258,7 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
       else byDuplicateKey.set(dupKey, [r]);
     }
 
-    if (!isGrowthBonus) {
+    if (!isGrowthBonus && !isFloorReset) {
       const dayKey = `${r.player_id}|${r.match_date}`;
       const dayList = byPlayerDay.get(dayKey);
       if (dayList) dayList.push(r);

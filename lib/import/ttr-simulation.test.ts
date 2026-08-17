@@ -680,6 +680,90 @@ describe("simulateSeason", () => {
     expect(matchRows.some((r) => r.playerId === "a")).toBe(false);
   });
 
+  it("floors a youth player's DTR back up to their Ersteinstufung at the Teilrunde boundary, before the growth bonus stacks on top", () => {
+    const players = [
+      // Below Cadet's own 900 Ersteinstufung — a loss can only push this
+      // further down, never back above 900, so the floor is guaranteed due.
+      player({ id: "a", name: "Cadet Player", startingTtr: 850, ageCategory: "Cadet" }),
+      player({ id: "d", name: "Filler", startingTtr: 1000 }),
+    ];
+    // Played within the growth-bonus window too, so both the floor-reset and
+    // the growth bonus are due on the same date (2026-01-01) — this is the
+    // ordering the test cares about.
+    const matches = [
+      match({
+        isoDate: "2025-09-01",
+        playerNameKey: "cadet player",
+        opponentNameKey: "filler",
+        won: false,
+      }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthPeriods: [{ start: SEASON_START, end: YOUTH_GROWTH_DATE }],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const floorRow = matchRows.find(
+      (r) => r.playerId === "a" && r.competition === "Ersteinstufung-Mindestwert",
+    );
+    const growthRow = matchRows.find(
+      (r) => r.playerId === "a" && r.competition === "Nachwuchs-Spielstärkezuwachs",
+    );
+    expect(floorRow).toBeDefined();
+    expect(floorRow!.matchDate).toBe("2026-01-01");
+    expect(floorRow!.newTtr).toBe(900);
+    expect(floorRow!.ttrDelta).toBeGreaterThan(0);
+    expect(floorRow!.result).toBe("W");
+    expect(summary.ersteinstufungFloorsApplied).toBe(1);
+
+    // The growth bonus's own +12 is computed on top of the floored value
+    // (900), not the pre-floor one — proves the floor ran first.
+    expect(growthRow).toBeDefined();
+    expect(growthRow!.ttrDelta).toBe(12);
+    expect(growthRow!.newTtr).toBe(912);
+    expect(matchRows.indexOf(floorRow!)).toBeLessThan(matchRows.indexOf(growthRow!));
+  });
+
+  it("does not floor a youth player already at or above their Ersteinstufung", () => {
+    const players = [
+      player({ id: "a", name: "Cadet Player", startingTtr: 950, ageCategory: "Cadet" }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches: [],
+      placements: [],
+      youthGrowthPeriods: [{ start: SEASON_START, end: YOUTH_GROWTH_DATE }],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    expect(matchRows.some((r) => r.competition === "Ersteinstufung-Mindestwert")).toBe(false);
+    expect(summary.ersteinstufungFloorsApplied).toBe(0);
+  });
+
+  it("never floors Junior, Espoirs, or adult players — their Ersteinstufung already equals the adult default", () => {
+    const players = [
+      player({ id: "a", name: "Junior Player", startingTtr: 900, ageCategory: "Junior" }),
+      player({ id: "b", name: "Espoirs Player", startingTtr: 900, ageCategory: "Espoirs" }),
+      player({ id: "c", name: "Adult Player", startingTtr: 900, ageCategory: null }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches: [],
+      placements: [],
+      youthGrowthPeriods: [{ start: SEASON_START, end: YOUTH_GROWTH_DATE }],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    expect(matchRows.some((r) => r.competition === "Ersteinstufung-Mindestwert")).toBe(false);
+    expect(summary.ersteinstufungFloorsApplied).toBe(0);
+  });
+
   it("uses the Ersteinstufung default when a player has no existing rating", () => {
     const players = [
       player({

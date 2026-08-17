@@ -32,18 +32,21 @@ interface MatchForStartingDtr {
  * first calendar day of activity settles to their true starting number plus
  * that day's total change — working backwards from it recovers the exact
  * starting value the season simulation actually used, rather than
- * re-guessing it. A youth growth bonus applies immediately (not batched with
- * that day's other results), so if the first day has a real match or
- * placement too, that row's settled total is preferred over the bonus row's
- * intermediate one.
+ * re-guessing it. The youth growth bonus and Ersteinstufung floor-reset both
+ * apply immediately (not batched with that day's other results), so if the
+ * first day has a real match or placement too, that row's settled total is
+ * preferred over either synthetic row's intermediate one.
  */
 function computeStartingDtr(matches: MatchForStartingDtr[]): number | null {
   if (matches.length === 0) return null;
   const earliestDate = matches[0].match_date;
   const earliestDayRows = matches.filter((m) => m.match_date === earliestDate);
   const settledRow =
-    earliestDayRows.find((m) => m.competition !== "Nachwuchs-Spielstärkezuwachs") ??
-    earliestDayRows[0];
+    earliestDayRows.find(
+      (m) =>
+        m.competition !== "Nachwuchs-Spielstärkezuwachs" &&
+        m.competition !== "Ersteinstufung-Mindestwert",
+    ) ?? earliestDayRows[0];
   const daySum = earliestDayRows.reduce((sum, m) => sum + m.ttr_delta, 0);
   return settledRow.new_ttr - daySum;
 }
