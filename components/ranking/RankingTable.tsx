@@ -2,17 +2,13 @@
 
 import { useDeferredValue, useMemo, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import {
+  PAGE_SIZE,
+  RankingTableRows,
+  type RankingTableRow,
+} from "@/components/ranking/RankingTableRows";
 
-export interface RankingTableRow {
-  id: string;
-  rank: number;
-  name: string;
-  club: string | null;
-  dtr: number;
-  klassierung: string;
-  isActive: boolean;
-}
+export type { RankingTableRow };
 
 interface Props {
   rows: RankingTableRow[];
@@ -21,8 +17,6 @@ interface Props {
   club: string;
   onClubChange: (club: string) => void;
 }
-
-const PAGE_SIZE = 50;
 
 export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }: Props) {
   const t = useTranslations("RankingTable");
@@ -86,48 +80,19 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
         {club && t("atClub", { club })}.
       </p>
 
-      <div className="overflow-x-auto rounded-md border">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead className="bg-muted/60 text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 text-right font-medium">{t("columnRank")}</th>
-              <th className="px-3 py-2 text-left font-medium">{t("columnName")}</th>
-              <th className="px-3 py-2 text-left font-medium">{t("columnClub")}</th>
-              <th className="px-3 py-2 text-left font-medium">{t("columnClass")}</th>
-              <th className="px-3 py-2 text-right font-medium">{t("columnDtr")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map((row) => (
-              <tr key={row.id} className="hover:bg-accent/40 border-t">
-                <td className="text-muted-foreground px-3 py-2 text-right tabular-nums">
-                  {format.number(row.rank)}
-                </td>
-                <td className="px-3 py-2">
-                  <Link href={`/player/${row.id}`} className="font-medium hover:underline">
-                    {row.name}
-                  </Link>
-                  {!row.isActive && (
-                    <span className="bg-muted text-muted-foreground ml-2 inline-flex rounded-full px-2 py-0.5 text-xs">
-                      {t("inactiveBadge")}
-                    </span>
-                  )}
-                </td>
-                <td className="text-muted-foreground px-3 py-2">{row.club ?? "—"}</td>
-                <td className="px-3 py-2">{row.klassierung}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{row.dtr}</td>
-              </tr>
-            ))}
-            {pageRows.length === 0 && (
-              <tr>
-                <td colSpan={5} className="text-muted-foreground px-3 py-10 text-center">
-                  {t("noResults")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <RankingTableRows
+        rows={pageRows}
+        formatNumber={(n) => format.number(n)}
+        labels={{
+          columnRank: t("columnRank"),
+          columnName: t("columnName"),
+          columnClub: t("columnClub"),
+          columnClass: t("columnClass"),
+          columnDtr: t("columnDtr"),
+          inactiveBadge: t("inactiveBadge"),
+          noResults: t("noResults"),
+        }}
+      />
 
       {pageCount > 1 && (
         <div className="flex items-center justify-between text-sm">
