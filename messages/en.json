@@ -96,7 +96,14 @@
     "columnK": "K",
     "columnNewDtr": "New DTR",
     "seasonStart": "Season start",
-    "noMatches": "No match history recorded for this season yet."
+    "noMatches": "No match history recorded for this season yet.",
+    "kBadge": "K {value, number}",
+    "kBreakdownTitle": "Why this K?",
+    "kBreakdownBase": "Base",
+    "kBreakdownAge": "Age group",
+    "kBreakdownNewcomer": "New player (fewer than 30 matches)",
+    "kBreakdownReturning": "Returning after 12+ months away",
+    "kBreakdownTotal": "Total K"
   },
   "TtrChart": {
     "vs": "vs",

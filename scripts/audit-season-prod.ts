@@ -78,6 +78,9 @@ interface StoredMatchRow {
   ttr_delta: number;
   new_ttr: number;
   k_factor: number | null;
+  k_age_bonus: number | null;
+  k_is_newcomer_bonus: boolean | null;
+  k_is_returning_bonus: boolean | null;
 }
 
 async function fetchStoredMatches(
@@ -91,7 +94,7 @@ async function fetchStoredMatches(
     const { data, error } = await supabase
       .from("matches")
       .select(
-        "id, player_id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor",
+        "id, player_id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, k_age_bonus, k_is_newcomer_bonus, k_is_returning_bonus",
       )
       .eq("season", season)
       .order("match_date", { ascending: true })
@@ -164,9 +167,31 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
       if (r.k_factor != null) {
         findings.push({ category: "Forfeit has a K-factor set", detail: describe(r) });
       }
+      if (
+        r.k_age_bonus != null ||
+        r.k_is_newcomer_bonus != null ||
+        r.k_is_returning_bonus != null
+      ) {
+        findings.push({ category: "Forfeit has a K-factor breakdown set", detail: describe(r) });
+      }
     } else if (isRegularMatch) {
       if (r.k_factor == null || !VALID_K_FACTORS.has(r.k_factor)) {
         findings.push({ category: "Invalid K-factor", detail: `${describe(r)} — K=${r.k_factor}` });
+      }
+      if (r.k_age_bonus == null || ![0, 4, 8].includes(r.k_age_bonus)) {
+        findings.push({
+          category: "Invalid K-factor age bonus",
+          detail: `${describe(r)} — age bonus=${r.k_age_bonus}`,
+        });
+      } else if (
+        r.k_factor != null &&
+        16 + r.k_age_bonus + (r.k_is_newcomer_bonus ? 4 : 0) + (r.k_is_returning_bonus ? 4 : 0) !==
+          r.k_factor
+      ) {
+        findings.push({
+          category: "K-factor breakdown doesn't add up to the K-factor",
+          detail: `${describe(r)} — K=${r.k_factor}, age=${r.k_age_bonus}, newcomer=${r.k_is_newcomer_bonus}, returning=${r.k_is_returning_bonus}`,
+        });
       }
       if (r.result === "W" && r.ttr_delta < 0) {
         findings.push({ category: "Win with a negative point change", detail: describe(r) });
@@ -196,6 +221,16 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
       if (r.k_factor != null) {
         findings.push({ category: "Youth growth bonus has a K-factor set", detail: describe(r) });
       }
+      if (
+        r.k_age_bonus != null ||
+        r.k_is_newcomer_bonus != null ||
+        r.k_is_returning_bonus != null
+      ) {
+        findings.push({
+          category: "Youth growth bonus has a K-factor breakdown set",
+          detail: describe(r),
+        });
+      }
     } else if (isFloorReset) {
       if (r.ttr_delta <= 0) {
         findings.push({
@@ -215,6 +250,16 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
           detail: describe(r),
         });
       }
+      if (
+        r.k_age_bonus != null ||
+        r.k_is_newcomer_bonus != null ||
+        r.k_is_returning_bonus != null
+      ) {
+        findings.push({
+          category: "Ersteinstufung floor-reset has a K-factor breakdown set",
+          detail: describe(r),
+        });
+      }
     } else if (isPlacement) {
       const label = Object.keys(PLACEMENT_BONUS_BY_LABEL).find((l) => r.opponent_name.includes(l));
       const expected = label ? PLACEMENT_BONUS_BY_LABEL[label] : null;
@@ -227,6 +272,16 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
       if (r.k_factor != null) {
         findings.push({
           category: "Tournament placement bonus has a K-factor set",
+          detail: describe(r),
+        });
+      }
+      if (
+        r.k_age_bonus != null ||
+        r.k_is_newcomer_bonus != null ||
+        r.k_is_returning_bonus != null
+      ) {
+        findings.push({
+          category: "Tournament placement bonus has a K-factor breakdown set",
           detail: describe(r),
         });
       }
@@ -381,14 +436,21 @@ function diffAgainstComputed(computed: OutputMatchRow[], stored: StoredMatchRow[
       ttrDelta: number;
       newTtr: number;
       kFactor: number | null;
+      kAgeBonus: number | null;
+      kIsNewcomerBonus: boolean | null;
+      kIsReturningBonus: boolean | null;
       opponentTtr: number | null;
-    }) => `${c.ttrDelta}|${c.newTtr}|${c.kFactor}|${c.opponentTtr}`;
+    }) =>
+      `${c.ttrDelta}|${c.newTtr}|${c.kFactor}|${c.kAgeBonus}|${c.kIsNewcomerBonus}|${c.kIsReturningBonus}|${c.opponentTtr}`;
     const computedSigs = computedRows
       .map((c) =>
         signature({
           ttrDelta: c.ttrDelta,
           newTtr: c.newTtr,
           kFactor: c.kFactor,
+          kAgeBonus: c.kAgeBonus,
+          kIsNewcomerBonus: c.kIsNewcomerBonus,
+          kIsReturningBonus: c.kIsReturningBonus,
           opponentTtr: c.opponentTtr ?? null,
         }),
       )
@@ -399,6 +461,9 @@ function diffAgainstComputed(computed: OutputMatchRow[], stored: StoredMatchRow[
           ttrDelta: s.ttr_delta,
           newTtr: s.new_ttr,
           kFactor: s.k_factor,
+          kAgeBonus: s.k_age_bonus,
+          kIsNewcomerBonus: s.k_is_newcomer_bonus,
+          kIsReturningBonus: s.k_is_returning_bonus,
           opponentTtr: s.opponent_ttr,
         }),
       )

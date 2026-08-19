@@ -863,6 +863,9 @@ function toMatchesTableRow(row: OutputMatchRow) {
     ttr_delta: row.ttrDelta,
     new_ttr: row.newTtr,
     k_factor: row.kFactor,
+    k_age_bonus: row.kAgeBonus,
+    k_is_newcomer_bonus: row.kIsNewcomerBonus,
+    k_is_returning_bonus: row.kIsReturningBonus,
     season: SEASON_LABEL,
   };
 }

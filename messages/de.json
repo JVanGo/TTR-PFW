@@ -96,7 +96,14 @@
     "columnK": "K",
     "columnNewDtr": "Neuer DTR",
     "seasonStart": "Saisonstart",
-    "noMatches": "Für diese Saison sind noch keine Partien erfasst."
+    "noMatches": "Für diese Saison sind noch keine Partien erfasst.",
+    "kBadge": "K {value, number}",
+    "kBreakdownTitle": "Warum dieses K?",
+    "kBreakdownBase": "Basiswert",
+    "kBreakdownAge": "Altersklasse",
+    "kBreakdownNewcomer": "Neuer Spieler (weniger als 30 Partien)",
+    "kBreakdownReturning": "Rückkehrer nach 12+ Monaten Pause",
+    "kBreakdownTotal": "K gesamt"
   },
   "TtrChart": {
     "vs": "gegen",

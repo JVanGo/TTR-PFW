@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRankingRows, CURRENT_SEASON } from "@/lib/ranking";
 import { TtrChart, type TtrPoint } from "@/components/player/TtrChart";
+import { KFactorBadge } from "@/components/player/KFactorBadge";
 import { SiteFooter } from "@/components/SiteFooter";
 
 interface PageProps {
@@ -88,7 +89,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
     supabase
       .from("matches")
       .select(
-        "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, created_at",
+        "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, k_age_bonus, k_is_newcomer_bonus, k_is_returning_bonus, created_at",
       )
       .eq("player_id", player.id)
       .eq("season", selectedSeason)
@@ -120,6 +121,9 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
 
   const reverseMatches = [...matches].reverse();
   const startingDtr = computeStartingDtr(matches);
+  // The most recent graded match (skipping placement/growth/floor/forfeit
+  // rows, which carry no K-factor) reflects the player's current K.
+  const currentKMatch = reverseMatches.find((m) => m.k_factor != null);
 
   return (
     <>
@@ -154,6 +158,20 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
                 </span>
               )}
             </p>
+            {currentKMatch &&
+              currentKMatch.k_factor != null &&
+              currentKMatch.k_age_bonus != null &&
+              currentKMatch.k_is_newcomer_bonus != null &&
+              currentKMatch.k_is_returning_bonus != null && (
+                <div className="mt-1">
+                  <KFactorBadge
+                    kFactor={currentKMatch.k_factor}
+                    ageBonus={currentKMatch.k_age_bonus}
+                    isNewcomerBonus={currentKMatch.k_is_newcomer_bonus}
+                    isReturningBonus={currentKMatch.k_is_returning_bonus}
+                  />
+                </div>
+              )}
           </div>
           <div className="text-right">
             <p className="text-muted-foreground text-sm uppercase">{t("dtrLabel")}</p>

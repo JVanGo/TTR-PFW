@@ -153,6 +153,12 @@ export interface OutputMatchRow {
   newTtr: number;
   /** The Änderungskonstante (K) applied to this match, or null for a tournament-placement bonus. */
   kFactor: number | null;
+  /** The age-bracket portion of `kFactor` (0, 4, or 8), or null alongside a null `kFactor`. */
+  kAgeBonus: number | null;
+  /** Whether the "fewer than 30 career matches" bonus (+4) contributed to `kFactor`, or null alongside a null `kFactor`. */
+  kIsNewcomerBonus: boolean | null;
+  /** Whether the "12+ months inactive" bonus (+4) contributed to `kFactor`, or null alongside a null `kFactor`. */
+  kIsReturningBonus: boolean | null;
 }
 
 export interface SimulationSummary {
@@ -180,11 +186,21 @@ interface RuntimeState {
   inactivityBonusRemaining: number;
 }
 
-function kFactor(state: RuntimeState): number {
-  let k = BASE_K + ageRule(state.ageCategory).kBonus;
-  if (state.careerMatches < CAREER_MATCH_THRESHOLD) k += CAREER_MATCH_BONUS;
-  if (state.inactivityBonusRemaining > 0) k += INACTIVITY_BONUS;
-  return k;
+interface KFactorBreakdown {
+  k: number;
+  ageBonus: number;
+  isNewcomerBonus: boolean;
+  isReturningBonus: boolean;
+}
+
+function kFactorBreakdown(state: RuntimeState): KFactorBreakdown {
+  const ageBonus = ageRule(state.ageCategory).kBonus;
+  const isNewcomerBonus = state.careerMatches < CAREER_MATCH_THRESHOLD;
+  const isReturningBonus = state.inactivityBonusRemaining > 0;
+  let k = BASE_K + ageBonus;
+  if (isNewcomerBonus) k += CAREER_MATCH_BONUS;
+  if (isReturningBonus) k += INACTIVITY_BONUS;
+  return { k, ageBonus, isNewcomerBonus, isReturningBonus };
 }
 
 type CanonicalSide =
@@ -427,6 +443,9 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
           ttrDelta: newTtr - state.ttr,
           newTtr,
           kFactor: null,
+          kAgeBonus: null,
+          kIsNewcomerBonus: null,
+          kIsReturningBonus: null,
         });
         state.ttr = newTtr;
         summary.ersteinstufungFloorsApplied++;
@@ -455,6 +474,9 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
           ttrDelta: YOUTH_GROWTH_BONUS,
           newTtr,
           kFactor: null,
+          kAgeBonus: null,
+          kIsNewcomerBonus: null,
+          kIsReturningBonus: null,
         });
         state.ttr = newTtr;
         summary.youthGrowthBonusesApplied++;
@@ -517,6 +539,9 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
           ttrDelta: bonus,
           newTtr: 0, // filled in once the day settles, below
           kFactor: null,
+          kAgeBonus: null,
+          kIsNewcomerBonus: null,
+          kIsReturningBonus: null,
         });
         addDelta(event.placement.playerNameKey, bonus);
         summary.placementBonusesApplied++;
@@ -578,6 +603,9 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
           ttrDelta: 0,
           newTtr: 0,
           kFactor: null,
+          kAgeBonus: null,
+          kIsNewcomerBonus: null,
+          kIsReturningBonus: null,
         });
         summary.forfeitsApplied++;
 
@@ -595,13 +623,17 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
             ttrDelta: 0,
             newTtr: 0,
             kFactor: null,
+            kAgeBonus: null,
+            kIsNewcomerBonus: null,
+            kIsReturningBonus: null,
           });
           summary.forfeitsApplied++;
         }
         continue;
       }
 
-      const kA = kFactor(stateA);
+      const breakdownA = kFactorBreakdown(stateA);
+      const kA = breakdownA.k;
       const paWinA = winProbability(ttrASnapshot, ttrBSnapshot);
       const resultA: 0 | 1 = match.a.won ? 1 : 0;
       const deltaA = Math.round(ratingDelta(resultA, paWinA, kA));
@@ -619,13 +651,17 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
         ttrDelta: deltaA,
         newTtr: 0,
         kFactor: kA,
+        kAgeBonus: breakdownA.ageBonus,
+        kIsNewcomerBonus: breakdownA.isNewcomerBonus,
+        kIsReturningBonus: breakdownA.isReturningBonus,
       });
       addDelta(match.a.playerNameKey, deltaA);
       addMatchPlayed(match.a.playerNameKey);
       summary.matchesGraded++;
 
       if (stateB && stateBKey) {
-        const kB = kFactor(stateB);
+        const breakdownB = kFactorBreakdown(stateB);
+        const kB = breakdownB.k;
         const paWinB = 1 - paWinA;
         const resultB: 0 | 1 = match.b.won ? 1 : 0;
         const deltaB = Math.round(ratingDelta(resultB, paWinB, kB));
@@ -643,6 +679,9 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
           ttrDelta: deltaB,
           newTtr: 0,
           kFactor: kB,
+          kAgeBonus: breakdownB.ageBonus,
+          kIsNewcomerBonus: breakdownB.isNewcomerBonus,
+          kIsReturningBonus: breakdownB.isReturningBonus,
         });
         addDelta(stateBKey, deltaB);
         addMatchPlayed(stateBKey);

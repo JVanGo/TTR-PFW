@@ -282,6 +282,10 @@ describe("simulateSeason", () => {
     const cadet = matchRows.find((r) => r.playerId === "a")!;
     // Equal ratings -> win probability 0.5 -> delta = 0.5 * K. K=16+8=24 -> delta=12.
     expect(cadet.ttrDelta).toBe(12);
+    expect(cadet.kFactor).toBe(24);
+    expect(cadet.kAgeBonus).toBe(8);
+    expect(cadet.kIsNewcomerBonus).toBe(false);
+    expect(cadet.kIsReturningBonus).toBe(false);
   });
 
   it("gives a u21-only player (Junior/Espoirs) K=20, distinct from the u15 bracket's K=24", () => {
@@ -309,6 +313,10 @@ describe("simulateSeason", () => {
     const junior = matchRows.find((r) => r.playerId === "a")!;
     // K=16+4=20 -> delta=10.
     expect(junior.ttrDelta).toBe(10);
+    expect(junior.kFactor).toBe(20);
+    expect(junior.kAgeBonus).toBe(4);
+    expect(junior.kIsNewcomerBonus).toBe(false);
+    expect(junior.kIsReturningBonus).toBe(false);
   });
 
   it("stacks the newcomer and inactivity bonuses on top of the u15 bracket (K=32)", () => {
@@ -336,6 +344,10 @@ describe("simulateSeason", () => {
     const cadet = matchRows.find((r) => r.playerId === "a")!;
     // K=16+8+4+4=32 -> delta=16.
     expect(cadet.ttrDelta).toBe(16);
+    expect(cadet.kFactor).toBe(32);
+    expect(cadet.kAgeBonus).toBe(8);
+    expect(cadet.kIsNewcomerBonus).toBe(true);
+    expect(cadet.kIsReturningBonus).toBe(true);
   });
 
   it("gives a brand-new adult player K=20 (base + newcomer only, not inactivity too)", () => {
@@ -362,6 +374,10 @@ describe("simulateSeason", () => {
     const row = matchRows.find((r) => r.playerId === "a")!;
     // K=16+4=20 (not 24) -> delta=10.
     expect(row.ttrDelta).toBe(10);
+    expect(row.kFactor).toBe(20);
+    expect(row.kAgeBonus).toBe(0);
+    expect(row.kIsNewcomerBonus).toBe(true);
+    expect(row.kIsReturningBonus).toBe(false);
   });
 
   it("still gives the inactivity bonus to an experienced player with a real, stale last match", () => {
@@ -388,6 +404,10 @@ describe("simulateSeason", () => {
     const row = matchRows.find((r) => r.playerId === "a")!;
     // K=16+4=20 -> delta=10.
     expect(row.ttrDelta).toBe(10);
+    expect(row.kFactor).toBe(20);
+    expect(row.kAgeBonus).toBe(0);
+    expect(row.kIsNewcomerBonus).toBe(false);
+    expect(row.kIsReturningBonus).toBe(true);
   });
 
   it("excludes TOU tournament games from per-game scoring but applies a flat placement bonus", () => {
