@@ -116,7 +116,7 @@
     "dataSourceHeading": "Woher die Daten stammen",
     "dataSourceBody": "Die Spielverläufe stammen aus den FLTT-Spielexporten der Saison 2025-2026 und werden mit der DTR-Formel (siehe <code>DëschTennisRating.pdf</code>) verarbeitet, um für jeden Spieler eine DTR-Änderung pro Partie zu berechnen.",
     "startingValuesHeading": "Ausgangswerte",
-    "startingValuesBody": "Jeder Spieler beginnt die Saison mit einem Ausgangswert statt mit einer von anderswo übernommenen Schätzung: Erwachsene starten bei 1025, Jugendliche niedriger je nach Altersklasse (900 für Cadets/Minimes, 850 für Benjamins/Poussins), da ein neuer Spieler noch keine Spielergebnisse aufgebaut hat, die seine tatsächliche Spielstärke widerspiegeln.",
+    "startingValuesBody": "Jeder Spieler beginnt die Saison mit einem Ausgangswert statt mit einer von anderswo übernommenen Schätzung: Erwachsene starten bei 1025, Junioren bei 950, und jüngere Jugendliche niedriger je nach Altersklasse (900 für Cadets/Minimes, 850 für Benjamins/Poussins), da ein neuer Spieler noch keine Spielergebnisse aufgebaut hat, die seine tatsächliche Spielstärke widerspiegeln.",
     "confidenceHeading": "Zuverlässigkeit",
     "confidenceBody": "DTR wird aus echten Spielergebnissen neu berechnet, nicht geschätzt — je mehr Partien ein Spieler in dieser Saison gespielt hat, desto genauer spiegelt der Wert seine aktuelle Form wider.",
     "distributionHeading": "Aktuelle Verteilung der Bewertungen",

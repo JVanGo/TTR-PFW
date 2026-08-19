@@ -59,12 +59,18 @@ interface AgeRule {
 // gets +8 (K=24) on its own, not +4 stacked with +8 (K=28) — confirmed with
 // the site owner. Poussin/Benjamin/Minime/Cadet fall under the u15 bracket;
 // Junior/Espoirs fall under the (non-stacking) u21-only bracket.
+//
+// Junior's Ersteinstufung (950) is a site-specific addition beyond the PDF's
+// own table, which only names CAD/MIN (900) and BJM/POU (850) — everyone
+// U17+ is "adult" (1025) there. Jeff asked for a step between the two
+// (2026-08-19): Junior beginners now start at 950 instead of the adult
+// default; Espoirs still shares the adult value, matching the PDF as-is.
 const AGE_RULES: Record<AgeCategory, AgeRule> = {
   Poussin: { kBonus: 8, ersteinstufung: 850, youthGrowth: true },
   Benjamin: { kBonus: 8, ersteinstufung: 850, youthGrowth: true },
   Minime: { kBonus: 8, ersteinstufung: 900, youthGrowth: true },
   Cadet: { kBonus: 8, ersteinstufung: 900, youthGrowth: true },
-  Junior: { kBonus: 4, ersteinstufung: 1025, youthGrowth: true },
+  Junior: { kBonus: 4, ersteinstufung: 950, youthGrowth: true },
   Espoirs: { kBonus: 4, ersteinstufung: 1025, youthGrowth: false },
 };
 const ADULT_RULE: AgeRule = { kBonus: 0, ersteinstufung: 1025, youthGrowth: false };
@@ -478,8 +484,8 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   // "played this period" condition — a floor-up is just a snapshot check
   // against the player's current rating. Only the categories with their own
   // below-adult Ersteinstufung value are in scope (Poussin/Benjamin/Minime/
-  // Cadet as of the current AGE_RULES table) — Junior/Espoirs already share
-  // the adult Ersteinstufung and are never floored by this rule.
+  // Cadet/Junior as of the current AGE_RULES table) — Espoirs shares the
+  // adult Ersteinstufung and is never floored by this rule.
   const floorDatesApplied = new Set<string>();
 
   const applyErsteinstufungFloorIfDue = (isoDate: string) => {

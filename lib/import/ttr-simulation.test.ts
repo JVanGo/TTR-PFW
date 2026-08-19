@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ersteinstufungFor,
   ratingDelta,
   simulateSeason,
   winProbability,
@@ -71,6 +72,18 @@ describe("winProbability / ratingDelta against the PDF's worked table (K=16)", (
       expect(Math.round(ratingDelta(0, pa, 16))).toBe(lossDelta);
     },
   );
+});
+
+describe("ersteinstufungFor", () => {
+  it("gives every category its own starting value, per DëschTennisRating.pdf plus the site's own Junior step", () => {
+    expect(ersteinstufungFor("Poussin")).toBe(850);
+    expect(ersteinstufungFor("Benjamin")).toBe(850);
+    expect(ersteinstufungFor("Minime")).toBe(900);
+    expect(ersteinstufungFor("Cadet")).toBe(900);
+    expect(ersteinstufungFor("Junior")).toBe(950);
+    expect(ersteinstufungFor("Espoirs")).toBe(1025);
+    expect(ersteinstufungFor(null)).toBe(1025);
+  });
 });
 
 describe("simulateSeason", () => {
@@ -770,11 +783,46 @@ describe("simulateSeason", () => {
     expect(summary.ersteinstufungFloorsApplied).toBe(0);
   });
 
-  it("never floors Junior, Espoirs, or adult players — their Ersteinstufung already equals the adult default", () => {
+  it("never floors Espoirs or adult players — their Ersteinstufung already equals the adult default", () => {
     const players = [
-      player({ id: "a", name: "Junior Player", startingTtr: 900, ageCategory: "Junior" }),
       player({ id: "b", name: "Espoirs Player", startingTtr: 900, ageCategory: "Espoirs" }),
       player({ id: "c", name: "Adult Player", startingTtr: 900, ageCategory: null }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches: [],
+      placements: [],
+      youthGrowthPeriods: [{ start: SEASON_START, end: YOUTH_GROWTH_DATE }],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    expect(matchRows.some((r) => r.competition === "Ersteinstufung-Mindestwert")).toBe(false);
+    expect(summary.ersteinstufungFloorsApplied).toBe(0);
+  });
+
+  it("floors a Junior player's DTR back up to their own 950 Ersteinstufung, like the younger categories", () => {
+    const players = [
+      player({ id: "a", name: "Junior Player", startingTtr: 900, ageCategory: "Junior" }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches: [],
+      placements: [],
+      youthGrowthPeriods: [{ start: SEASON_START, end: YOUTH_GROWTH_DATE }],
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const floorRow = matchRows.find((r) => r.competition === "Ersteinstufung-Mindestwert");
+    expect(floorRow).toBeDefined();
+    expect(floorRow!.newTtr).toBe(950);
+    expect(summary.ersteinstufungFloorsApplied).toBe(1);
+  });
+
+  it("does not floor a Junior player already at or above 950", () => {
+    const players = [
+      player({ id: "a", name: "Junior Player", startingTtr: 950, ageCategory: "Junior" }),
     ];
     const { matchRows, summary } = simulateSeason({
       players,

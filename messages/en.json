@@ -116,7 +116,7 @@
     "dataSourceHeading": "Where the data comes from",
     "dataSourceBody": "Match histories are taken from the FLTT match exports for the 2025-2026 season and run through the DTR formula (see <code>DëschTennisRating.pdf</code>) to produce a per-match DTR change for every player.",
     "startingValuesHeading": "Starting values",
-    "startingValuesBody": "Every player begins the season at a baseline rating rather than an estimate carried over from elsewhere: adult players start at 1025, and youth players start lower depending on their age group (900 for Cadets/Minimes, 850 for Benjamins/Poussins), since a new player hasn't yet built up match results that reflect their real strength.",
+    "startingValuesBody": "Every player begins the season at a baseline rating rather than an estimate carried over from elsewhere: adult players start at 1025, Juniors at 950, and younger youth players lower still depending on their age group (900 for Cadets/Minimes, 850 for Benjamins/Poussins), since a new player hasn't yet built up match results that reflect their real strength.",
     "confidenceHeading": "Confidence",
     "confidenceBody": "DTR is recalculated from real match results, not estimated — the more matches a player has played this season, the more it reflects their actual current form.",
     "distributionHeading": "Current rating distribution",
