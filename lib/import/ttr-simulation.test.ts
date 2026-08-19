@@ -15,6 +15,11 @@ function player(overrides: Partial<SimPlayer> & { id: string; name: string }): S
     ageCategory: null,
     careerMatchesBeforeSeason: 100,
     lastMatchIsoDateBeforeSeason: "2025-01-01",
+    // Defaults to "already fully deducted" so tests that don't exercise
+    // Inaktivitätsabzug stay inert even against IRRELEVANT_GROWTH_PERIODS's
+    // deliberately-far-future catch-up checkpoint (2099) — override to 0 in
+    // tests that actually exercise the deduction.
+    inactivityDeductionAlreadyApplied: 120,
     ...overrides,
   };
 }
@@ -811,6 +816,267 @@ describe("simulateSeason", () => {
     const row = matchRows.find((r) => r.playerId === "a")!;
     // Cadet Ersteinstufung is 900, same as Bob -> 50% win prob.
     expect(row.opponentTtr).toBe(900);
+  });
+
+  describe("Inaktivitätsabzug", () => {
+    it("applies -80 exactly at the 24-month checkpoint, not one checkpoint earlier", () => {
+      const players = [
+        player({
+          id: "a",
+          name: "Idle Adult",
+          startingTtr: 1000,
+          ageCategory: null,
+          lastMatchIsoDateBeforeSeason: SEASON_START,
+          inactivityDeductionAlreadyApplied: 0,
+        }),
+      ];
+      const { matchRows, summary } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches: [],
+        placements: [],
+        // 23 months, then 24 months after lastMatchIsoDateBeforeSeason.
+        youthGrowthPeriods: [
+          { start: SEASON_START, end: "2027-06-01" },
+          { start: "2027-06-01", end: "2027-07-01" },
+        ],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      const deductionRows = matchRows.filter((r) => r.competition === "Inaktivitätsabzug");
+      expect(deductionRows).toHaveLength(1);
+      const row = deductionRows[0];
+      expect(row.matchDate).toBe("2027-07-01");
+      expect(row.ttrDelta).toBe(-80);
+      expect(row.newTtr).toBe(920);
+      expect(row.result).toBe("L");
+      expect(row.opponentName).toBe("Inactivity deduction");
+      expect(row.opponentPlayerId).toBeNull();
+      expect(row.kFactor).toBeNull();
+      expect(row.kAgeBonus).toBeNull();
+      expect(row.kIsNewcomerBonus).toBeNull();
+      expect(row.kIsReturningBonus).toBeNull();
+      expect(summary.inactivityDeductionsApplied).toBe(1);
+    });
+
+    it("applies the incremental -20 at 30 months and another -20 at 36 months, capping at -120 total, then never again", () => {
+      const players = [
+        player({
+          id: "a",
+          name: "Idle Adult",
+          startingTtr: 1000,
+          ageCategory: null,
+          lastMatchIsoDateBeforeSeason: SEASON_START,
+          inactivityDeductionAlreadyApplied: 0,
+        }),
+      ];
+      const { matchRows } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches: [],
+        placements: [],
+        // 24, 30, 36, and 42 months after lastMatchIsoDateBeforeSeason.
+        youthGrowthPeriods: [
+          { start: SEASON_START, end: "2027-07-01" },
+          { start: "2027-07-01", end: "2028-01-01" },
+          { start: "2028-01-01", end: "2028-07-01" },
+          { start: "2028-07-01", end: "2029-01-01" },
+        ],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      const deductionRows = matchRows
+        .filter((r) => r.competition === "Inaktivitätsabzug")
+        .sort((x, y) => x.matchDate.localeCompare(y.matchDate));
+      expect(deductionRows.map((r) => [r.matchDate, r.ttrDelta])).toEqual([
+        ["2027-07-01", -80],
+        ["2028-01-01", -20],
+        ["2028-07-01", -20],
+      ]);
+      expect(deductionRows.reduce((sum, r) => sum + r.ttrDelta, 0)).toBe(-120);
+    });
+
+    it("jumps straight to -120 in one row when first checked years after the player went idle", () => {
+      const players = [
+        player({
+          id: "a",
+          name: "Long Gone",
+          startingTtr: 1000,
+          ageCategory: null,
+          lastMatchIsoDateBeforeSeason: "2015-01-01",
+          inactivityDeductionAlreadyApplied: 0,
+        }),
+      ];
+      const { matchRows } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches: [],
+        placements: [],
+        youthGrowthPeriods: [{ start: SEASON_START, end: "2026-01-01" }],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      const deductionRows = matchRows.filter((r) => r.competition === "Inaktivitätsabzug");
+      expect(deductionRows).toHaveLength(1);
+      expect(deductionRows[0].ttrDelta).toBe(-120);
+    });
+
+    it("never applies to a youth player (any age category), however long inactive", () => {
+      const players = [
+        player({
+          id: "a",
+          name: "Idle Cadet",
+          startingTtr: 900,
+          ageCategory: "Cadet",
+          lastMatchIsoDateBeforeSeason: "2015-01-01",
+          inactivityDeductionAlreadyApplied: 0,
+        }),
+      ];
+      const { matchRows, summary } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches: [],
+        placements: [],
+        youthGrowthPeriods: [{ start: SEASON_START, end: "2026-01-01" }],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      expect(matchRows.some((r) => r.competition === "Inaktivitätsabzug")).toBe(false);
+      expect(summary.inactivityDeductionsApplied).toBe(0);
+    });
+
+    it("never applies to a player with no prior match at all — nothing to have gone inactive from", () => {
+      const players = [
+        player({
+          id: "a",
+          name: "Brand New",
+          startingTtr: 1000,
+          ageCategory: null,
+          careerMatchesBeforeSeason: 0,
+          lastMatchIsoDateBeforeSeason: null,
+          inactivityDeductionAlreadyApplied: 0,
+        }),
+      ];
+      const { matchRows, summary } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches: [],
+        placements: [],
+        youthGrowthPeriods: [{ start: SEASON_START, end: "2026-01-01" }],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      expect(matchRows.some((r) => r.competition === "Inaktivitätsabzug")).toBe(false);
+      expect(summary.inactivityDeductionsApplied).toBe(0);
+    });
+
+    it("a real match resets the inactivity clock going forward, without reversing an already-applied deduction", () => {
+      const players = [
+        player({
+          id: "a",
+          name: "Idle Adult",
+          startingTtr: 1000,
+          ageCategory: null,
+          lastMatchIsoDateBeforeSeason: SEASON_START,
+          inactivityDeductionAlreadyApplied: 0,
+        }),
+        player({ id: "b", name: "Filler", startingTtr: 1000 }),
+      ];
+      // A real match one month after the first (24mo) checkpoint fires,
+      // well before the second (30mo) checkpoint would otherwise be due.
+      const matches = [
+        match({
+          isoDate: "2027-08-01",
+          playerNameKey: "idle adult",
+          opponentNameKey: "filler",
+          won: true,
+        }),
+      ];
+      const { matchRows } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches,
+        placements: [],
+        youthGrowthPeriods: [
+          { start: SEASON_START, end: "2027-07-01" },
+          { start: "2027-07-01", end: "2028-01-01" },
+        ],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      const deductionRows = matchRows.filter((r) => r.competition === "Inaktivitätsabzug");
+      expect(deductionRows).toHaveLength(1);
+      expect(deductionRows[0].matchDate).toBe("2027-07-01");
+      expect(deductionRows[0].ttrDelta).toBe(-80);
+    });
+
+    it("a forfeit does not reset the inactivity clock — the next checkpoint still fires", () => {
+      const players = [
+        player({
+          id: "a",
+          name: "Idle Adult",
+          startingTtr: 1000,
+          ageCategory: null,
+          lastMatchIsoDateBeforeSeason: SEASON_START,
+          inactivityDeductionAlreadyApplied: 0,
+        }),
+        player({ id: "b", name: "Filler", startingTtr: 1000 }),
+      ];
+      const matches = [
+        match({
+          isoDate: "2027-08-01",
+          playerNameKey: "idle adult",
+          opponentNameKey: "filler",
+          won: true,
+          isForfeit: true,
+        }),
+      ];
+      const { matchRows } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches,
+        placements: [],
+        youthGrowthPeriods: [
+          { start: SEASON_START, end: "2027-07-01" },
+          { start: "2027-07-01", end: "2028-01-01" },
+        ],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      const deductionRows = matchRows
+        .filter((r) => r.competition === "Inaktivitätsabzug")
+        .sort((x, y) => x.matchDate.localeCompare(y.matchDate));
+      expect(deductionRows.map((r) => [r.matchDate, r.ttrDelta])).toEqual([
+        ["2027-07-01", -80],
+        ["2028-01-01", -20],
+      ]);
+    });
+
+    it("seeds inactivityDeductionAlreadyApplied so a carried-forward deduction isn't re-applied, only the next stage", () => {
+      const players = [
+        player({
+          id: "a",
+          name: "Already Docked",
+          startingTtr: 1000,
+          ageCategory: null,
+          // 30 months before the single checkpoint below -> stage 2 (-100 total) is due.
+          lastMatchIsoDateBeforeSeason: "2025-01-01",
+          inactivityDeductionAlreadyApplied: 80,
+        }),
+      ];
+      const { matchRows } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches: [],
+        placements: [],
+        youthGrowthPeriods: [{ start: SEASON_START, end: "2027-07-01" }],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      const deductionRows = matchRows.filter((r) => r.competition === "Inaktivitätsabzug");
+      expect(deductionRows).toHaveLength(1);
+      expect(deductionRows[0].ttrDelta).toBe(-20);
+    });
   });
 
   describe("forfeits", () => {

@@ -9,7 +9,7 @@ export interface RankingTableRow {
   club: string | null;
   dtr: number;
   klassierung: string;
-  isActive: boolean;
+  isMatchInactive: boolean;
 }
 
 interface Labels {
@@ -54,7 +54,7 @@ export function RankingTableRows({ rows, formatNumber, labels }: Props) {
                 <Link href={`/player/${row.id}`} className="font-medium hover:underline">
                   {row.name}
                 </Link>
-                {!row.isActive && (
+                {row.isMatchInactive && (
                   <span className="bg-muted text-muted-foreground ml-2 inline-flex rounded-full px-2 py-0.5 text-xs">
                     {labels.inactiveBadge}
                   </span>

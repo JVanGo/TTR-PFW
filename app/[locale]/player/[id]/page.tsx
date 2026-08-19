@@ -3,6 +3,7 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRankingRows, CURRENT_SEASON } from "@/lib/ranking";
+import { isMatchInactive as computeIsMatchInactive } from "@/lib/import/ttr-simulation";
 import { TtrChart, type TtrPoint } from "@/components/player/TtrChart";
 import { KFactorBadge } from "@/components/player/KFactorBadge";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -46,7 +47,8 @@ function computeStartingDtr(matches: MatchForStartingDtr[]): number | null {
     earliestDayRows.find(
       (m) =>
         m.competition !== "Nachwuchs-Spielstärkezuwachs" &&
-        m.competition !== "Ersteinstufung-Mindestwert",
+        m.competition !== "Ersteinstufung-Mindestwert" &&
+        m.competition !== "Inaktivitätsabzug",
     ) ?? earliestDayRows[0];
   const daySum = earliestDayRows.reduce((sum, m) => sum + m.ttr_delta, 0);
   return settledRow.new_ttr - daySum;
@@ -61,7 +63,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
 
   const { data: player, error } = await supabase
     .from("players")
-    .select("id, name, club, is_active, is_kader, age_category")
+    .select("id, name, club, is_active, is_kader, age_category, last_match_date")
     .eq("id", id)
     .maybeSingle();
 
@@ -124,6 +126,9 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
   // The most recent graded match (skipping placement/growth/floor/forfeit
   // rows, which carry no K-factor) reflects the player's current K.
   const currentKMatch = reverseMatches.find((m) => m.k_factor != null);
+  const isMatchInactive =
+    player.age_category == null &&
+    computeIsMatchInactive(player.last_match_date, new Date().toISOString().slice(0, 10));
 
   return (
     <>
@@ -155,6 +160,11 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
               {!player.is_active && (
                 <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                   {t("inactiveBadge")}
+                </span>
+              )}
+              {isMatchInactive && (
+                <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                  {t("matchInactiveBadge")}
                 </span>
               )}
             </p>

@@ -153,9 +153,11 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
   for (const r of rows) {
     const isGrowthBonus = r.competition === "Nachwuchs-Spielstärkezuwachs";
     const isFloorReset = r.competition === "Ersteinstufung-Mindestwert";
+    const isInactivityDeduction = r.competition === "Inaktivitätsabzug";
     const isPlacement = r.opponent_name.startsWith("Tournament — ");
     const isForfeit = r.result === "FF";
-    const isRegularMatch = !isGrowthBonus && !isFloorReset && !isPlacement && !isForfeit;
+    const isRegularMatch =
+      !isGrowthBonus && !isFloorReset && !isInactivityDeduction && !isPlacement && !isForfeit;
 
     if (isForfeit) {
       if (r.ttr_delta !== 0) {
@@ -260,6 +262,32 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
           detail: describe(r),
         });
       }
+    } else if (isInactivityDeduction) {
+      if (r.ttr_delta >= 0 || ![-80, -20, -100, -120].includes(r.ttr_delta)) {
+        findings.push({
+          category: "Inactivity deduction isn't one of the valid amounts",
+          detail: `${describe(r)} — Δ=${r.ttr_delta}`,
+        });
+      }
+      if (r.result !== "L") {
+        findings.push({
+          category: "Inactivity deduction isn't recorded as a loss",
+          detail: describe(r),
+        });
+      }
+      if (r.k_factor != null) {
+        findings.push({ category: "Inactivity deduction has a K-factor set", detail: describe(r) });
+      }
+      if (
+        r.k_age_bonus != null ||
+        r.k_is_newcomer_bonus != null ||
+        r.k_is_returning_bonus != null
+      ) {
+        findings.push({
+          category: "Inactivity deduction has a K-factor breakdown set",
+          detail: describe(r),
+        });
+      }
     } else if (isPlacement) {
       const label = Object.keys(PLACEMENT_BONUS_BY_LABEL).find((l) => r.opponent_name.includes(l));
       const expected = label ? PLACEMENT_BONUS_BY_LABEL[label] : null;
@@ -313,7 +341,7 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
       else byDuplicateKey.set(dupKey, [r]);
     }
 
-    if (!isGrowthBonus && !isFloorReset) {
+    if (!isGrowthBonus && !isFloorReset && !isInactivityDeduction) {
       const dayKey = `${r.player_id}|${r.match_date}`;
       const dayList = byPlayerDay.get(dayKey);
       if (dayList) dayList.push(r);

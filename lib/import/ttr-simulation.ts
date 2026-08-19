@@ -18,6 +18,19 @@ const YOUTH_GROWTH_BONUS = 12;
 const ERSTEINSTUFUNG_FLOOR_COMPETITION = "Ersteinstufung-Mindestwert";
 const ERSTEINSTUFUNG_FLOOR_OPPONENT_LABEL = "Starting ranking floor";
 
+// Inaktivitätsabzug: "-80 Punkte" after 24 months without a match, then
+// another "-20" every further 6 months, capped at "-120" after 3 years.
+// Stages are cumulative TOTALS (not increments) so a player checked for the
+// first time after years away lands on the right total in one step.
+const INACTIVITY_DEDUCTION_STAGE_1_MONTHS = 24;
+const INACTIVITY_DEDUCTION_STAGE_2_MONTHS = 30;
+const INACTIVITY_DEDUCTION_STAGE_3_MONTHS = 36;
+const INACTIVITY_DEDUCTION_STAGE_1_TOTAL = 80;
+const INACTIVITY_DEDUCTION_STAGE_2_TOTAL = 100;
+const INACTIVITY_DEDUCTION_STAGE_3_TOTAL = 120;
+const INACTIVITY_DEDUCTION_COMPETITION = "Inaktivitätsabzug";
+const INACTIVITY_DEDUCTION_OPPONENT_LABEL = "Inactivity deduction";
+
 const PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 15, 2: 10, 3: 5 };
 
 // Competitions that never count towards the rating at all — no per-game
@@ -87,6 +100,33 @@ function monthsBetween(fromIso: string, toIso: string): number {
   return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
 }
 
+/**
+ * Total Inaktivitätsabzug points that should have been deducted as of
+ * `referenceIsoDate`, as a positive magnitude (0/80/100/120) — the caller
+ * applies it as a negative delta. `null` (no known match ever) returns 0:
+ * inactivity means "was active, then stopped," not "never started" (same
+ * reasoning as the newcomer K-bonus).
+ */
+export function inactivityDeductionAppliedAsOf(
+  lastMatchIsoDate: string | null,
+  referenceIsoDate: string,
+): number {
+  if (lastMatchIsoDate == null) return 0;
+  const months = monthsBetween(lastMatchIsoDate, referenceIsoDate);
+  if (months >= INACTIVITY_DEDUCTION_STAGE_3_MONTHS) return INACTIVITY_DEDUCTION_STAGE_3_TOTAL;
+  if (months >= INACTIVITY_DEDUCTION_STAGE_2_MONTHS) return INACTIVITY_DEDUCTION_STAGE_2_TOTAL;
+  if (months >= INACTIVITY_DEDUCTION_STAGE_1_MONTHS) return INACTIVITY_DEDUCTION_STAGE_1_TOTAL;
+  return 0;
+}
+
+/** Whether the Inaktivitätsabzug badge should show as of `referenceIsoDate`. */
+export function isMatchInactive(
+  lastMatchIsoDate: string | null,
+  referenceIsoDate: string,
+): boolean {
+  return inactivityDeductionAppliedAsOf(lastMatchIsoDate, referenceIsoDate) > 0;
+}
+
 export interface SimPlayer {
   id: string;
   name: string;
@@ -96,8 +136,17 @@ export interface SimPlayer {
   ageCategory: AgeCategory | null;
   /** Rated singles played before this season, from Mongo history predating "25-26". */
   careerMatchesBeforeSeason: number;
-  /** Date of their last match before this season, if any (for the inactivity bonus). */
+  /** Date of their last match before this season, if any (for the inactivity bonus and Inaktivitätsabzug). */
   lastMatchIsoDateBeforeSeason: string | null;
+  /**
+   * Inaktivitätsabzug points already applied as of `lastMatchIsoDateBeforeSeason`
+   * (positive magnitude, 0/80/100/120) — only nonzero when `startingTtr` was
+   * carried forward from the player's own prior-season final DTR, since
+   * that's the only case a deduction could already be silently baked into
+   * the starting number. Prevents re-applying a deduction that's already
+   * reflected in `startingTtr`.
+   */
+  inactivityDeductionAlreadyApplied: number;
 }
 
 export interface RawSeasonMatch {
@@ -169,6 +218,7 @@ export interface SimulationSummary {
   placementBonusesApplied: number;
   youthGrowthBonusesApplied: number;
   ersteinstufungFloorsApplied: number;
+  inactivityDeductionsApplied: number;
   droppedNoOpponentRating: number;
   unresolvedPlayers: number;
 }
@@ -176,6 +226,8 @@ export interface SimulationSummary {
 export interface SimulationResult {
   matchRows: OutputMatchRow[];
   summary: SimulationSummary;
+  /** Every player's most recent real (non-forfeit) match date, if any — for persisting `players.last_match_date`. */
+  playerLastMatchDates: { playerId: string; lastMatchIsoDate: string | null }[];
 }
 
 interface RuntimeState {
@@ -184,6 +236,10 @@ interface RuntimeState {
   ageCategory: AgeCategory | null;
   careerMatches: number;
   inactivityBonusRemaining: number;
+  /** Most recent date this player had a real (non-forfeit) result — updated as the season plays out. Drives Inaktivitätsabzug. */
+  lastMatchIsoDate: string | null;
+  /** Inaktivitätsabzug points applied so far this run (positive magnitude, 0/80/100/120), monotonically non-decreasing. */
+  inactivityDeductionApplied: number;
 }
 
 interface KFactorBreakdown {
@@ -344,6 +400,8 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
       ageCategory: p.ageCategory,
       careerMatches: p.careerMatchesBeforeSeason,
       inactivityBonusRemaining: inactive ? INACTIVITY_BONUS_MATCHES : 0,
+      lastMatchIsoDate: p.lastMatchIsoDateBeforeSeason,
+      inactivityDeductionApplied: p.inactivityDeductionAlreadyApplied,
     });
   }
 
@@ -356,6 +414,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     placementBonusesApplied: 0,
     youthGrowthBonusesApplied: 0,
     ersteinstufungFloorsApplied: 0,
+    inactivityDeductionsApplied: 0,
     droppedNoOpponentRating: 0,
     unresolvedPlayers: 0,
   };
@@ -485,6 +544,48 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     }
   };
 
+  // Same recurring Teilrunde checkpoints as the two rules above — the PDF
+  // names no dedicated recompute date for Inaktivitätsabzug either. Youth
+  // players (any age category) are exempt; the PDF's other exemption
+  // ("Spieler mit ausländischer Spielberechtigung") has no data source yet
+  // and isn't applied. Tracks a cumulative TOTAL per player rather than
+  // per-stage flags, so a player checked for the first time after years away
+  // jumps straight to the right total in one row instead of one row per stage.
+  const inactivityDeductionDatesApplied = new Set<string>();
+
+  const applyInactivityDeductionIfDue = (isoDate: string) => {
+    for (const checkpointDate of sortedGrowthDates) {
+      if (inactivityDeductionDatesApplied.has(checkpointDate) || isoDate < checkpointDate) continue;
+      for (const state of states.values()) {
+        if (state.ageCategory != null) continue;
+        const target = inactivityDeductionAppliedAsOf(state.lastMatchIsoDate, checkpointDate);
+        if (target <= state.inactivityDeductionApplied) continue;
+        const delta = -(target - state.inactivityDeductionApplied);
+        const newTtr = state.ttr + delta;
+        matchRows.push({
+          playerId: state.id,
+          matchDate: checkpointDate,
+          competition: INACTIVITY_DEDUCTION_COMPETITION,
+          opponentName: INACTIVITY_DEDUCTION_OPPONENT_LABEL,
+          opponentPlayerId: null,
+          opponentTtr: null,
+          score: null,
+          result: "L",
+          ttrDelta: delta,
+          newTtr,
+          kFactor: null,
+          kAgeBonus: null,
+          kIsNewcomerBonus: null,
+          kIsReturningBonus: null,
+        });
+        state.ttr = newTtr;
+        state.inactivityDeductionApplied = target;
+        summary.inactivityDeductionsApplied++;
+      }
+      inactivityDeductionDatesApplied.add(checkpointDate);
+    }
+  };
+
   interface DayRow extends OutputMatchRow {
     settleKey: string;
   }
@@ -501,6 +602,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     const dayIso = events[i].isoDate;
     applyErsteinstufungFloorIfDue(dayIso);
     applyGrowthIfDue(dayIso);
+    applyInactivityDeductionIfDue(dayIso);
 
     const dayRows: DayRow[] = [];
     const pendingDelta = new Map<string, number>();
@@ -697,6 +799,10 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
       state.ttr = state.ttr + delta;
       state.careerMatches += matchesToday;
       state.inactivityBonusRemaining = Math.max(0, state.inactivityBonusRemaining - matchesToday);
+      // `touched` is populated only via addDelta — placements and real
+      // graded wins/losses, never forfeits — so this is exactly "had a real
+      // result today," the right signal for the Inaktivitätsabzug clock.
+      state.lastMatchIsoDate = dayIso;
     }
 
     for (const { settleKey, ...row } of dayRows) {
@@ -713,7 +819,13 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   for (const growthDate of sortedGrowthDates) {
     applyErsteinstufungFloorIfDue(growthDate);
     applyGrowthIfDue(growthDate);
+    applyInactivityDeductionIfDue(growthDate);
   }
 
-  return { matchRows, summary };
+  const playerLastMatchDates = Array.from(states.values(), (s) => ({
+    playerId: s.id,
+    lastMatchIsoDate: s.lastMatchIsoDate,
+  }));
+
+  return { matchRows, summary, playerLastMatchDates };
 }

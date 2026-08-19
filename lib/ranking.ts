@@ -6,7 +6,10 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { klassierungForDtr, type Klassierung } from "@/lib/klassierung";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
-import { ersteinstufungFor } from "@/lib/import/ttr-simulation";
+import {
+  ersteinstufungFor,
+  isMatchInactive as computeIsMatchInactive,
+} from "@/lib/import/ttr-simulation";
 
 function isAgeCategory(value: string | null): value is AgeCategory {
   return value != null && (AGE_CATEGORIES as readonly string[]).includes(value);
@@ -22,7 +25,8 @@ export interface RankingRow {
   rank: number;
   name: string;
   club: string | null;
-  isActive: boolean;
+  /** No rated match in 24+ months (see DëschTennisRating.pdf's Inaktivitätsabzug) — always false for youth players, who are exempt. */
+  isMatchInactive: boolean;
   dtr: number;
   klassierung: Klassierung;
   /** Non-null age_category (youth per the PDF's Ersteinstufung categories) — used by the Lineup Builder. */
@@ -40,6 +44,7 @@ interface PlayerRow {
   classement_points: number | null;
   age_category: string | null;
   is_kader: boolean;
+  last_match_date: string | null;
 }
 
 /**
@@ -50,14 +55,20 @@ interface PlayerRow {
  * shown always agree.
  */
 async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[]> {
-  const [players, latestTtrByPlayer] = await Promise.all([
+  const [allPlayers, latestTtrByPlayer] = await Promise.all([
     fetchAllRows<PlayerRow>(
       supabase,
       "players",
-      "id, name, class, pfw, club, is_active, classement_points, age_category, is_kader",
+      "id, name, class, pfw, club, is_active, classement_points, age_category, is_kader, last_match_date",
     ),
     fetchLatestTtrByPlayer(supabase, CURRENT_SEASON),
   ]);
+
+  // A player who's dropped off FLTT's own official ranking list is excluded
+  // from the ranking entirely (not just badged) — filtered out here, before
+  // ranks are assigned, so remaining players' rank numbers have no gaps.
+  const players = allPlayers.filter((p) => p.is_active);
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   const withDtr = players.map((p) => {
     const kl: PlayerClass = isPlayerClass(p.class) ? p.class : "D3";
@@ -85,7 +96,7 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
       id: p.id,
       name: p.name,
       club: p.club,
-      isActive: p.is_active,
+      isMatchInactive: ageCategory == null && computeIsMatchInactive(p.last_match_date, todayIso),
       dtr,
       klassierung: klassierungForDtr(dtr),
       isYouth: ageCategory != null,

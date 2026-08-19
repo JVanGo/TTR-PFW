@@ -77,6 +77,7 @@
     "kaderBadge": "Kader",
     "inactiveBadge": "inactive",
     "inactiveNotice": "This player is not in the current Verbandsrangliste.",
+    "matchInactiveBadge": "no matches in 24+ months",
     "howItWorks": "How DTR works →",
     "rankOf": " · #{rank, number} of {total, number} by DTR.",
     "dtrLabel": "DTR",

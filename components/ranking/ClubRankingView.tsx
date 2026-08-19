@@ -20,7 +20,9 @@ interface Props {
 export function ClubRankingView({ rows, clubs, selectedLevel, initialClub }: Props) {
   const [club, setClub] = useState(initialClub);
 
-  const roster = club ? rows.filter((r) => r.club === club && r.isActive) : [];
+  // `rows` only ever contains roster-active players — lib/ranking.ts
+  // excludes anyone dropped from FLTT's official list before this point.
+  const roster = club ? rows.filter((r) => r.club === club) : [];
 
   return (
     <div className={club ? "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]" : ""}>

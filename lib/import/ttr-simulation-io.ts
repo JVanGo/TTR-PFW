@@ -27,6 +27,7 @@ import {
   simulateSeason,
   CAREER_MATCH_THRESHOLD,
   ersteinstufungFor,
+  inactivityDeductionAppliedAsOf,
   type OutputMatchRow,
   type RawSeasonMatch,
   type RawSeasonPlacement,
@@ -162,11 +163,28 @@ interface PriorSeasonStats {
   lastIsoDate: string | null;
 }
 
-/** "25-26" -> ["24-25", "23-24"] — the two seasons immediately before `current`. */
-function previousTwoSeasons(current: string): [string, string] {
+/** "25-26" with n=2 -> ["24-25", "23-24"] — the n seasons immediately before `current`. */
+export function previousNSeasons(current: string, n: number): string[] {
   const start = Number(current.split("-")[0]);
-  const pad = (n: number) => String(((n % 100) + 100) % 100).padStart(2, "0");
-  return [`${pad(start - 1)}-${pad(start)}`, `${pad(start - 2)}-${pad(start - 1)}`];
+  const pad = (v: number) => String(((v % 100) + 100) % 100).padStart(2, "0");
+  return Array.from({ length: n }, (_, i) => `${pad(start - i - 1)}-${pad(start - i)}`);
+}
+
+// How many seasons back fetchPriorSeasonStats looks for an exact last-match
+// date — comfortably covers the Inaktivitätsabzug 36-month cap (see
+// staleLastMatchSentinelIso below for players whose last match predates even
+// this window).
+const LAST_ACTIVE_DATE_SEASON_LOOKBACK = 4;
+
+/**
+ * A conservative "last active" date for a player with real career matches
+ * (count > 0) whose last one falls outside LAST_ACTIVE_DATE_SEASON_LOOKBACK
+ * seasons — guarantees they land past the Inaktivitätsabzug 36-month cap
+ * without claiming a false-precision exact date.
+ */
+export function staleLastMatchSentinelIso(seasonStartIso: string): string {
+  const year = Number(seasonStartIso.slice(0, 4));
+  return `${year - LAST_ACTIVE_DATE_SEASON_LOOKBACK}${seasonStartIso.slice(4)}`;
 }
 
 /** Numeric start year for a "YY-YY" season string, e.g. "25-26" -> 25. */
@@ -197,12 +215,15 @@ export function previousSeasonLabel(current: string): string {
  *   below. `playerHistorySeasons` is orders of magnitude smaller (one row
  *   per player-season instead of per match) and comfortably fast for the
  *   whole catalog, every season, with the same player-ID batching.
- * - Last-active date: `playerMatches`, still scoped to just the 2 seasons
- *   immediately before the current one. This one doesn't need full history —
- *   a player whose last match falls outside that 2-season window is already
- *   well past the 12-month inactivity threshold regardless of the exact
- *   date, and `playerHistorySeasons` has no per-match date to give a precise
- *   one anyway.
+ * - Last-active date: `playerMatches`, scoped to the
+ *   LAST_ACTIVE_DATE_SEASON_LOOKBACK (4) seasons immediately before the
+ *   current one — comfortably covers the Inaktivitätsabzug rule's 36-month
+ *   cap with an exact date for anyone who played within that window.
+ *   `playerHistorySeasons` has no per-match date to give a precise one
+ *   anyway. For a player with real career matches whose last one still
+ *   falls outside even this widened window, `staleLastMatchSentinelIso`
+ *   supplies a conservative placeholder date rather than a real one — see
+ *   its own comment.
  *
  * Treated as best-effort: on failure, log and continue without it rather
  * than failing the whole run. Critically, the fallback must NOT default
@@ -243,7 +264,7 @@ async function fetchPriorSeasonStats(
       );
     }
 
-    const seasons = previousTwoSeasons(currentSeason);
+    const seasons = previousNSeasons(currentSeason, LAST_ACTIVE_DATE_SEASON_LOOKBACK);
     const dateDocs = await fetchInPlayerBatches(playerIds, (idBatch) =>
       db
         .collection<{ flttPlayerId: string; isoDate: string }>("playerMatches")
@@ -259,12 +280,13 @@ async function fetchPriorSeasonStats(
       if (!existing || d.isoDate > existing) lastIsoDateByPlayer.set(d.flttPlayerId, d.isoDate);
     }
 
+    const sentinelIso = staleLastMatchSentinelIso(SEASON_START_ISO);
     const ids = new Set([...countByPlayer.keys(), ...lastIsoDateByPlayer.keys()]);
-    const rows = Array.from(ids, (_id) => ({
-      _id,
-      count: countByPlayer.get(_id) ?? 0,
-      lastIsoDate: lastIsoDateByPlayer.get(_id) ?? null,
-    }));
+    const rows = Array.from(ids, (_id) => {
+      const count = countByPlayer.get(_id) ?? 0;
+      const recentDate = lastIsoDateByPlayer.get(_id) ?? null;
+      return { _id, count, lastIsoDate: recentDate ?? (count > 0 ? sentinelIso : null) };
+    });
     return { rows, timedOut: false };
   } catch (err) {
     console.warn(
@@ -432,6 +454,7 @@ export interface RunSeasonSimulationResult {
 export interface SeasonSimulationResult {
   matchRows: OutputMatchRow[];
   summary: SimulationSummary;
+  playerLastMatchDates: { playerId: string; lastMatchIsoDate: string | null }[];
 }
 
 /**
@@ -730,22 +753,32 @@ export async function computeSeasonSimulation(
     if (startingTtr == null && isPlayerClass(cls) && cls !== "D3") {
       startingTtr = estimateTtr(pfw, cls as PlayerClass, 0);
     }
+    // A timed-out query means "no data available", not "confirmed zero
+    // matches" — defaulting to 0/null here would wrongly flag every player
+    // as a brand-new, long-inactive newcomer. Assume the opposite
+    // (experienced, active) instead when we genuinely have no information.
+    const lastMatchIsoDateBeforeSeason = priorSeasonStatsTimedOut
+      ? SEASON_START_ISO
+      : (prior?.lastIsoDate ?? null);
     return {
       id: p.id,
       name: p.name,
       nameKey: identityKey(p.name_key, p.club),
       startingTtr,
       ageCategory,
-      // A timed-out query means "no data available", not "confirmed zero
-      // matches" — defaulting to 0/null here would wrongly flag every
-      // player as a brand-new, long-inactive newcomer. Assume the opposite
-      // (experienced, active) instead when we genuinely have no information.
       careerMatchesBeforeSeason: priorSeasonStatsTimedOut
         ? CAREER_MATCH_SAFE_DEFAULT
         : (prior?.count ?? 0),
-      lastMatchIsoDateBeforeSeason: priorSeasonStatsTimedOut
-        ? SEASON_START_ISO
-        : (prior?.lastIsoDate ?? null),
+      lastMatchIsoDateBeforeSeason,
+      // Only nonzero when startingTtr was carried forward from the player's
+      // own prior-season final DTR — that's the only case a deduction could
+      // already be silently baked into the starting number. Every other
+      // source seeds 0, so the checkpoints apply the real deduction
+      // visibly, in full, the first time this feature evaluates them.
+      inactivityDeductionAlreadyApplied:
+        priorSeasonDtr != null
+          ? inactivityDeductionAppliedAsOf(lastMatchIsoDateBeforeSeason, SEASON_START_ISO)
+          : 0,
     };
   });
   log(
@@ -851,7 +884,7 @@ export async function computeSeasonSimulation(
   );
   log(`Simulating season ${SEASON_LABEL}...`);
 
-  const { matchRows, summary } = simulateSeason({
+  const { matchRows, summary, playerLastMatchDates } = simulateSeason({
     players,
     staticTtrByNameKey,
     matches,
@@ -865,17 +898,42 @@ export async function computeSeasonSimulation(
       `tournamentGamesExcluded=${summary.tournamentGamesExcluded} ` +
       `nonRatedGamesExcluded=${summary.nonRatedGamesExcluded} placementBonuses=${summary.placementBonusesApplied} ` +
       `youthGrowthBonuses=${summary.youthGrowthBonusesApplied} ` +
+      `inactivityDeductionsApplied=${summary.inactivityDeductionsApplied} ` +
       `droppedNoOpponentRating=${summary.droppedNoOpponentRating} unresolvedPlayers=${summary.unresolvedPlayers}`,
   );
 
-  return { matchRows, summary };
+  return { matchRows, summary, playerLastMatchDates };
+}
+
+/**
+ * Batch-updates players.last_match_date from a fresh simulation run — feeds
+ * the match-based "inactive" badge (see isMatchInactive in
+ * lib/import/ttr-simulation.ts). Chunked, same pattern as other bulk
+ * players-table updates in this codebase.
+ */
+async function applyLastMatchDatesToSupabase(
+  supabase: SupabaseClient,
+  playerLastMatchDates: { playerId: string; lastMatchIsoDate: string | null }[],
+  log: (message: string) => void,
+): Promise<void> {
+  for (let i = 0; i < playerLastMatchDates.length; i += 200) {
+    const chunk = playerLastMatchDates.slice(i, i + 200);
+    const results = await Promise.all(
+      chunk.map(({ playerId, lastMatchIsoDate }) =>
+        supabase.from("players").update({ last_match_date: lastMatchIsoDate }).eq("id", playerId),
+      ),
+    );
+    const failed = results.find((r) => r.error);
+    if (failed?.error) throw new Error(failed.error.message);
+  }
+  log(`  ${playerLastMatchDates.length} players' last_match_date updated.`);
 }
 
 export async function runSeasonSimulation(
   supabase: SupabaseClient,
   log: (message: string) => void = () => {},
 ): Promise<RunSeasonSimulationResult> {
-  const { matchRows, summary } = await computeSeasonSimulation(supabase, log);
+  const { matchRows, summary, playerLastMatchDates } = await computeSeasonSimulation(supabase, log);
 
   log(`Replacing matches for season ${SEASON_LABEL}...`);
   const { error: deleteError } = await supabase.from("matches").delete().eq("season", SEASON_LABEL);
@@ -888,6 +946,8 @@ export async function runSeasonSimulation(
     if (error) throw new Error(error.message);
   }
   log(`  ${rows.length} match rows inserted.`);
+
+  await applyLastMatchDatesToSupabase(supabase, playerLastMatchDates, log);
 
   return { summary, matchRowCount: rows.length };
 }
