@@ -169,6 +169,11 @@ function previousTwoSeasons(current: string): [string, string] {
   return [`${pad(start - 1)}-${pad(start)}`, `${pad(start - 2)}-${pad(start - 1)}`];
 }
 
+/** Numeric start year for a "YY-YY" season string, e.g. "25-26" -> 25. */
+export function seasonStartYear(season: string): number {
+  return Number(season.split("-")[0]);
+}
+
 /** "2026-2027" -> "2025-2026" — the SEASON_LABEL immediately before `current`. */
 export function previousSeasonLabel(current: string): string {
   const [startYear, endYear] = current.split("-").map(Number);
@@ -176,14 +181,28 @@ export function previousSeasonLabel(current: string): string {
 }
 
 /**
- * Match-count and last-active-date per player, from the two seasons
- * immediately before the current one — feeds the experience/inactivity
- * K-factor bonus. `playerMatches` has no index leading with `season` alone,
- * so a query scoped to season(s) only is a full-collection scan that
- * reliably exceeds Cosmos DB's server-side command timeout no matter how few
- * seasons are in the filter; batched by player ID below (same fix as the
- * main season fetch) so each batch can use the (flttPlayerId, season, ...)
- * index instead.
+ * Career match-count and recent last-active-date per player — feeds the
+ * newcomer/inactivity K-factor bonuses. The two pieces deliberately come
+ * from different collections:
+ *
+ * - Count: `playerHistorySeasons`, one pre-counted row per player per
+ *   season, summed across every season before the current one.
+ *   `playerMatches` (one row per match) has no index leading with `season`
+ *   alone, and even batched by player ID, pulling a player's ENTIRE match
+ *   history this way routinely pulls tens of thousands of documents per
+ *   100-player batch and reliably exceeds Cosmos DB's server-side command
+ *   timeout — confirmed 2026-08-19 investigating a veteran player (320
+ *   career matches across 15 seasons) wrongly getting the newcomer bonus
+ *   because the count used to only look back 2 seasons, same as the date
+ *   below. `playerHistorySeasons` is orders of magnitude smaller (one row
+ *   per player-season instead of per match) and comfortably fast for the
+ *   whole catalog, every season, with the same player-ID batching.
+ * - Last-active date: `playerMatches`, still scoped to just the 2 seasons
+ *   immediately before the current one. This one doesn't need full history —
+ *   a player whose last match falls outside that 2-season window is already
+ *   well past the 12-month inactivity threshold regardless of the exact
+ *   date, and `playerHistorySeasons` has no per-match date to give a precise
+ *   one anyway.
  *
  * Treated as best-effort: on failure, log and continue without it rather
  * than failing the whole run. Critically, the fallback must NOT default
@@ -199,9 +218,33 @@ async function fetchPriorSeasonStats(
   rows: { _id: string; count: number; lastIsoDate: string | null }[];
   timedOut: boolean;
 }> {
-  const seasons = previousTwoSeasons(currentSeason);
   try {
-    const docs = await fetchInPlayerBatches(playerIds, (idBatch) =>
+    const currentStartYear = seasonStartYear(currentSeason);
+    const countDocs = await fetchInPlayerBatches(playerIds, (idBatch) =>
+      db
+        .collection<{ flttPlayerId: string; season: string; counts?: { matches?: number } }>(
+          "playerHistorySeasons",
+        )
+        .find(
+          { flttPlayerId: { $in: idBatch } },
+          {
+            projection: { _id: 0, flttPlayerId: 1, season: 1, "counts.matches": 1 },
+            maxTimeMS: 55_000,
+          },
+        )
+        .toArray(),
+    );
+    const countByPlayer = new Map<string, number>();
+    for (const d of countDocs) {
+      if (seasonStartYear(d.season) >= currentStartYear) continue; // this season or a future one
+      countByPlayer.set(
+        d.flttPlayerId,
+        (countByPlayer.get(d.flttPlayerId) ?? 0) + (d.counts?.matches ?? 0),
+      );
+    }
+
+    const seasons = previousTwoSeasons(currentSeason);
+    const dateDocs = await fetchInPlayerBatches(playerIds, (idBatch) =>
       db
         .collection<{ flttPlayerId: string; isoDate: string }>("playerMatches")
         .find(
@@ -210,19 +253,18 @@ async function fetchPriorSeasonStats(
         )
         .toArray(),
     );
-
-    const statsByPlayer = new Map<string, { count: number; lastIsoDate: string | null }>();
-    for (const d of docs) {
-      const existing = statsByPlayer.get(d.flttPlayerId);
-      if (existing) {
-        existing.count++;
-        if (!existing.lastIsoDate || d.isoDate > existing.lastIsoDate)
-          existing.lastIsoDate = d.isoDate;
-      } else {
-        statsByPlayer.set(d.flttPlayerId, { count: 1, lastIsoDate: d.isoDate });
-      }
+    const lastIsoDateByPlayer = new Map<string, string>();
+    for (const d of dateDocs) {
+      const existing = lastIsoDateByPlayer.get(d.flttPlayerId);
+      if (!existing || d.isoDate > existing) lastIsoDateByPlayer.set(d.flttPlayerId, d.isoDate);
     }
-    const rows = Array.from(statsByPlayer, ([_id, v]) => ({ _id, ...v }));
+
+    const ids = new Set([...countByPlayer.keys(), ...lastIsoDateByPlayer.keys()]);
+    const rows = Array.from(ids, (_id) => ({
+      _id,
+      count: countByPlayer.get(_id) ?? 0,
+      lastIsoDate: lastIsoDateByPlayer.get(_id) ?? null,
+    }));
     return { rows, timedOut: false };
   } catch (err) {
     console.warn(
