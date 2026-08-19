@@ -2,6 +2,7 @@ import { MongoClient, type Db } from "mongodb";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
+import { clubKey, identityKey } from "@/lib/identity-key";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import {
   excludeKnownFalsePositives,
@@ -22,12 +23,16 @@ import {
   readSeasonStartExportFile,
   SEASON_START_EXPORT_PATH,
 } from "@/lib/import/season-start-export";
-import { SEASON_START_OVERRIDES } from "@/lib/import/season-start-overrides";
+import {
+  SEASON_START_OVERRIDES,
+  RETURNING_PLAYER_PFW_OVERRIDES,
+} from "@/lib/import/season-start-overrides";
 import {
   simulateSeason,
   CAREER_MATCH_THRESHOLD,
   ersteinstufungFor,
   inactivityDeductionAppliedAsOf,
+  INACTIVITY_DEDUCTION_STAGE_3_TOTAL,
   type OutputMatchRow,
   type RawSeasonMatch,
   type RawSeasonPlacement,
@@ -144,18 +149,6 @@ interface MongoCatalogPlayerDoc {
   club: string | null;
   ranking: string;
   performanceScore: number;
-}
-
-/** Normalizes a club name for comparison; null/blank all compare equal. */
-function clubKey(club: string | null): string {
-  return (club ?? "").trim().toLowerCase();
-}
-
-/** A player's identity for this run: name plus club, so two different real
- * people who happen to share a name (confirmed: ~25 cases in the FLTT
- * catalog) don't get their match histories merged together. */
-function identityKey(playerNameKey: string, club: string | null): string {
-  return `${playerNameKey}|${clubKey(club)}`;
 }
 
 interface PriorSeasonStats {
@@ -609,6 +602,9 @@ export async function computeSeasonSimulation(
   const overrideClassByFlttId = new Map(
     SEASON_START_OVERRIDES.map((o) => [o.flttPlayerId, o.class]),
   );
+  const returningPfwOverrideByFlttId = new Map(
+    RETURNING_PLAYER_PFW_OVERRIDES.map((o) => [o.flttPlayerId, o.pfw]),
+  );
 
   const playersByNameKey = new Map<string, SupabasePlayerRow[]>();
   for (const p of supabasePlayers) {
@@ -658,6 +654,7 @@ export async function computeSeasonSimulation(
   const seasonStartExportByFlttId = loadSeasonStartExport(log);
 
   let priorSeasonHits = 0;
+  let returningOverrideHits = 0;
   let overrideHits = 0;
   let youthErsteinstufungHits = 0;
   let exportHits = 0;
@@ -674,12 +671,15 @@ export async function computeSeasonSimulation(
     // latest catalog import — i.e. roughly where they ended up, not where
     // they started. Best source first: their own final DTR from the season
     // immediately prior (nothing to re-derive — they already have a real
-    // computed rating), then a manual correction (SEASON_START_OVERRIDES) for
-    // a player whose export row had to be discarded, then FLTT's own
-    // season-start export when Jeff has one on hand, then a snapshot inferred
-    // from their earliest match this season (see season-start-snapshot.ts for
-    // why either beats today's catalog).
+    // computed rating), then a fresh federation PFW for a player confirmed
+    // returning from a long absence (RETURNING_PLAYER_PFW_OVERRIDES), then a
+    // manual correction (SEASON_START_OVERRIDES) for a player whose export
+    // row had to be discarded, then FLTT's own season-start export when Jeff
+    // has one on hand, then a snapshot inferred from their earliest match
+    // this season (see season-start-snapshot.ts for why either beats today's
+    // catalog).
     const flttId = resolveFlttId(p.name_key, p.club);
+    const returningPfwOverride = flttId ? returningPfwOverrideByFlttId.get(flttId) : undefined;
     const overrideClass = flttId ? overrideClassByFlttId.get(flttId) : undefined;
     const exportSnapshot = flttId ? seasonStartExportByFlttId.get(flttId) : undefined;
     const seasonStart: SeasonStartTtr | undefined = flttId
@@ -698,6 +698,13 @@ export async function computeSeasonSimulation(
     if (priorSeasonDtr != null) {
       priorSeasonHits++;
       startingTtr = priorSeasonDtr;
+    }
+    if (startingTtr == null && returningPfwOverride != null && isPlayerClass(cls)) {
+      const est = estimateTtr(returningPfwOverride, cls as PlayerClass, classementPoints);
+      if (est != null) {
+        returningOverrideHits++;
+        startingTtr = est;
+      }
     }
     if (startingTtr == null && overrideClass) {
       const est = medianTtrByClass.get(overrideClass) ?? null;
@@ -770,19 +777,27 @@ export async function computeSeasonSimulation(
         ? CAREER_MATCH_SAFE_DEFAULT
         : (prior?.count ?? 0),
       lastMatchIsoDateBeforeSeason,
-      // Only nonzero when startingTtr was carried forward from the player's
-      // own prior-season final DTR — that's the only case a deduction could
-      // already be silently baked into the starting number. Every other
-      // source seeds 0, so the checkpoints apply the real deduction
-      // visibly, in full, the first time this feature evaluates them.
+      // Nonzero in two cases: (1) startingTtr was carried forward from the
+      // player's own prior-season final DTR, the only case a deduction
+      // could already be silently baked into the starting number; (2) a
+      // RETURNING_PLAYER_PFW_OVERRIDES entry — the fresh federation PFW IS
+      // the re-rating, so the deduction is treated as already fully paid
+      // down rather than reapplied on top of it (their real match history
+      // is untouched, so the newcomer/returning K-bonuses still apply
+      // normally). Every other source seeds 0, so the checkpoints apply the
+      // real deduction visibly, in full, the first time this feature
+      // evaluates them.
       inactivityDeductionAlreadyApplied:
-        priorSeasonDtr != null
-          ? inactivityDeductionAppliedAsOf(lastMatchIsoDateBeforeSeason, SEASON_START_ISO)
-          : 0,
+        returningPfwOverride != null
+          ? INACTIVITY_DEDUCTION_STAGE_3_TOTAL
+          : priorSeasonDtr != null
+            ? inactivityDeductionAppliedAsOf(lastMatchIsoDateBeforeSeason, SEASON_START_ISO)
+            : 0,
     };
   });
   log(
     `  ${priorSeasonHits} of ${players.length} players carried forward their prior-season DTR; ` +
+      `${returningOverrideHits} more used a fresh federation PFW as a returning player; ` +
       `${overrideHits} more used a manual season-start correction; ${youthErsteinstufungHits} more ` +
       `used their age-based Ersteinstufung (D3 youth); ${exportHits} more from FLTT's own export; ` +
       `${seasonStartHits} more from their earliest match this season; the rest fall back to today's ` +

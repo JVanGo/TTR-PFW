@@ -10,6 +10,9 @@ import {
   ersteinstufungFor,
   isMatchInactive as computeIsMatchInactive,
 } from "@/lib/import/ttr-simulation";
+import { RETURNING_PLAYER_PFW_OVERRIDES } from "@/lib/import/season-start-overrides";
+import { nameKey } from "@/lib/name-key";
+import { identityKey } from "@/lib/identity-key";
 
 function isAgeCategory(value: string | null): value is AgeCategory {
   return value != null && (AGE_CATEGORIES as readonly string[]).includes(value);
@@ -37,6 +40,7 @@ export interface RankingRow {
 interface PlayerRow {
   id: string;
   name: string;
+  name_key: string;
   class: string;
   pfw: number;
   club: string | null;
@@ -59,7 +63,7 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
     fetchAllRows<PlayerRow>(
       supabase,
       "players",
-      "id, name, class, pfw, club, is_active, classement_points, age_category, is_kader, last_match_date",
+      "id, name, name_key, class, pfw, club, is_active, classement_points, age_category, is_kader, last_match_date",
     ),
     fetchLatestTtrByPlayer(supabase, CURRENT_SEASON),
   ]);
@@ -70,10 +74,22 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
   const players = allPlayers.filter((p) => p.is_active);
   const todayIso = new Date().toISOString().slice(0, 10);
 
+  // Matched by name+club, not flttPlayerId — this file deliberately stays
+  // Mongo-free (it's on the hot path for every page load), so it can't do
+  // the simulation's own flttPlayerId resolution. Only matters for a
+  // returning player who hasn't played any matches yet this season; once
+  // they have, their simulated rating (fed by this same override, see
+  // ttr-simulation-io.ts) takes over via latestTtrByPlayer above.
+  const returningPfwOverrideByIdentity = new Map(
+    RETURNING_PLAYER_PFW_OVERRIDES.map((o) => [identityKey(nameKey(o.name), o.club), o.pfw]),
+  );
+
   const withDtr = players.map((p) => {
     const kl: PlayerClass = isPlayerClass(p.class) ? p.class : "D3";
     const ageCategory = isAgeCategory(p.age_category) ? p.age_category : null;
-    const seasonStart = estimateTtr(Number(p.pfw), kl, p.classement_points);
+    const effectivePfw =
+      returningPfwOverrideByIdentity.get(identityKey(p.name_key, p.club)) ?? Number(p.pfw);
+    const seasonStart = estimateTtr(effectivePfw, kl, p.classement_points);
 
     let dtr: number;
     if (latestTtrByPlayer.has(p.id)) {
@@ -89,7 +105,7 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
       // Already placed above D3 by FLTT, just missing a points value in our
       // data — use that class's own zero-point anchor rather than guessing
       // a beginner's rating for someone who plainly isn't one.
-      dtr = estimateTtr(Number(p.pfw), kl, 0)!;
+      dtr = estimateTtr(effectivePfw, kl, 0)!;
     }
 
     return {

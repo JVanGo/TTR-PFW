@@ -27,7 +27,9 @@ const INACTIVITY_DEDUCTION_STAGE_2_MONTHS = 30;
 const INACTIVITY_DEDUCTION_STAGE_3_MONTHS = 36;
 const INACTIVITY_DEDUCTION_STAGE_1_TOTAL = 80;
 const INACTIVITY_DEDUCTION_STAGE_2_TOTAL = 100;
-const INACTIVITY_DEDUCTION_STAGE_3_TOTAL = 120;
+// Exported for manual season-start overrides (see season-start-overrides.ts)
+// that need to mark a player's Inaktivitätsabzug as already fully paid down.
+export const INACTIVITY_DEDUCTION_STAGE_3_TOTAL = 120;
 const INACTIVITY_DEDUCTION_COMPETITION = "Inaktivitätsabzug";
 const INACTIVITY_DEDUCTION_OPPONENT_LABEL = "Inactivity deduction";
 

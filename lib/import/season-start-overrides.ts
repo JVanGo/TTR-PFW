@@ -35,3 +35,27 @@ export const SEASON_START_OVERRIDES: SeasonStartOverride[] = [
   { flttPlayerId: "28077", name: "ARABA David", club: "Nidderkäerjeng", class: "B3" },
   { flttPlayerId: "28074", name: "VAZ Noah", club: "Nidderkäerjeng", class: "B1" },
 ];
+
+export interface ReturningPlayerPfwOverride {
+  flttPlayerId: string;
+  name: string;
+  club: string;
+  /** Fresh PFW the federation assigned on the player's return — used directly via estimateTtr(), not a class-median stand-in. */
+  pfw: number;
+}
+
+/**
+ * Players the federation has manually reassessed with a fresh PFW after
+ * returning from a long absence — confirmed by Jeff one at a time. The
+ * fresh PFW is used as their season-start rating (checked right after a
+ * real prior-season DTR carry-forward, ahead of every other source), and
+ * their Inaktivitätsabzug (see DëschTennisRating.pdf) is treated as already
+ * fully paid down rather than reapplied on top of an already-fresh number —
+ * see how INACTIVITY_DEDUCTION_STAGE_3_TOTAL is used in
+ * ttr-simulation-io.ts. Their real match history (career-match count, last
+ * match date) is left untouched, so the newcomer/returning K-bonuses still
+ * apply normally.
+ */
+export const RETURNING_PLAYER_PFW_OVERRIDES: ReturningPlayerPfwOverride[] = [
+  { flttPlayerId: "21561", name: "HABEL Mirko", club: "Recken", pfw: 925.0 },
+];
