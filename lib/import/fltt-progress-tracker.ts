@@ -17,6 +17,18 @@ export interface CatalogFetchResult {
 }
 
 /**
+ * FLTT Progress Tracker's own crawler mis-encodes the hyphen in
+ * double-barreled surnames as U+00AC (¬) — confirmed against
+ * fltt.lu source pages, which show a normal hyphen. Left uncorrected, the
+ * corrupted name produces a different name_key on every sync than a
+ * previously-imported clean name, so diffRangliste() treats the player as
+ * new instead of matching the existing row, creating a duplicate each time.
+ */
+export function sanitizeFlttName(name: string): string {
+  return name.replace(/¬/g, "-");
+}
+
+/**
  * Read-only pull of the player catalog from the FLTT Progress Tracker Mongo
  * database. Maps straight onto RanglistEntry so it can feed the same
  * diffRangliste() upsert already used for the Verbandsrangliste import.
@@ -54,7 +66,7 @@ export async function fetchCatalogFromMongo(): Promise<CatalogFetchResult> {
         skipped++;
         continue;
       }
-      const name = doc.name.trim();
+      const name = sanitizeFlttName(doc.name.trim());
       entries.push({
         name,
         class: cls,
