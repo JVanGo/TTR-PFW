@@ -21,7 +21,7 @@
   "HomePage": {
     "title": "FLTT DTR-Rangliste",
     "intro1": "DTR (Dëschtennis-Rating) ist eine Bewertungszahl, die die tatsächliche Spielstärke jedes Spielers verfolgt und nach jeder Partie der Saison 2025-2026 neu berechnet wird. Sie basiert auf demselben System wie die deutsche TTR-Wertung: Wer gegen einen ähnlich stark bewerteten Gegner gewinnt, bekommt einige Punkte dazu; bei einer Niederlage werden Punkte abgezogen. Ein Sieg gegen einen deutlich stärkeren Spieler zählt mehr, eine Niederlage gegen einen deutlich schwächeren Spieler kostet mehr.",
-    "intro2": "Jeder Spieler ist mit einem Ausgangswert in die Saison gestartet: Erwachsene begannen bei 1025, jüngere Spieler niedriger (900 oder 850, je nach Altersklasse), da die Bewertung ihre tatsächliche Spielstärke noch nicht widerspiegeln konnte. Von dort aus hat jede Partie dieser Saison die Bewertung jedes Spielers nach oben oder unten bewegt, bis zum heutigen Stand.",
+    "intro2": "Jeder Spieler ist mit einem Ausgangswert in die Saison gestartet: Erwachsene begannen bei 1025, Junioren bei 950, und jüngere Spieler noch niedriger (900 oder 850, je nach Altersklasse), da die Bewertung ihre tatsächliche Spielstärke noch nicht widerspiegeln konnte. Von dort aus hat jede Partie dieser Saison die Bewertung jedes Spielers nach oben oder unten bewegt, bis zum heutigen Stand.",
     "readMore": "Mehr erfahren →",
     "browseRanking": "Zur vollständigen Rangliste →",
     "clubsHeading": "Vereine",
@@ -119,6 +119,8 @@
     "startingValuesBody": "Jeder Spieler beginnt die Saison mit einem Ausgangswert statt mit einer von anderswo übernommenen Schätzung: Erwachsene starten bei 1025, Junioren bei 950, und jüngere Jugendliche niedriger je nach Altersklasse (900 für Cadets/Minimes, 850 für Benjamins/Poussins), da ein neuer Spieler noch keine Spielergebnisse aufgebaut hat, die seine tatsächliche Spielstärke widerspiegeln.",
     "confidenceHeading": "Zuverlässigkeit",
     "confidenceBody": "DTR wird aus echten Spielergebnissen neu berechnet, nicht geschätzt — je mehr Partien ein Spieler in dieser Saison gespielt hat, desto genauer spiegelt der Wert seine aktuelle Form wider.",
+    "inactivityHeading": "Inaktivitätsabzug",
+    "inactivityBody": "Ein Spieler, der 24 Monate oder länger keine gewertete Partie bestritten hat, verliert DTR-Punkte, da eine so lange ungeprüfte Bewertung die tatsächliche aktuelle Spielstärke nicht mehr widerspiegelt: −80 Punkte nach 24 Monaten, weitere −20 nach 30 Monaten und noch einmal −20 nach 36 Monaten, insgesamt höchstens −120 Punkte. Jugendspieler sind von dieser Regel ausgenommen.",
     "distributionHeading": "Aktuelle Verteilung der Bewertungen",
     "distributionSubtitle": "Wie sich die {count, number} aktuellen DTR-Werte verteilen, gruppiert in 100-Punkte-Bänder.",
     "lineupRulesHeading": "Mannschaftsaufstellung",

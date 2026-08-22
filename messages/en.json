@@ -21,7 +21,7 @@
   "HomePage": {
     "title": "FLTT DTR Ranking",
     "intro1": "DTR (Dëschtennis-Rating) is a rating that tracks every player's real playing strength, recalculated after each match of the 2025-2026 season. It's based on the same system used for the German TTR rating: win a match against a similarly-rated opponent and your rating goes up by a handful of points; lose, and it goes down. Beating a much stronger player is worth more, losing to a much weaker one costs more.",
-    "intro2": "Every player started the season with a baseline rating: adult players began at 1025, younger players began lower (900 or 850, depending on age group) since the rating hasn't yet had a chance to reflect their real strength. From there, every match this season has moved each player's rating up or down to where it stands today.",
+    "intro2": "Every player started the season with a baseline rating: adult players began at 1025, Juniors at 950, and younger players began lower still (900 or 850, depending on age group) since the rating hasn't yet had a chance to reflect their real strength. From there, every match this season has moved each player's rating up or down to where it stands today.",
     "readMore": "Read more →",
     "browseRanking": "Browse the full ranking →",
     "clubsHeading": "Clubs",
@@ -119,6 +119,8 @@
     "startingValuesBody": "Every player begins the season at a baseline rating rather than an estimate carried over from elsewhere: adult players start at 1025, Juniors at 950, and younger youth players lower still depending on their age group (900 for Cadets/Minimes, 850 for Benjamins/Poussins), since a new player hasn't yet built up match results that reflect their real strength.",
     "confidenceHeading": "Confidence",
     "confidenceBody": "DTR is recalculated from real match results, not estimated — the more matches a player has played this season, the more it reflects their actual current form.",
+    "inactivityHeading": "Inactivity deduction",
+    "inactivityBody": "A player who goes 24 months or more without a rated match starts losing DTR points, since a rating that hasn't been tested in that long no longer reflects their real current strength: −80 points at 24 months, a further −20 at 30 months, and a final −20 at 36 months, for a maximum deduction of −120. Youth players are exempt from this rule.",
     "distributionHeading": "Current rating distribution",
     "distributionSubtitle": "How today's {count, number} DTR values are spread out, grouped into bands of 100 points.",
     "lineupRulesHeading": "Team lineup rules (Mannschaftsaufstellung)",

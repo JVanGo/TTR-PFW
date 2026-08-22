@@ -33,6 +33,9 @@ export default async function AboutPage() {
       <h2 className="mt-8 text-lg font-semibold">{t("confidenceHeading")}</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">{t("confidenceBody")}</p>
 
+      <h2 className="mt-8 text-lg font-semibold">{t("inactivityHeading")}</h2>
+      <p className="text-muted-foreground mt-2 text-sm leading-6">{t("inactivityBody")}</p>
+
       <h2 className="mt-8 text-lg font-semibold">{t("distributionHeading")}</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
         {t("distributionSubtitle", { count: rows.length })}
