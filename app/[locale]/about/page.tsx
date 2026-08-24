@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { CURRENT_SEASON, getRankingRows } from "@/lib/ranking";
+import { getRankingRows } from "@/lib/ranking";
 import { bucketizeDtr } from "@/lib/dtr-distribution";
 import { DtrDistributionChart } from "@/components/about/DtrDistributionChart";
 import { TOLERANCE } from "@/lib/lineup";
@@ -24,10 +24,7 @@ export default async function AboutPage() {
 
       <h2 className="mt-8 text-lg font-semibold">{t("dataSourceHeading")}</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
-        {t.rich("dataSourceBody", {
-          code: (chunks) => <code>{chunks}</code>,
-          season: CURRENT_SEASON,
-        })}
+        {t.rich("dataSourceBody", { code: (chunks) => <code>{chunks}</code> })}
       </p>
 
       <h2 className="mt-8 text-lg font-semibold">{t("startingValuesHeading")}</h2>
