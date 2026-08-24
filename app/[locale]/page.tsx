@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getRankingRows } from "@/lib/ranking";
+import { CURRENT_SEASON, getRankingRows } from "@/lib/ranking";
 import { PlayerSearch } from "@/components/home/PlayerSearch";
 import { SiteFooter } from "@/components/SiteFooter";
 
@@ -26,7 +26,9 @@ export default async function HomePage() {
     <>
       <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{t("title")}</h1>
-        <p className="text-muted-foreground mt-3 text-base leading-7">{t("intro1")}</p>
+        <p className="text-muted-foreground mt-3 text-base leading-7">
+          {t("intro1", { season: CURRENT_SEASON })}
+        </p>
         <p className="text-muted-foreground mt-4 text-base leading-7">
           {t("intro2")}{" "}
           <Link href="/about" className="underline">

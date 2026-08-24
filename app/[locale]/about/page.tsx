@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getRankingRows } from "@/lib/ranking";
+import { CURRENT_SEASON, getRankingRows } from "@/lib/ranking";
 import { bucketizeDtr } from "@/lib/dtr-distribution";
 import { DtrDistributionChart } from "@/components/about/DtrDistributionChart";
 import { TOLERANCE } from "@/lib/lineup";
@@ -24,14 +24,20 @@ export default async function AboutPage() {
 
       <h2 className="mt-8 text-lg font-semibold">{t("dataSourceHeading")}</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">
-        {t.rich("dataSourceBody", { code: (chunks) => <code>{chunks}</code> })}
+        {t.rich("dataSourceBody", {
+          code: (chunks) => <code>{chunks}</code>,
+          season: CURRENT_SEASON,
+        })}
       </p>
 
       <h2 className="mt-8 text-lg font-semibold">{t("startingValuesHeading")}</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">{t("startingValuesBody")}</p>
+      <p className="text-muted-foreground mt-2 text-sm leading-6">
+        {t("startingValuesHistoricalNote")}
+      </p>
 
-      <h2 className="mt-8 text-lg font-semibold">{t("confidenceHeading")}</h2>
-      <p className="text-muted-foreground mt-2 text-sm leading-6">{t("confidenceBody")}</p>
+      <h2 className="mt-8 text-lg font-semibold">{t("kFactorHeading")}</h2>
+      <p className="text-muted-foreground mt-2 text-sm leading-6">{t("kFactorBody")}</p>
 
       <h2 className="mt-8 text-lg font-semibold">{t("inactivityHeading")}</h2>
       <p className="text-muted-foreground mt-2 text-sm leading-6">{t("inactivityBody")}</p>
@@ -81,9 +87,6 @@ export default async function AboutPage() {
         </table>
       </div>
       <p className="text-muted-foreground mt-2 text-sm leading-6">{t("lineupRulesFootnote")}</p>
-
-      <h2 className="mt-8 text-lg font-semibold">{t("historicalNoteHeading")}</h2>
-      <p className="text-muted-foreground mt-2 text-sm leading-6">{t("historicalNoteBody")}</p>
 
       <h2 className="mt-8 text-lg font-semibold">{t("furtherReadingHeading")}</h2>
       <ul className="text-muted-foreground mt-2 list-disc pl-6 text-sm leading-6">
