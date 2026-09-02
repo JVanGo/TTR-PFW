@@ -2,7 +2,7 @@
  * Read-only audit of a season's `matches` data against PRODUCTION Supabase.
  * Makes no writes anywhere — safe to run any time, as often as you like.
  *
- * Two independent checks:
+ * Three independent checks:
  *
  * 1. Recompute vs. stored: re-runs the exact same simulation the real
  *    import script uses (computeSeasonSimulation — same code path as
@@ -19,9 +19,29 @@
  *    consistent between the two runs, or a manual DB edit made outside the
  *    pipeline).
  *
- * Neither check can tell you a player's season-START rating is correct
- * against the real world — that still needs a manual spot-check against
- * FLTT's own export/PDF, same as before.
+ * 3. New-player sanity checks (most useful right at a season rollover, see
+ *    project-ttr-season-rollover): a player who has no prior-season DTR is
+ *    "new" for our purposes and gets an Ersteinstufung-style flat starting
+ *    rating. Two things worth a human's eyes before trusting that:
+ *      a. A "new" player whose name+club closely matches a player who was
+ *         active last season but is missing from this one — carry-forward
+ *         is keyed on our own player_id, so a rename/club-transfer/catalog
+ *         hiccup that breaks that match silently resets a returning player
+ *         to a beginner rating instead of carrying their real DTR forward.
+ *      b. A "new" player whose FLTT class isn't the expected beginner
+ *         default (D2 for adults, D3 for youth) — see the D3 special case
+ *         in ttr-simulation-io.ts. A genuine first-timer placed in a higher
+ *         class either got misclassified as new (case a) or the starting
+ *         estimate silently used that class's own anchor instead of the
+ *         flat beginner default, which may not be what's intended.
+ *    Both are heuristics for manual review, not proof of a bug — expect
+ *    noise on a season with no prior-season data at all (e.g. the very
+ *    first tracked season), where "new" just means "first time we saw
+ *    them," not "actually a beginner."
+ *
+ * None of these checks can tell you a player's season-START rating is
+ * correct against the real world — that still needs a manual spot-check
+ * against FLTT's own export/PDF, same as before.
  *
  * Reads credentials from .env.prod-seed (gitignored, manually populated),
  * same as the other -prod scripts. Refuses to run unless the URL contains
@@ -37,8 +57,14 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 import process from "node:process";
 
-import { computeSeasonSimulation, SEASON_LABEL } from "../lib/import/ttr-simulation-io";
+import {
+  computeSeasonSimulation,
+  previousSeasonLabel,
+  SEASON_LABEL,
+} from "../lib/import/ttr-simulation-io";
 import type { OutputMatchRow } from "../lib/import/ttr-simulation";
+import { fetchLatestTtrByPlayer } from "../lib/supabase/latestTtr";
+import { newPlayerChecks, type Finding, type PlayerRow } from "../lib/import/new-player-checks";
 
 config({ path: ".env.prod-seed" });
 
@@ -126,11 +152,6 @@ function diffKey(row: {
     row.score ?? "",
     row.result,
   ].join("|");
-}
-
-interface Finding {
-  category: string;
-  detail: string;
 }
 
 const VALID_K_FACTORS = new Set([16, 20, 24, 28, 32]);
@@ -536,24 +557,47 @@ async function main() {
   console.log(`Target (PROD, read-only): ${SUPABASE_URL}`);
   console.log(`Season: ${SEASON}\n`);
 
-  console.log("Loading player names...");
-  const nameById = new Map<string, string>();
+  console.log("Loading players...");
+  const playersById = new Map<string, PlayerRow>();
   {
     const pageSize = 1000;
     let from = 0;
     for (;;) {
       const { data, error } = await supabase
         .from("players")
-        .select("id, name")
+        .select("id, name, name_key, club, class, age_category")
         .range(from, from + pageSize - 1);
       if (error) throw new Error(error.message);
       if (!data || data.length === 0) break;
-      for (const p of data as { id: string; name: string }[]) nameById.set(p.id, p.name);
+      for (const p of data as {
+        id: string;
+        name: string;
+        name_key: string;
+        club: string | null;
+        class: string | null;
+        age_category: string | null;
+      }[]) {
+        playersById.set(p.id, {
+          id: p.id,
+          name: p.name,
+          nameKey: p.name_key,
+          club: p.club,
+          class: p.class,
+          ageCategory: p.age_category,
+        });
+      }
       if (data.length < pageSize) break;
       from += pageSize;
     }
   }
+  const nameById = new Map([...playersById].map(([id, p]) => [id, p.name]));
   console.log(`  ${nameById.size} players.\n`);
+
+  const priorSeason = previousSeasonLabel(SEASON);
+  console.log(`Loading prior-season (${priorSeason}) DTRs for the new-player checks...`);
+  const priorSeasonDtrByPlayerId = await fetchLatestTtrByPlayer(supabase, priorSeason);
+  const priorSeasonPlayerIds = new Set(priorSeasonDtrByPlayerId.keys());
+  console.log(`  ${priorSeasonPlayerIds.size} players carried a DTR from ${priorSeason}.\n`);
 
   console.log(
     "Recomputing the season from scratch (same code path as the real import, no writes)...",
@@ -574,9 +618,16 @@ async function main() {
   printReport("Structural sanity checks", structuralChecks(stored, nameById));
   console.log();
   console.log("=".repeat(72));
+  const currentSeasonPlayerIds = new Set(stored.map((r) => r.player_id));
+  printReport(
+    "New-player sanity checks",
+    newPlayerChecks(playersById, currentSeasonPlayerIds, priorSeasonPlayerIds),
+  );
+  console.log();
+  console.log("=".repeat(72));
   console.log(
-    "\nNote: neither check verifies a player's season-START rating against the\n" +
-      "real world — that still needs a manual spot-check against FLTT's own\n" +
+    "\nNote: none of these checks verify a player's season-START rating against\n" +
+      "the real world — that still needs a manual spot-check against FLTT's own\n" +
       "export or the DTR PDF, same as before.",
   );
 }
