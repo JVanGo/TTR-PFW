@@ -234,8 +234,17 @@ export interface SimulationSummary {
 export interface SimulationResult {
   matchRows: OutputMatchRow[];
   summary: SimulationSummary;
-  /** Every player's most recent real (non-forfeit) match date, if any — for persisting `players.last_match_date`. */
-  playerLastMatchDates: { playerId: string; lastMatchIsoDate: string | null }[];
+  /**
+   * Every player's most recent real (non-forfeit) match date, if any, plus
+   * their age category — for persisting `players.last_match_date` and
+   * deriving `players.is_active` (see isMatchInactive: youth are exempt
+   * from Inaktivitätsabzug entirely, regardless of match recency).
+   */
+  playerLastMatchDates: {
+    playerId: string;
+    lastMatchIsoDate: string | null;
+    ageCategory: AgeCategory | null;
+  }[];
 }
 
 interface RuntimeState {
@@ -833,6 +842,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
   const playerLastMatchDates = Array.from(states.values(), (s) => ({
     playerId: s.id,
     lastMatchIsoDate: s.lastMatchIsoDate,
+    ageCategory: s.ageCategory,
   }));
 
   return { matchRows, summary, playerLastMatchDates };

@@ -38,6 +38,7 @@ import {
   CAREER_MATCH_THRESHOLD,
   ersteinstufungFor,
   inactivityDeductionAppliedAsOf,
+  isMatchInactive,
   INACTIVITY_DEDUCTION_STAGE_3_TOTAL,
   type OutputMatchRow,
   type RawSeasonMatch,
@@ -506,7 +507,11 @@ export interface RunSeasonSimulationResult {
 export interface SeasonSimulationResult {
   matchRows: OutputMatchRow[];
   summary: SimulationSummary;
-  playerLastMatchDates: { playerId: string; lastMatchIsoDate: string | null }[];
+  playerLastMatchDates: {
+    playerId: string;
+    lastMatchIsoDate: string | null;
+    ageCategory: AgeCategory | null;
+  }[];
 }
 
 /**
@@ -984,27 +989,47 @@ export async function computeSeasonSimulation(
 }
 
 /**
- * Batch-updates players.last_match_date from a fresh simulation run — feeds
- * the match-based "inactive" badge (see isMatchInactive in
- * lib/import/ttr-simulation.ts). Chunked, same pattern as other bulk
- * players-table updates in this codebase.
+ * Batch-updates players.last_match_date and players.is_active from a fresh
+ * simulation run. last_match_date feeds the match-based "inactive" badge
+ * (see isMatchInactive in lib/import/ttr-simulation.ts). is_active is
+ * defined (per Jeff, 2026-09-09) as "not currently subject to
+ * Inaktivitätsabzug" — the same rule, including its youth exemption: a
+ * youth player (any age category) is always active regardless of match
+ * recency, since the deduction itself never applies to them. Evaluated
+ * fresh against today's date every run, so a player can cross the 24-month
+ * threshold purely from time passing, without any new match data. Chunked,
+ * same pattern as other bulk players-table updates in this codebase.
  */
 async function applyLastMatchDatesToSupabase(
   supabase: SupabaseClient,
-  playerLastMatchDates: { playerId: string; lastMatchIsoDate: string | null }[],
+  playerLastMatchDates: {
+    playerId: string;
+    lastMatchIsoDate: string | null;
+    ageCategory: AgeCategory | null;
+  }[],
   log: (message: string) => void,
 ): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  let deactivated = 0;
   for (let i = 0; i < playerLastMatchDates.length; i += 200) {
     const chunk = playerLastMatchDates.slice(i, i + 200);
     const results = await Promise.all(
-      chunk.map(({ playerId, lastMatchIsoDate }) =>
-        supabase.from("players").update({ last_match_date: lastMatchIsoDate }).eq("id", playerId),
-      ),
+      chunk.map(({ playerId, lastMatchIsoDate, ageCategory }) => {
+        const isActive = ageCategory != null || !isMatchInactive(lastMatchIsoDate, today);
+        if (!isActive) deactivated++;
+        return supabase
+          .from("players")
+          .update({ last_match_date: lastMatchIsoDate, is_active: isActive })
+          .eq("id", playerId);
+      }),
     );
     const failed = results.find((r) => r.error);
     if (failed?.error) throw new Error(failed.error.message);
   }
-  log(`  ${playerLastMatchDates.length} players' last_match_date updated.`);
+  log(
+    `  ${playerLastMatchDates.length} players' last_match_date/is_active updated ` +
+      `(${deactivated} now inactive — no match in 24+ months, not a youth player).`,
+  );
 }
 
 export async function runSeasonSimulation(
