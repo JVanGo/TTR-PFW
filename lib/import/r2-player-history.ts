@@ -267,6 +267,79 @@ export interface MappedR2SeasonData {
   seasonStartSnapshot: MappedSeasonStartSnapshot | null;
 }
 
+export interface R2CatalogPlayerDoc {
+  flttPlayerId: string;
+  name: string;
+  /** Not derivable from R2 — a player's own current club isn't recorded on
+   * their own match rows (only an opponent's club sometimes is). Always
+   * null; degrades self/opponent-name disambiguation for the rare case of
+   * two tracked players sharing a name, same as a Mongo catalog row with an
+   * unknown club would. */
+  club: null;
+  /** Most recent parseable class/PFW snapshot found across the player's
+   * entire history (any season), newest first — approximates what the Mongo
+   * `players` collection's ranking crawl would show "today". Blank/0 when no
+   * row ever carried a parseable snapshot (see parseFlttMatchSnapshot) —
+   * matches MongoCatalogPlayerDoc's shape so downstream code (which already
+   * treats an unrecognized ranking as "not a player class, skip") needs no
+   * changes. */
+  ranking: string;
+  performanceScore: number;
+}
+
+/**
+ * Builds a catalog-equivalent list entirely from R2, so the R2 data path
+ * never needs Mongo to be reachable — see fetchCatalogOnlyFromMongo's
+ * removal in ttr-simulation-io.ts. There's no catalog/search endpoint on the
+ * bucket, so the only way to discover every player is to list and fetch the
+ * whole thing once; the local disk cache (see fetchPlayerHistoryFromR2)
+ * means only the very first run actually pays that cost. This mirrors the
+ * integration guide's own documented "sync the whole dataset" workflow, not
+ * an unsupported use of the bucket.
+ */
+export async function fetchCatalogFromR2(
+  onProgress?: (done: number, total: number) => void,
+): Promise<R2CatalogPlayerDoc[]> {
+  const keys = await listAllPlayerHistoryKeys();
+  const playerIds = keys
+    .map((k) => k.match(/([0-9]+)\.json$/)?.[1])
+    .filter((id): id is string => id != null);
+
+  let done = 0;
+  const catalog = await mapWithConcurrency(playerIds, 8, async (flttPlayerId) => {
+    const history = await fetchPlayerHistoryFromR2(flttPlayerId);
+    done++;
+    if (onProgress) onProgress(done, playerIds.length);
+
+    const allSnapshotRows = history.seasons
+      .flatMap((s) => s.rencontresRows)
+      .filter((r) => r.rowType === "match" && r.points?.startsWith("{"))
+      .slice()
+      .sort((a, b) => (a.isoDate < b.isoDate ? 1 : a.isoDate > b.isoDate ? -1 : 0)); // newest first
+
+    let ranking = "";
+    let performanceScore = 0;
+    for (const row of allSnapshotRows) {
+      const parsed = parseFlttMatchSnapshot(row.points, flttPlayerId);
+      if (!parsed || parsed.performance == null) continue;
+      ranking = parsed.ranking.trim().toUpperCase();
+      performanceScore = parsed.performance;
+      break;
+    }
+
+    const doc: R2CatalogPlayerDoc = {
+      flttPlayerId,
+      name: history.player.name,
+      club: null,
+      ranking,
+      performanceScore,
+    };
+    return doc;
+  });
+
+  return catalog;
+}
+
 /**
  * Maps one player's full R2 history into the same shape
  * fetchMongoData()/fetchPriorSeasonStats()/fetchSeasonStartTtr() produce from

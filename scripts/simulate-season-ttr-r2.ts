@@ -1,9 +1,11 @@
 /**
- * Same as simulate-season-ttr.ts, but sources match history from the R2
- * player-history backup instead of MongoDB (see lib/import/r2-player-history.ts).
- * For comparing R2-sourced output against the known-good Mongo-sourced run —
- * see the plan's verification steps. No -prod sibling yet: this only ever
- * runs against the local Supabase.
+ * Same as simulate-season-ttr.ts, but sources both the player catalog and
+ * match history entirely from the R2 player-history backup instead of
+ * MongoDB (see lib/import/r2-player-history.ts) — no Mongo connection
+ * needed at all. The very first run lists and fetches the whole bucket
+ * (~5.5GB) to build the catalog; later runs reuse the TTR/r2-cache/ disk
+ * cache and are fast. No -prod sibling yet: this only ever runs against the
+ * local Supabase.
  *
  * Usage (PowerShell):
  *   npm run simulate:season-ttr-r2
@@ -27,12 +29,6 @@ if (!SUPABASE_URL || !SERVICE_ROLE) {
 }
 if (!/127\.0\.0\.1|localhost/.test(SUPABASE_URL)) {
   console.error(`Refusing to run against non-local Supabase: ${SUPABASE_URL}`);
-  process.exit(1);
-}
-if (!process.env.MONGODB_URI || !process.env.MONGODB_DB_NAME) {
-  console.error(
-    "Missing MONGODB_URI or MONGODB_DB_NAME in .env.local (still used for the catalog).",
-  );
   process.exit(1);
 }
 if (
