@@ -42,7 +42,8 @@ interface RawRow {
  * that the federation can produce as a snapshot of every player's class,
  * classement standing, and PFW as of a given date — the authoritative
  * alternative to inferring a season-start snapshot from match history (see
- * season-start-snapshot.ts), when such a file is available.
+ * mapPlayerHistoryToSeasonData's seasonStartSnapshot in r2-player-history.ts),
+ * when such a file is available.
  *
  * Uses `performancePf`, not `performancePfInitial`: confirmed with Jeff that
  * `performancePfInitial` is the player's PFW at the *start* of the season

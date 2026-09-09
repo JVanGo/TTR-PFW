@@ -180,11 +180,9 @@ export async function fetchPlayerHistoryFromR2(flttPlayerId: string): Promise<Pl
  * FLTT's own crawler sometimes mis-encodes the hyphen in double-barreled
  * surnames as U+00AC (¬) instead of a normal "-" — confirmed against
  * fltt.lu source pages, which show a normal hyphen. This is the exact same
- * bug already handled for the (now-dead) Mongo catalog path — see
- * sanitizeFlttName in lib/import/fltt-progress-tracker.ts — duplicated
- * here rather than imported, since that module pulls in the `mongodb`
- * package at load time and the whole point of this file is to not need
- * Mongo. Left uncorrected, a corrupted name produces a different
+ * bug the old Mongo catalog importer (sanitizeFlttName, since removed along
+ * with the rest of the Mongo path) already had to work around. Left
+ * uncorrected, a corrupted name produces a different
  * nameKey() than the same person's clean spelling elsewhere, so matching
  * logic treats them as two different people — confirmed the hard way
  * 2026-09-09, when this created two real duplicate rows in production
@@ -320,6 +318,11 @@ export interface R2CatalogPlayerDoc {
    * changes. */
   ranking: string;
   performanceScore: number;
+  /** Most recent parseable classement-points value (C1-D3 estimates only —
+   * see lib/conversions.ts), from the same snapshot mechanism as
+   * ranking/performanceScore but not necessarily the same row. Null when no
+   * row ever carried one — most rows don't. */
+  classementPoints: number | null;
   /** Most recent isoDate among this player's own graded (won !== null)
    * matches, across every season in their file — null if they have none.
    * Used to decide whether an unmatched R2 name is a genuine current
@@ -422,6 +425,18 @@ export async function fetchCatalogFromR2(
       break;
     }
 
+    // Independent of the ranking/performance row above — a row can carry one
+    // without the other (see parseFlttMatchSnapshot's own doc comment:
+    // individual/tournament rows usually have no `points` at all). Same
+    // "most recent usable row wins" rule, checked separately.
+    let classementPoints: number | null = null;
+    for (const row of allSnapshotRows) {
+      const parsed = parseFlttMatchSnapshot(row.points, flttPlayerId);
+      if (!parsed || parsed.points == null) continue;
+      classementPoints = parsed.points;
+      break;
+    }
+
     let lastMatchIsoDate: string | null = null;
     for (const m of history.unifiedMatches) {
       if (m.won == null || !m.isoDate) continue;
@@ -434,6 +449,7 @@ export async function fetchCatalogFromR2(
       club: null,
       ranking,
       performanceScore,
+      classementPoints,
       lastMatchIsoDate,
     };
     return doc;
@@ -443,12 +459,12 @@ export async function fetchCatalogFromR2(
 }
 
 /**
- * Maps one player's full R2 history into the same shape
- * fetchMongoData()/fetchPriorSeasonStats()/fetchSeasonStartTtr() produce from
- * their Mongo collections — see ttr-simulation-io.ts and
- * season-start-snapshot.ts. Since the R2 file already holds the player's
- * entire career across seasons, this needs no cross-season queries at all
- * (that batching was purely a Cosmos DB workaround).
+ * Maps one player's full R2 history into the shape fetchSeasonData() in
+ * ttr-simulation-io.ts needs for the season simulation — match rows,
+ * placements, career stats, and a season-start rating snapshot. Since the
+ * R2 file already holds the player's entire career across seasons, this
+ * needs no cross-season queries at all (the old Mongo path's player-ID
+ * batching was purely a Cosmos DB timeout workaround, not needed here).
  */
 export function mapPlayerHistoryToSeasonData(
   history: PlayerHistory,

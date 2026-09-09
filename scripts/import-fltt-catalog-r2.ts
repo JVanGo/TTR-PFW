@@ -57,9 +57,10 @@ async function main() {
   console.log("Done.");
   console.log(
     `  existing=${s.existing} matchedInR2=${s.matchedInR2} classPfwUpdated=${s.classPfwUpdated} ` +
-      `clubUpdated=${s.clubUpdated} skippedNoMatch=${s.skippedNoMatch} ` +
-      `skippedAmbiguous=${s.skippedAmbiguous} skippedNoSnapshot=${s.skippedNoSnapshot} ` +
-      `inserted=${s.inserted} skippedNotRecentEnough=${s.skippedNotRecentEnough}`,
+      `clubUpdated=${s.clubUpdated} classementPointsUpdated=${s.classementPointsUpdated} ` +
+      `skippedNoMatch=${s.skippedNoMatch} skippedAmbiguous=${s.skippedAmbiguous} ` +
+      `skippedNoSnapshot=${s.skippedNoSnapshot} inserted=${s.inserted} ` +
+      `skippedNotRecentEnough=${s.skippedNotRecentEnough}`,
   );
 }
 

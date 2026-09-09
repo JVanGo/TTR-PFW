@@ -1,4 +1,3 @@
-import { MongoClient, type Db } from "mongodb";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
@@ -18,12 +17,12 @@ import { FORFEIT_OVERRIDES } from "@/lib/import/forfeit-overrides";
 import { PERFORMANCE_GAP_CONFIRMED_FORFEITS } from "@/lib/import/performance-gap-confirmed-forfeits";
 import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
-import { fetchSeasonStartTtr, type SeasonStartTtr } from "@/lib/import/season-start-snapshot";
 import {
   fetchCatalogFromR2,
   fetchPlayerHistoryFromR2,
   mapPlayerHistoryToSeasonData,
   mapWithConcurrency,
+  type MappedSeasonStartSnapshot,
 } from "@/lib/import/r2-player-history";
 import {
   readSeasonStartExportFile,
@@ -35,7 +34,6 @@ import {
 } from "@/lib/import/season-start-overrides";
 import {
   simulateSeason,
-  CAREER_MATCH_THRESHOLD,
   ersteinstufungFor,
   inactivityDeductionAppliedAsOf,
   isMatchInactive,
@@ -47,12 +45,10 @@ import {
   type SimulationSummary,
 } from "@/lib/import/ttr-simulation";
 
-// Safe fallback when the career-match history query is unavailable: at or
-// above the "newcomer" threshold, so no bonus is wrongly applied.
-const CAREER_MATCH_SAFE_DEFAULT = CAREER_MATCH_THRESHOLD;
-
 export const SEASON_LABEL = "2025-2026";
-const MONGO_SEASON = "25-26";
+// Same season as SEASON_LABEL, in the "YY-YY" short form R2/FLTT's own data
+// uses (as opposed to the "YYYY-YYYY" display form).
+const SEASON_SHORT_LABEL = "25-26";
 const SEASON_START_ISO = "2025-07-01";
 // Each Teilrunde's [start, end) window, in order: Aug 1 2025 - Jan 1 2026
 // ("Hironn"), then Jan 1 2026 - Aug 1 2026. A youth-bracket player only earns
@@ -69,8 +65,9 @@ interface SeasonStartExportSnapshot {
   classementPoints: number | null;
 }
 
-// Falls back to the match-history heuristic (fetchSeasonStartTtr) for
-// everyone when the export file isn't present — see season-start-export.ts.
+// Falls back to the match-history heuristic (mapPlayerHistoryToSeasonData's
+// seasonStartSnapshot) for everyone when the export file isn't present —
+// see season-start-export.ts.
 function loadSeasonStartExport(
   log: (message: string) => void,
 ): Map<string, SeasonStartExportSnapshot> {
@@ -91,7 +88,7 @@ function loadSeasonStartExport(
   return result;
 }
 
-interface MongoPlayerMatchDoc {
+interface SeasonMatchRow {
   id: string;
   flttPlayerId: string;
   playerName: string;
@@ -131,7 +128,7 @@ interface MongoPlayerMatchDoc {
  * tracked players' mirrored rows, (b) let a TOU game slip past the
  * tournament-exclusion filter, or (c) fail to match a Forfaits.xlsx entry's
  * half-season "(Rx)" marker. */
-function resolveCompetition(m: Pick<MongoPlayerMatchDoc, "competition" | "rencontres">): string {
+function resolveCompetition(m: Pick<SeasonMatchRow, "competition" | "rencontres">): string {
   return m.competition?.trim() || m.rencontres?.competition?.trim() || "";
 }
 
@@ -139,23 +136,15 @@ function resolveCompetition(m: Pick<MongoPlayerMatchDoc, "competition" | "rencon
  * blob straight from FLTT's own source with its own "forfeit":true/false
  * flag — see findMarkerOnlyForfeits in lib/import/forfeits.ts for why this is
  * treated as a secondary detection source, not the primary one. */
-function hasForfeitMarker(m: Pick<MongoPlayerMatchDoc, "rencontres">): boolean {
+function hasForfeitMarker(m: Pick<SeasonMatchRow, "rencontres">): boolean {
   return (m.rencontres?.points ?? "").includes('"forfeit":true');
 }
 
-interface MongoTournamentPlacementDoc {
+interface SeasonPlacementRow {
   flttPlayerId: string;
   isoDate: string;
   competition: string;
   tournamentPlacement: { place: number } | null;
-}
-
-interface MongoCatalogPlayerDoc {
-  flttPlayerId: string;
-  name: string;
-  club: string | null;
-  ranking: string;
-  performanceScore: number;
 }
 
 interface PriorSeasonStats {
@@ -198,224 +187,6 @@ export function previousSeasonLabel(current: string): string {
   return `${startYear - 1}-${endYear - 1}`;
 }
 
-/**
- * Career match-count and recent last-active-date per player — feeds the
- * newcomer/inactivity K-factor bonuses. The two pieces deliberately come
- * from different collections:
- *
- * - Count: `playerHistorySeasons`, one pre-counted row per player per
- *   season, summed across every season before the current one.
- *   `playerMatches` (one row per match) has no index leading with `season`
- *   alone, and even batched by player ID, pulling a player's ENTIRE match
- *   history this way routinely pulls tens of thousands of documents per
- *   100-player batch and reliably exceeds Cosmos DB's server-side command
- *   timeout — confirmed 2026-08-19 investigating a veteran player (320
- *   career matches across 15 seasons) wrongly getting the newcomer bonus
- *   because the count used to only look back 2 seasons, same as the date
- *   below. `playerHistorySeasons` is orders of magnitude smaller (one row
- *   per player-season instead of per match) and comfortably fast for the
- *   whole catalog, every season, with the same player-ID batching.
- * - Last-active date: `playerMatches`, scoped to the
- *   LAST_ACTIVE_DATE_SEASON_LOOKBACK (4) seasons immediately before the
- *   current one — comfortably covers the Inaktivitätsabzug rule's 36-month
- *   cap with an exact date for anyone who played within that window.
- *   `playerHistorySeasons` has no per-match date to give a precise one
- *   anyway. For a player with real career matches whose last one still
- *   falls outside even this widened window, `staleLastMatchSentinelIso`
- *   supplies a conservative placeholder date rather than a real one — see
- *   its own comment.
- *
- * Treated as best-effort: on failure, log and continue without it rather
- * than failing the whole run. Critically, the fallback must NOT default
- * every player to "new and inactive" (that's the opposite of conservative —
- * most players are neither) — the caller applies a "assume experienced and
- * active" default instead when this times out.
- */
-async function fetchPriorSeasonStats(
-  db: Db,
-  currentSeason: string,
-  playerIds: string[],
-): Promise<{
-  rows: { _id: string; count: number; lastIsoDate: string | null }[];
-  timedOut: boolean;
-}> {
-  try {
-    const currentStartYear = seasonStartYear(currentSeason);
-    const countDocs = await fetchInPlayerBatches(playerIds, (idBatch) =>
-      db
-        .collection<{ flttPlayerId: string; season: string; counts?: { matches?: number } }>(
-          "playerHistorySeasons",
-        )
-        .find(
-          { flttPlayerId: { $in: idBatch } },
-          {
-            projection: { _id: 0, flttPlayerId: 1, season: 1, "counts.matches": 1 },
-            maxTimeMS: 55_000,
-          },
-        )
-        .toArray(),
-    );
-    const countByPlayer = new Map<string, number>();
-    for (const d of countDocs) {
-      if (seasonStartYear(d.season) >= currentStartYear) continue; // this season or a future one
-      countByPlayer.set(
-        d.flttPlayerId,
-        (countByPlayer.get(d.flttPlayerId) ?? 0) + (d.counts?.matches ?? 0),
-      );
-    }
-
-    const seasons = previousNSeasons(currentSeason, LAST_ACTIVE_DATE_SEASON_LOOKBACK);
-    const dateDocs = await fetchInPlayerBatches(playerIds, (idBatch) =>
-      db
-        .collection<{ flttPlayerId: string; isoDate: string }>("playerMatches")
-        .find(
-          { flttPlayerId: { $in: idBatch }, season: { $in: seasons } },
-          { projection: { _id: 0, flttPlayerId: 1, isoDate: 1 }, maxTimeMS: 55_000 },
-        )
-        .toArray(),
-    );
-    const lastIsoDateByPlayer = new Map<string, string>();
-    for (const d of dateDocs) {
-      const existing = lastIsoDateByPlayer.get(d.flttPlayerId);
-      if (!existing || d.isoDate > existing) lastIsoDateByPlayer.set(d.flttPlayerId, d.isoDate);
-    }
-
-    const sentinelIso = staleLastMatchSentinelIso(SEASON_START_ISO);
-    const ids = new Set([...countByPlayer.keys(), ...lastIsoDateByPlayer.keys()]);
-    const rows = Array.from(ids, (_id) => {
-      const count = countByPlayer.get(_id) ?? 0;
-      const recentDate = lastIsoDateByPlayer.get(_id) ?? null;
-      return { _id, count, lastIsoDate: recentDate ?? (count > 0 ? sentinelIso : null) };
-    });
-    return { rows, timedOut: false };
-  } catch (err) {
-    console.warn(
-      `  Career-match/inactivity stats query failed, continuing without it: ${(err as Error).message}`,
-    );
-    return { rows: [], timedOut: true };
-  }
-}
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
-  return chunks;
-}
-
-// playerMatches/rencontresRows are only indexed leading with flttPlayerId
-// (see DATASET_HANDOFF.md section 9), so a query scoped to `season` alone is
-// a full-collection scan that reliably exceeds Cosmos DB's server-side
-// command timeout on this ~1M-row collection. Splitting the same query into
-// one $in-batch of player IDs at a time lets each batch use the
-// (flttPlayerId, season, ...) index instead, and keeps every individual
-// request small enough to finish well inside the timeout. Sequential (not
-// parallel) on purpose: Cosmos's own timeout error blames "concurrent
-// transactions", so firing batches at once would work against the fix.
-const PLAYER_BATCH_SIZE = 100;
-
-async function fetchInPlayerBatches<T>(
-  playerIds: string[],
-  runBatch: (idBatch: string[]) => Promise<T[]>,
-): Promise<T[]> {
-  const results: T[] = [];
-  for (const idBatch of chunk(playerIds, PLAYER_BATCH_SIZE)) {
-    results.push(...(await runBatch(idBatch)));
-  }
-  return results;
-}
-
-async function fetchMongoData(season: string) {
-  const uri = process.env.MONGODB_URI;
-  const dbName = process.env.MONGODB_DB_NAME;
-  if (!uri || !dbName) throw new Error("Missing MONGODB_URI or MONGODB_DB_NAME.");
-
-  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 15_000 });
-  try {
-    await client.connect();
-    const db = client.db(dbName);
-
-    const catalog = await db
-      .collection<MongoCatalogPlayerDoc>("players")
-      .find(
-        {},
-        {
-          projection: {
-            _id: 0,
-            flttPlayerId: 1,
-            name: 1,
-            club: 1,
-            ranking: 1,
-            performanceScore: 1,
-          },
-        },
-      )
-      .toArray();
-    const playerIds = catalog.map((p) => p.flttPlayerId);
-
-    const seasonMatches = await fetchInPlayerBatches(playerIds, (idBatch) =>
-      db
-        .collection<MongoPlayerMatchDoc>("playerMatches")
-        .find(
-          { flttPlayerId: { $in: idBatch }, season },
-          {
-            projection: {
-              _id: 0,
-              id: 1,
-              flttPlayerId: 1,
-              playerName: 1,
-              opponentName: 1,
-              isoDate: 1,
-              competition: 1,
-              "rencontres.competition": 1,
-              "rencontres.round": 1,
-              "rencontres.matchLabel": 1,
-              "rencontres.points": 1,
-              "performance.opponentClub": 1,
-              score: 1,
-              won: 1,
-              hasPerformance: 1,
-            },
-            maxTimeMS: 55_000,
-          },
-        )
-        .toArray(),
-    );
-
-    const placements = await fetchInPlayerBatches(playerIds, (idBatch) =>
-      db
-        .collection<MongoTournamentPlacementDoc>("rencontresRows")
-        .find(
-          { flttPlayerId: { $in: idBatch }, season, rowType: "tournamentPlacement" },
-          {
-            projection: {
-              _id: 0,
-              flttPlayerId: 1,
-              isoDate: 1,
-              competition: 1,
-              tournamentPlacement: 1,
-            },
-            maxTimeMS: 55_000,
-          },
-        )
-        .toArray(),
-    );
-
-    const priorSeasonStats = await fetchPriorSeasonStats(db, season, playerIds);
-    const seasonStartByFlttId = await fetchSeasonStartTtr(db, season, playerIds);
-
-    return {
-      seasonMatches,
-      placements,
-      catalog,
-      priorSeasonAgg: priorSeasonStats.rows,
-      priorSeasonStatsTimedOut: priorSeasonStats.timedOut,
-      seasonStartByFlttId,
-    };
-  } finally {
-    await client.close();
-  }
-}
-
 // How many R2 player-history files to fetch at once. R2's bucket has no
 // server-side query/timeout to work around (unlike Cosmos), so this is just
 // about being a reasonable citizen of the dataset owner's request quota —
@@ -423,24 +194,25 @@ async function fetchMongoData(season: string) {
 const R2_FETCH_CONCURRENCY = 8;
 
 /**
- * R2-sourced alternative to fetchMongoData() — fully independent of Mongo,
- * including the catalog (see fetchCatalogFromR2's doc comment for why that
- * needs a one-time full-bucket fetch). Everything (catalog + match history)
- * comes from the R2 player-history backup instead of Mongo's players/
- * playerMatches/rencontresRows/playerHistorySeasons collections — the
- * match-history collections were the exact ones timing out against Cosmos
- * DB (see fetchMongoData's and fetchPriorSeasonStats' doc comments).
+ * Fetches everything the season simulation needs from the R2 player-history
+ * backup: the catalog (see fetchCatalogFromR2's doc comment for why that
+ * needs a one-time full-bucket fetch), each player's season matches and
+ * placements, their career match count/last-active date, and a season-start
+ * rating snapshot when available. Replaced a Mongo-based equivalent that
+ * needed careful player-ID batching to avoid Cosmos DB command timeouts —
+ * R2 has no such server-side query to time out on, since each player's
+ * whole history is just a single file fetch.
  */
-async function fetchR2Data(season: string, log: (message: string) => void) {
+async function fetchSeasonData(season: string, log: (message: string) => void) {
   const { catalog } = await fetchCatalogFromR2((done, total) => {
     if (done % 250 === 0 || done === total)
       log(`  R2 catalog: ${done}/${total} player files fetched...`);
   });
 
-  const seasonMatches: MongoPlayerMatchDoc[] = [];
-  const placements: MongoTournamentPlacementDoc[] = [];
-  const priorSeasonAgg: { _id: string; count: number; lastIsoDate: string | null }[] = [];
-  const seasonStartByFlttId = new Map<string, SeasonStartTtr>();
+  const seasonMatches: SeasonMatchRow[] = [];
+  const placements: SeasonPlacementRow[] = [];
+  const priorSeasonAgg: { flttPlayerId: string; count: number; lastIsoDate: string | null }[] = [];
+  const seasonStartByFlttId = new Map<string, MappedSeasonStartSnapshot>();
   const sentinelIso = staleLastMatchSentinelIso(SEASON_START_ISO);
 
   await mapWithConcurrency(catalog, R2_FETCH_CONCURRENCY, async (p) => {
@@ -450,7 +222,7 @@ async function fetchR2Data(season: string, log: (message: string) => void) {
     placements.push(...mapped.placements);
     const { count, lastIsoDate } = mapped.priorSeasonStats;
     priorSeasonAgg.push({
-      _id: p.flttPlayerId,
+      flttPlayerId: p.flttPlayerId,
       count,
       lastIsoDate: lastIsoDate ?? (count > 0 ? sentinelIso : null),
     });
@@ -464,7 +236,6 @@ async function fetchR2Data(season: string, log: (message: string) => void) {
     placements,
     catalog,
     priorSeasonAgg,
-    priorSeasonStatsTimedOut: false,
     seasonStartByFlttId,
   };
 }
@@ -515,7 +286,7 @@ export interface SeasonSimulationResult {
 }
 
 /**
- * Fetches Mongo/Supabase inputs and runs the season simulation — everything
+ * Fetches R2/Supabase inputs and runs the season simulation — everything
  * `runSeasonSimulation` does except the destructive delete+insert into
  * `matches`. Split out so an audit script can recompute the season and diff
  * it against what's actually stored in prod without writing anything.
@@ -524,29 +295,12 @@ export async function computeSeasonSimulation(
   supabase: SupabaseClient,
   log: (message: string) => void = () => {},
 ): Promise<SeasonSimulationResult> {
-  // DATA_SOURCE=r2 is an opt-in alternate path (see r2-player-history.ts) —
-  // Mongo stays the default until a local comparison run confirms R2
-  // produces identical simulation output for the same players.
-  const useR2 = process.env.DATA_SOURCE === "r2";
-  log(`Fetching season data from ${useR2 ? "R2 (player-history backup)" : "MongoDB"}...`);
-  const {
-    seasonMatches,
-    placements,
-    catalog,
-    priorSeasonAgg,
-    priorSeasonStatsTimedOut,
-    seasonStartByFlttId,
-  } = useR2 ? await fetchR2Data(MONGO_SEASON, log) : await fetchMongoData(MONGO_SEASON);
+  log("Fetching season data from R2 (player-history backup)...");
+  const { seasonMatches, placements, catalog, priorSeasonAgg, seasonStartByFlttId } =
+    await fetchSeasonData(SEASON_SHORT_LABEL, log);
   log(
     `  ${seasonMatches.length} match rows, ${placements.length} tournament placements, ${catalog.length} catalog players.`,
   );
-  if (priorSeasonStatsTimedOut) {
-    log(
-      "  Career-match/inactivity stats query timed out on the Mongo side — continuing without " +
-        "them. Every player defaults to 'experienced and active' (no newcomer/inactivity K-bonus) " +
-        "rather than the reverse, since that's true for the vast majority of players.",
-    );
-  }
 
   const forfeitEntries = readForfeitsFile();
   const forfeitCandidateRows: MatchCandidateRow[] = seasonMatches.map((m) => ({
@@ -708,7 +462,7 @@ export async function computeSeasonSimulation(
   // overwrite the other's, wrongly swaying the newcomer/inactivity K-bonus.
   const priorStatsByNameKey = new Map<string, PriorSeasonStats>();
   for (const row of priorSeasonAgg) {
-    const info = catalogByFlttId.get(row._id);
+    const info = catalogByFlttId.get(row.flttPlayerId);
     if (!info) continue;
     priorStatsByNameKey.set(identityKey(info.nameKey, info.club), {
       count: row.count,
@@ -744,13 +498,13 @@ export async function computeSeasonSimulation(
     // manual correction (SEASON_START_OVERRIDES) for a player whose export
     // row had to be discarded, then FLTT's own season-start export when Jeff
     // has one on hand, then a snapshot inferred from their earliest match
-    // this season (see season-start-snapshot.ts for why either beats today's
-    // catalog).
+    // this season (see mapPlayerHistoryToSeasonData's seasonStartSnapshot in
+    // r2-player-history.ts for why either beats today's catalog).
     const flttId = resolveFlttId(p.name_key, p.club);
     const returningPfwOverride = flttId ? returningPfwOverrideByFlttId.get(flttId) : undefined;
     const overrideClass = flttId ? overrideClassByFlttId.get(flttId) : undefined;
     const exportSnapshot = flttId ? seasonStartExportByFlttId.get(flttId) : undefined;
-    const seasonStart: SeasonStartTtr | undefined = flttId
+    const seasonStart: MappedSeasonStartSnapshot | undefined = flttId
       ? seasonStartByFlttId.get(flttId)
       : undefined;
 
@@ -828,22 +582,14 @@ export async function computeSeasonSimulation(
     if (startingTtr == null && isPlayerClass(cls) && cls !== "D3") {
       startingTtr = estimateTtr(pfw, cls as PlayerClass, 0);
     }
-    // A timed-out query means "no data available", not "confirmed zero
-    // matches" — defaulting to 0/null here would wrongly flag every player
-    // as a brand-new, long-inactive newcomer. Assume the opposite
-    // (experienced, active) instead when we genuinely have no information.
-    const lastMatchIsoDateBeforeSeason = priorSeasonStatsTimedOut
-      ? SEASON_START_ISO
-      : (prior?.lastIsoDate ?? null);
+    const lastMatchIsoDateBeforeSeason = prior?.lastIsoDate ?? null;
     return {
       id: p.id,
       name: p.name,
       nameKey: identityKey(p.name_key, p.club),
       startingTtr,
       ageCategory,
-      careerMatchesBeforeSeason: priorSeasonStatsTimedOut
-        ? CAREER_MATCH_SAFE_DEFAULT
-        : (prior?.count ?? 0),
+      careerMatchesBeforeSeason: prior?.count ?? 0,
       lastMatchIsoDateBeforeSeason,
       // Nonzero in two cases: (1) startingTtr was carried forward from the
       // player's own prior-season final DTR, the only case a deduction

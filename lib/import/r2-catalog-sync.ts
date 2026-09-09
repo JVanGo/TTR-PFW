@@ -4,7 +4,12 @@ import { clubKey } from "@/lib/identity-key";
 import { nameKey } from "@/lib/name-key";
 import { isMatchInactive } from "@/lib/import/ttr-simulation";
 import { resolveClubAlias } from "./club-aliases";
+import { readSeasonStartExportFile, SEASON_START_EXPORT_PATH } from "./season-start-export";
 import { fetchCatalogFromR2, type R2CatalogPlayerDoc } from "./r2-player-history";
+
+// Only C1-D3 estimates use classement points at all (see lib/conversions.ts)
+// — mirrors the same constant the old Mongo-based classement-points.ts used.
+const CLASSEMENT_RANKINGS = new Set(["C1", "C2", "C3", "D1", "D2", "D3"]);
 
 interface ExistingPlayer {
   id: string;
@@ -13,6 +18,7 @@ interface ExistingPlayer {
   club: string | null;
   class: string;
   pfw: number;
+  classement_points: number | null;
 }
 
 export interface ClubTransfer {
@@ -26,6 +32,7 @@ export interface NewPlayerInsert {
   class: PlayerClass;
   pfw: number;
   club: string | null;
+  classementPoints: number | null;
 }
 
 export interface CatalogSyncSummary {
@@ -40,6 +47,7 @@ export interface CatalogSyncSummary {
   inserted: number;
   insertedPlayers: NewPlayerInsert[];
   skippedNotRecentEnough: number;
+  classementPointsUpdated: number;
 }
 
 /**
@@ -80,11 +88,31 @@ export interface CatalogSyncSummary {
  * lastMatchIsoDate). Measured against real data 2026-09-09: of 1,270 R2
  * players not already tracked, only 31 met that bar — the rest are old,
  * no-longer-relevant history, not missed current players.
+ *
+ * Also folds in what used to be a separate Mongo-based importer
+ * (classement-points.ts): C1-D3 players' `classement_points`, preferring
+ * FLTT's own season-start export when Jeff has a copy on hand (the same
+ * export ttr-simulation-io.ts already treats as authoritative) and falling
+ * back to R2's derived value otherwise. Only ever overwrites the column
+ * when the resolved value actually differs from what's stored, so an
+ * admin's manual entry isn't clobbered unless the source value changed.
  */
 export async function syncR2CatalogToSupabase(
   supabase: SupabaseClient,
   log: (message: string) => void = () => {},
 ): Promise<CatalogSyncSummary> {
+  const exportEntries = readSeasonStartExportFile();
+  const exportClassementByFlttId = new Map<string, number>();
+  for (const e of exportEntries) {
+    if (e.classementPoints != null)
+      exportClassementByFlttId.set(e.flttPlayerId, e.classementPoints);
+  }
+  log(
+    exportEntries.length > 0
+      ? `  ${exportClassementByFlttId.size} players have a classement value in ${SEASON_START_EXPORT_PATH}.`
+      : `  No season-start export found at ${SEASON_START_EXPORT_PATH} — using R2 match history only.`,
+  );
+
   log("Fetching player catalog from R2...");
   const { catalog, clubByNameKey } = await fetchCatalogFromR2((done, total) => {
     if (done % 250 === 0 || done === total) {
@@ -100,7 +128,7 @@ export async function syncR2CatalogToSupabase(
   for (;;) {
     const { data, error } = await supabase
       .from("players")
-      .select("id, name, name_key, club, class, pfw")
+      .select("id, name, name_key, club, class, pfw, classement_points")
       .range(from, from + pageSize - 1);
     if (error) throw new Error(error.message);
     if (!data || data.length === 0) break;
@@ -124,9 +152,12 @@ export async function syncR2CatalogToSupabase(
   let skippedNoMatch = 0;
   let skippedAmbiguous = 0;
   let skippedNoSnapshot = 0;
+  let classementPointsUpdated = 0;
   const clubTransfers: ClubTransfer[] = [];
-  const updates: { id: string; payload: { class?: PlayerClass; pfw?: number; club?: string } }[] =
-    [];
+  const updates: {
+    id: string;
+    payload: { class?: PlayerClass; pfw?: number; club?: string; classement_points?: number };
+  }[] = [];
 
   for (const p of existing) {
     const candidates = r2ByNameKey.get(p.name_key) ?? [];
@@ -141,13 +172,26 @@ export async function syncR2CatalogToSupabase(
     }
     matchedInR2++;
 
-    const payload: { class?: PlayerClass; pfw?: number; club?: string } = {};
+    const payload: {
+      class?: PlayerClass;
+      pfw?: number;
+      club?: string;
+      classement_points?: number;
+    } = {};
 
     if (isPlayerClass(match.ranking) && Number.isFinite(match.performanceScore)) {
       if (match.ranking !== p.class || match.performanceScore !== p.pfw) {
         payload.class = match.ranking;
         payload.pfw = match.performanceScore;
         classPfwUpdated++;
+      }
+
+      if (CLASSEMENT_RANKINGS.has(match.ranking)) {
+        const points = exportClassementByFlttId.get(match.flttPlayerId) ?? match.classementPoints;
+        if (points != null && points !== p.classement_points) {
+          payload.classement_points = points;
+          classementPointsUpdated++;
+        }
       }
     } else {
       skippedNoSnapshot++;
@@ -216,11 +260,15 @@ export async function syncR2CatalogToSupabase(
         continue;
       }
       const sighting = clubByNameKey.get(key);
+      const classementPoints = CLASSEMENT_RANKINGS.has(c.ranking)
+        ? (exportClassementByFlttId.get(c.flttPlayerId) ?? c.classementPoints)
+        : null;
       insertedPlayers.push({
         name: c.name,
         class: c.ranking,
         pfw: c.performanceScore,
         club: sighting ? sighting.club : null,
+        classementPoints,
       });
     }
   }
@@ -228,9 +276,14 @@ export async function syncR2CatalogToSupabase(
   if (insertedPlayers.length > 0) {
     log(`Inserting ${insertedPlayers.length} new players...`);
     for (let i = 0; i < insertedPlayers.length; i += 500) {
-      const chunk = insertedPlayers
-        .slice(i, i + 500)
-        .map((c) => ({ name: c.name, class: c.class, pfw: c.pfw, club: c.club, is_active: true }));
+      const chunk = insertedPlayers.slice(i, i + 500).map((c) => ({
+        name: c.name,
+        class: c.class,
+        pfw: c.pfw,
+        club: c.club,
+        classement_points: c.classementPoints,
+        is_active: true,
+      }));
       const { error } = await supabase.from("players").insert(chunk);
       if (error) throw new Error(error.message);
     }
@@ -254,5 +307,6 @@ export async function syncR2CatalogToSupabase(
     inserted: insertedPlayers.length,
     insertedPlayers,
     skippedNotRecentEnough,
+    classementPointsUpdated,
   };
 }
