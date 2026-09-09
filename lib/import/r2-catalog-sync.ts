@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { clubKey } from "@/lib/identity-key";
 import { nameKey } from "@/lib/name-key";
+import { isMatchInactive } from "@/lib/import/ttr-simulation";
 import { resolveClubAlias } from "./club-aliases";
 import { fetchCatalogFromR2, type R2CatalogPlayerDoc } from "./r2-player-history";
 
@@ -20,6 +21,13 @@ export interface ClubTransfer {
   to: string;
 }
 
+export interface NewPlayerInsert {
+  name: string;
+  class: PlayerClass;
+  pfw: number;
+  club: string | null;
+}
+
 export interface CatalogSyncSummary {
   existing: number;
   matchedInR2: number;
@@ -29,22 +37,28 @@ export interface CatalogSyncSummary {
   skippedNoMatch: number;
   skippedAmbiguous: number;
   skippedNoSnapshot: number;
+  inserted: number;
+  insertedPlayers: NewPlayerInsert[];
+  skippedNotRecentEnough: number;
 }
 
 /**
- * Syncs class/PFW/club for players ALREADY tracked in Supabase from the R2
- * player-history backup — deliberately narrower than the old Mongo-based
- * applyFlttCatalogToSupabase(): no insert-new, no deactivate-missing,
- * is_active is never touched. R2 has no equivalent to Mongo's "currently
- * ranked players" ranking-crawl snapshot, so there's no safe signal here for
- * who should count as active — that's a separate decision for later.
+ * Syncs class/PFW/club for players already tracked in Supabase from the R2
+ * player-history backup, and inserts genuinely new ones — deliberately
+ * narrower than the old Mongo-based applyFlttCatalogToSupabase() in one way:
+ * no deactivate-missing. is_active is now derived from match recency
+ * elsewhere (see applyLastMatchDatesToSupabase in ttr-simulation-io.ts),
+ * which already covers most of what "deactivate if missing from the
+ * catalog" was for.
  *
  * Club needs special care: a player's own current club isn't recorded
  * anywhere in their own R2 file, only sometimes reverse-derivable from an
  * opponent's own match rows (see fetchCatalogFromR2's clubByNameKey). Only
- * ~half of players get a hit. Every write below is a PARTIAL update that
+ * ~half of players get a hit. Every UPDATE below is a PARTIAL update that
  * omits `club` entirely when unknown — never send `club: null`, which would
- * silently wipe a real, already-known club for every unmatched player.
+ * silently wipe a real, already-known club for every unmatched player. A
+ * brand-new INSERT has no existing value to protect, so `club: null` there
+ * is fine — it just means "unknown for now."
  *
  * Two real people sharing a name_key (confirmed ~25 cases, see
  * diffRangliste's doc comment in verbandsrangliste.ts) can't be safely
@@ -52,7 +66,20 @@ export interface CatalogSyncSummary {
  * entries don't carry a per-candidate club to match against, and the
  * opponent-club reverse index is itself keyed by name only, so it would be
  * ambiguous between the two. Any name with more than one R2 candidate is
- * skipped entirely rather than risk applying one person's data to the other.
+ * skipped entirely for updates, rather than risk applying one person's data
+ * to the other. For inserts, a name_key that already has an existing
+ * tracked player is skipped entirely too (not just the colliding candidate)
+ * — inserting a second, distinct person under an already-used name_key
+ * would make every future update for the existing player look "ambiguous"
+ * and silently stop syncing them.
+ *
+ * New-player insertion is deliberately conservative: R2 has no "currently
+ * licensed" signal like Mongo's ranking crawl did, so a name unknown to us
+ * only gets inserted if they've played a graded match in the last 24
+ * months — the same window as `is_active` (see fetchCatalogFromR2's
+ * lastMatchIsoDate). Measured against real data 2026-09-09: of 1,270 R2
+ * players not already tracked, only 31 met that bar — the rest are old,
+ * no-longer-relevant history, not missed current players.
  */
 export async function syncR2CatalogToSupabase(
   supabase: SupabaseClient,
@@ -171,6 +198,50 @@ export async function syncR2CatalogToSupabase(
     log(`  ... and ${clubTransfers.length - 30} more club transfers.`);
   }
 
+  // New players: any R2 name with no existing Supabase candidate at all,
+  // recent enough to trust (see the doc comment above for why).
+  const existingNameKeys = new Set(existing.map((p) => p.name_key));
+  const today = new Date().toISOString().slice(0, 10);
+  const insertedPlayers: NewPlayerInsert[] = [];
+  let skippedNotRecentEnough = 0;
+
+  for (const [key, candidates] of r2ByNameKey) {
+    if (existingNameKeys.has(key)) continue;
+    for (const c of candidates) {
+      if (!isPlayerClass(c.ranking) || !Number.isFinite(c.performanceScore)) continue;
+      const isRecentlyActive =
+        c.lastMatchIsoDate != null && !isMatchInactive(c.lastMatchIsoDate, today);
+      if (!isRecentlyActive) {
+        skippedNotRecentEnough++;
+        continue;
+      }
+      const sighting = clubByNameKey.get(key);
+      insertedPlayers.push({
+        name: c.name,
+        class: c.ranking,
+        pfw: c.performanceScore,
+        club: sighting ? sighting.club : null,
+      });
+    }
+  }
+
+  if (insertedPlayers.length > 0) {
+    log(`Inserting ${insertedPlayers.length} new players...`);
+    for (let i = 0; i < insertedPlayers.length; i += 500) {
+      const chunk = insertedPlayers
+        .slice(i, i + 500)
+        .map((c) => ({ name: c.name, class: c.class, pfw: c.pfw, club: c.club, is_active: true }));
+      const { error } = await supabase.from("players").insert(chunk);
+      if (error) throw new Error(error.message);
+    }
+    for (const c of insertedPlayers.slice(0, 30)) {
+      log(`  [new player] ${c.name} (${c.class}, ${c.pfw}${c.club ? `, ${c.club}` : ""})`);
+    }
+    if (insertedPlayers.length > 30) {
+      log(`  ... and ${insertedPlayers.length - 30} more new players.`);
+    }
+  }
+
   return {
     existing: existing.length,
     matchedInR2,
@@ -180,5 +251,8 @@ export async function syncR2CatalogToSupabase(
     skippedNoMatch,
     skippedAmbiguous,
     skippedNoSnapshot,
+    inserted: insertedPlayers.length,
+    insertedPlayers,
+    skippedNotRecentEnough,
   };
 }

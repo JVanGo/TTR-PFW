@@ -287,6 +287,12 @@ export interface R2CatalogPlayerDoc {
    * changes. */
   ranking: string;
   performanceScore: number;
+  /** Most recent isoDate among this player's own graded (won !== null)
+   * matches, across every season in their file — null if they have none.
+   * Used to decide whether an unmatched R2 name is a genuine current
+   * new-player candidate (see r2-catalog-sync.ts) rather than someone from
+   * a decade-old, no-longer-relevant record. */
+  lastMatchIsoDate: string | null;
 }
 
 // The season currently being played, as opposed to MONGO_SEASON/SEASON_LABEL
@@ -383,12 +389,19 @@ export async function fetchCatalogFromR2(
       break;
     }
 
+    let lastMatchIsoDate: string | null = null;
+    for (const m of history.unifiedMatches) {
+      if (m.won == null || !m.isoDate) continue;
+      if (!lastMatchIsoDate || m.isoDate > lastMatchIsoDate) lastMatchIsoDate = m.isoDate;
+    }
+
     const doc: R2CatalogPlayerDoc = {
       flttPlayerId,
       name: history.player.name,
       club: null,
       ranking,
       performanceScore,
+      lastMatchIsoDate,
     };
     return doc;
   });
