@@ -164,7 +164,7 @@ export async function fetchPlayerHistoryFromR2(flttPlayerId: string): Promise<Pl
   }
   const cachePath = join(CACHE_DIR, `${flttPlayerId}.json`);
   if (existsSync(cachePath)) {
-    return JSON.parse(readFileSync(cachePath, "utf-8")) as PlayerHistory;
+    return sanitizeHistoryNames(JSON.parse(readFileSync(cachePath, "utf-8")) as PlayerHistory);
   }
 
   const response = await r2Client().send(
@@ -173,7 +173,40 @@ export async function fetchPlayerHistoryFromR2(flttPlayerId: string): Promise<Pl
   const text = await streamToString(response.Body);
   mkdirSync(CACHE_DIR, { recursive: true });
   writeFileSync(cachePath, text, "utf-8");
-  return JSON.parse(text) as PlayerHistory;
+  return sanitizeHistoryNames(JSON.parse(text) as PlayerHistory);
+}
+
+/**
+ * FLTT's own crawler sometimes mis-encodes the hyphen in double-barreled
+ * surnames as U+00AC (¬) instead of a normal "-" — confirmed against
+ * fltt.lu source pages, which show a normal hyphen. This is the exact same
+ * bug already handled for the (now-dead) Mongo catalog path — see
+ * sanitizeFlttName in lib/import/fltt-progress-tracker.ts — duplicated
+ * here rather than imported, since that module pulls in the `mongodb`
+ * package at load time and the whole point of this file is to not need
+ * Mongo. Left uncorrected, a corrupted name produces a different
+ * nameKey() than the same person's clean spelling elsewhere, so matching
+ * logic treats them as two different people — confirmed the hard way
+ * 2026-09-09, when this created two real duplicate rows in production
+ * (FERREIRA¬HEIRENS Jaden, PESIKAS¬PETERSONS Tomass — both already
+ * existed under their clean spelling). Applied once here, at the point
+ * every consumer reads a PlayerHistory from, rather than at each call site
+ * that happens to use a name today.
+ */
+function sanitizeHistoryNames(history: PlayerHistory): PlayerHistory {
+  const clean = (name: string) => name.replace(/¬/g, "-");
+  history.player.name = clean(history.player.name);
+  for (const m of history.unifiedMatches) {
+    m.playerName = clean(m.playerName);
+    m.opponentName = clean(m.opponentName);
+  }
+  for (const s of history.seasons) {
+    for (const m of s.unifiedMatches) {
+      m.playerName = clean(m.playerName);
+      m.opponentName = clean(m.opponentName);
+    }
+  }
+  return history;
 }
 
 /** Full-bucket listing — not called anywhere by default. Only relevant if a
