@@ -19,6 +19,7 @@
     "import:classement-points": "tsx scripts/import-classement-points.ts",
     "import:kader": "tsx scripts/import-kader.ts",
     "simulate:season-ttr": "tsx scripts/simulate-season-ttr.ts",
+    "simulate:season-ttr-r2": "tsx scripts/simulate-season-ttr-r2.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -39,6 +40,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1128.0",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

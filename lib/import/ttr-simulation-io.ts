@@ -20,6 +20,11 @@ import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
 import { fetchSeasonStartTtr, type SeasonStartTtr } from "@/lib/import/season-start-snapshot";
 import {
+  fetchPlayerHistoryFromR2,
+  mapPlayerHistoryToSeasonData,
+  mapWithConcurrency,
+} from "@/lib/import/r2-player-history";
+import {
   readSeasonStartExportFile,
   SEASON_START_EXPORT_PATH,
 } from "@/lib/import/season-start-export";
@@ -409,6 +414,87 @@ async function fetchMongoData(season: string) {
   }
 }
 
+async function fetchCatalogOnlyFromMongo(): Promise<MongoCatalogPlayerDoc[]> {
+  const uri = process.env.MONGODB_URI;
+  const dbName = process.env.MONGODB_DB_NAME;
+  if (!uri || !dbName) throw new Error("Missing MONGODB_URI or MONGODB_DB_NAME.");
+
+  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 15_000 });
+  try {
+    await client.connect();
+    return await client
+      .db(dbName)
+      .collection<MongoCatalogPlayerDoc>("players")
+      .find(
+        {},
+        {
+          projection: {
+            _id: 0,
+            flttPlayerId: 1,
+            name: 1,
+            club: 1,
+            ranking: 1,
+            performanceScore: 1,
+          },
+        },
+      )
+      .toArray();
+  } finally {
+    await client.close();
+  }
+}
+
+// How many R2 player-history files to fetch at once. R2's bucket has no
+// server-side query/timeout to work around (unlike Cosmos), so this is just
+// about being a reasonable citizen of the dataset owner's request quota —
+// see "Cache data, avoid repeatedly scanning" in the integration guide.
+const R2_FETCH_CONCURRENCY = 8;
+
+/**
+ * R2-sourced alternative to fetchMongoData(). The match-history data itself
+ * (seasonMatches/placements/priorSeasonAgg/seasonStartByFlttId) comes from
+ * the R2 player-history backup instead of Mongo's playerMatches/
+ * rencontresRows/playerHistorySeasons collections — that's the exact data
+ * that was timing out against Cosmos DB (see fetchMongoData's and
+ * fetchPriorSeasonStats' doc comments). The player catalog itself (name/
+ * club/ranking) isn't in the R2 bucket, so it's still fetched from Mongo —
+ * it's a small, fast query and was never the timeout source.
+ */
+async function fetchR2Data(season: string) {
+  const catalog = await fetchCatalogOnlyFromMongo();
+
+  const seasonMatches: MongoPlayerMatchDoc[] = [];
+  const placements: MongoTournamentPlacementDoc[] = [];
+  const priorSeasonAgg: { _id: string; count: number; lastIsoDate: string | null }[] = [];
+  const seasonStartByFlttId = new Map<string, SeasonStartTtr>();
+  const sentinelIso = staleLastMatchSentinelIso(SEASON_START_ISO);
+
+  await mapWithConcurrency(catalog, R2_FETCH_CONCURRENCY, async (p) => {
+    const history = await fetchPlayerHistoryFromR2(p.flttPlayerId);
+    const mapped = mapPlayerHistoryToSeasonData(history, season);
+    seasonMatches.push(...mapped.seasonMatches);
+    placements.push(...mapped.placements);
+    const { count, lastIsoDate } = mapped.priorSeasonStats;
+    priorSeasonAgg.push({
+      _id: p.flttPlayerId,
+      count,
+      lastIsoDate: lastIsoDate ?? (count > 0 ? sentinelIso : null),
+    });
+    if (mapped.seasonStartSnapshot) {
+      seasonStartByFlttId.set(p.flttPlayerId, mapped.seasonStartSnapshot);
+    }
+  });
+
+  return {
+    seasonMatches,
+    placements,
+    catalog,
+    priorSeasonAgg,
+    priorSeasonStatsTimedOut: false,
+    seasonStartByFlttId,
+  };
+}
+
 interface SupabasePlayerRow {
   id: string;
   name: string;
@@ -460,7 +546,11 @@ export async function computeSeasonSimulation(
   supabase: SupabaseClient,
   log: (message: string) => void = () => {},
 ): Promise<SeasonSimulationResult> {
-  log("Fetching season data from MongoDB...");
+  // DATA_SOURCE=r2 is an opt-in alternate path (see r2-player-history.ts) —
+  // Mongo stays the default until a local comparison run confirms R2
+  // produces identical simulation output for the same players.
+  const useR2 = process.env.DATA_SOURCE === "r2";
+  log(`Fetching season data from ${useR2 ? "R2 (player-history backup)" : "MongoDB"}...`);
   const {
     seasonMatches,
     placements,
@@ -468,7 +558,7 @@ export async function computeSeasonSimulation(
     priorSeasonAgg,
     priorSeasonStatsTimedOut,
     seasonStartByFlttId,
-  } = await fetchMongoData(MONGO_SEASON);
+  } = useR2 ? await fetchR2Data(MONGO_SEASON) : await fetchMongoData(MONGO_SEASON);
   log(
     `  ${seasonMatches.length} match rows, ${placements.length} tournament placements, ${catalog.length} catalog players.`,
   );
