@@ -43,6 +43,10 @@
  * correct against the real world — that still needs a manual spot-check
  * against FLTT's own export/PDF, same as before.
  *
+ * Sources the recompute from the Cloudflare R2 player-history backup, same
+ * as simulate-season-ttr-prod.ts — the Mongo database this used to read from
+ * was permanently decommissioned 2026-09-09.
+ *
  * Reads credentials from .env.prod-seed (gitignored, manually populated),
  * same as the other -prod scripts. Refuses to run unless the URL contains
  * "supabase.co".
@@ -67,6 +71,7 @@ import { fetchLatestTtrByPlayer } from "../lib/supabase/latestTtr";
 import { newPlayerChecks, type Finding, type PlayerRow } from "../lib/import/new-player-checks";
 
 config({ path: ".env.prod-seed" });
+process.env.DATA_SOURCE = "r2";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -82,8 +87,15 @@ if (!/\.supabase\.co/.test(SUPABASE_URL)) {
   );
   process.exit(1);
 }
-if (!process.env.MONGODB_URI || !process.env.MONGODB_DB_NAME) {
-  console.error("Missing MONGODB_URI or MONGODB_DB_NAME in .env.prod-seed");
+if (
+  !process.env.R2_ENDPOINT ||
+  !process.env.R2_BUCKET ||
+  !process.env.R2_ACCESS_KEY_ID ||
+  !process.env.R2_SECRET_ACCESS_KEY
+) {
+  console.error(
+    "Missing R2_ENDPOINT, R2_BUCKET, R2_ACCESS_KEY_ID or R2_SECRET_ACCESS_KEY in .env.prod-seed",
+  );
   process.exit(1);
 }
 
