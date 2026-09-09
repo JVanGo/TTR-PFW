@@ -159,8 +159,8 @@ export function previousNSeasons(current: string, n: number): string[] {
   return Array.from({ length: n }, (_, i) => `${pad(start - i - 1)}-${pad(start - i)}`);
 }
 
-// How many seasons back fetchPriorSeasonStats looks for an exact last-match
-// date — comfortably covers the Inaktivitätsabzug 36-month cap (see
+// How many seasons back is "recent enough" for an exact last-match date —
+// comfortably covers the Inaktivitätsabzug 36-month cap (see
 // staleLastMatchSentinelIso below for players whose last match predates even
 // this window).
 const LAST_ACTIVE_DATE_SEASON_LOOKBACK = 4;

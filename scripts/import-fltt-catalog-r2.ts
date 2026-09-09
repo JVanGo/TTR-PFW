@@ -1,16 +1,17 @@
 /**
- * Sync class/PFW/club for already-tracked players from the R2 player-history
- * backup — deliberately narrower than import-fltt-catalog.ts's Mongo-based
- * applyFlttCatalogToSupabase(): no insert-new, no deactivate-missing, and
- * is_active is never touched. See syncR2CatalogToSupabase()'s doc comment
- * for why (R2 has no "currently ranked players" signal like Mongo did, and
- * club needs careful partial-update handling to avoid wiping real data).
+ * Sync class/PFW/club/classement_points for already-tracked players from the
+ * R2 player-history backup, and insert genuinely new ones. See
+ * syncR2CatalogToSupabase()'s doc comment in lib/import/r2-catalog-sync.ts
+ * for the exact rules — no deactivate-missing (is_active is handled
+ * separately by the season simulation), careful partial-update handling so
+ * an unknown club never wipes a real one, and conservative new-player
+ * insertion gated on 24-month match recency.
  *
  * The very first run lists and fetches the whole R2 bucket (~5.5GB) to build
  * the catalog; later runs reuse the TTR/r2-cache/ disk cache and are fast.
  *
  * Runs against the local Supabase via the service-role key, so it bypasses
- * RLS. Local only — no -prod sibling yet.
+ * RLS. Local only — see import-fltt-catalog-r2-prod.ts for production.
  *
  * Usage (PowerShell):
  *   npm run import:fltt-catalog-r2
