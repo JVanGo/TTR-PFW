@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "seed": "tsx scripts/seed.ts",
     "import:fltt-catalog": "tsx scripts/import-fltt-catalog.ts",
+    "import:fltt-catalog-r2": "tsx scripts/import-fltt-catalog-r2.ts",
     "import:age-categories": "tsx scripts/import-age-categories.ts",
     "import:classement-points": "tsx scripts/import-classement-points.ts",
     "import:kader": "tsx scripts/import-kader.ts",

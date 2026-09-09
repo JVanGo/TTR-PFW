@@ -2,6 +2,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
+import { nameKey } from "@/lib/name-key";
+import { resolveClubAlias } from "./club-aliases";
 import { parseFlttMatchSnapshot } from "./fltt-match-snapshot";
 
 // Player-history backup, one JSON file per player, exported from the same
@@ -287,6 +289,32 @@ export interface R2CatalogPlayerDoc {
   performanceScore: number;
 }
 
+// The season currently being played, as opposed to MONGO_SEASON/SEASON_LABEL
+// in ttr-simulation-io.ts (the last *completed* season the DTR simulation
+// works from). Only a sighting from this season counts as real evidence of
+// a player's current club — see the loop below.
+const CURRENT_CLUB_SEASON = "26-27";
+
+export interface R2ClubSighting {
+  club: string;
+  isoDate: string;
+}
+
+export interface R2CatalogResult {
+  catalog: R2CatalogPlayerDoc[];
+  /**
+   * A player's own current club isn't recorded anywhere in their own R2
+   * file — only sometimes as an *opponent's* club on someone else's match
+   * row (`performance.opponentClub`). This reverse-indexes every such
+   * sighting across the whole bucket, keyed by nameKey(opponentName),
+   * keeping the most recent (by isoDate) one. Covers roughly half of all
+   * players in practice — many players never show up carrying an opponent
+   * performance row. Callers must treat a missing entry as "unknown", never
+   * as "no club" — see r2-catalog-sync.ts for why.
+   */
+  clubByNameKey: Map<string, R2ClubSighting>;
+}
+
 /**
  * Builds a catalog-equivalent list entirely from R2, so the R2 data path
  * never needs Mongo to be reachable — see fetchCatalogOnlyFromMongo's
@@ -296,20 +324,48 @@ export interface R2CatalogPlayerDoc {
  * means only the very first run actually pays that cost. This mirrors the
  * integration guide's own documented "sync the whole dataset" workflow, not
  * an unsupported use of the bucket.
+ *
+ * Does one single pass over every player file — also used to build the
+ * opponent-club reverse index (see R2CatalogResult.clubByNameKey) rather
+ * than scanning the whole bucket a second time for that.
  */
 export async function fetchCatalogFromR2(
   onProgress?: (done: number, total: number) => void,
-): Promise<R2CatalogPlayerDoc[]> {
+): Promise<R2CatalogResult> {
   const keys = await listAllPlayerHistoryKeys();
   const playerIds = keys
     .map((k) => k.match(/([0-9]+)\.json$/)?.[1])
     .filter((id): id is string => id != null);
+
+  const clubByNameKey = new Map<string, R2ClubSighting>();
 
   let done = 0;
   const catalog = await mapWithConcurrency(playerIds, 8, async (flttPlayerId) => {
     const history = await fetchPlayerHistoryFromR2(flttPlayerId);
     done++;
     if (onProgress) onProgress(done, playerIds.length);
+
+    for (const m of history.unifiedMatches) {
+      // Only the season currently underway counts as evidence of a club
+      // change. A stale-but-consistent prior-season club is still stale —
+      // dozens of matching 25-26 sightings for a player who transferred
+      // clubs over the summer would all agree with each other and all be
+      // wrong, actively overwriting an already-correct current club with
+      // last season's. Confirmed the hard way 2026-09-09 (LAGUERRE
+      // Alexandre/Raphaël, both moved Zolwer -> Bartreng for 26-27 — every
+      // R2 sighting for them was from 25-26 and said Zolwer). A player who
+      // hasn't yet played a tracked match this season has no reliable club
+      // signal at all here, and is correctly left as "unknown" below.
+      if (m.season !== CURRENT_CLUB_SEASON) continue;
+      const rawClub = m.performance?.opponentClub;
+      if (!rawClub || !m.opponentName) continue;
+      const club = resolveClubAlias(rawClub);
+      const key = nameKey(m.opponentName);
+      const existing = clubByNameKey.get(key);
+      if (!existing || (m.isoDate && m.isoDate > existing.isoDate)) {
+        clubByNameKey.set(key, { club, isoDate: m.isoDate });
+      }
+    }
 
     const allSnapshotRows = history.seasons
       .flatMap((s) => s.rencontresRows)
@@ -337,7 +393,7 @@ export async function fetchCatalogFromR2(
     return doc;
   });
 
-  return catalog;
+  return { catalog, clubByNameKey };
 }
 
 /**

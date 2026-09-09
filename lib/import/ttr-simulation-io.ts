@@ -431,7 +431,7 @@ const R2_FETCH_CONCURRENCY = 8;
  * DB (see fetchMongoData's and fetchPriorSeasonStats' doc comments).
  */
 async function fetchR2Data(season: string, log: (message: string) => void) {
-  const catalog = await fetchCatalogFromR2((done, total) => {
+  const { catalog } = await fetchCatalogFromR2((done, total) => {
     if (done % 250 === 0 || done === total)
       log(`  R2 catalog: ${done}/${total} player files fetched...`);
   });
