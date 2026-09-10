@@ -17,6 +17,15 @@ interface PageProps {
   searchParams: Promise<{ season?: string }>;
 }
 
+/** One calendar day before an ISO date — used to place the synthetic
+ * season-start chart point just before the earliest real row, without
+ * assuming anything about season boundaries. */
+function dayBefore(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
     day: "2-digit",
@@ -146,11 +155,33 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
     score: m.score ?? "",
     result: m.result as "W" | "L" | "FF",
   });
-  const chartPoints: TtrPoint[] = matches.map(toChartPoint);
-  const allTimeChartPoints: TtrPoint[] = allMatches.map(toChartPoint);
+  // Prepend the season-start value (same number the match history table's
+  // own "Season start" row shows) so the graph's line begins there instead
+  // of jumping straight to the first real match's already-changed rating.
+  const withStartingPoint = (points: TtrPoint[], startingValue: number | null): TtrPoint[] =>
+    startingValue == null || points.length === 0
+      ? points
+      : [
+          {
+            date: dayBefore(points[0].date),
+            ttr: startingValue,
+            opponent: "",
+            delta: 0,
+            score: "",
+            result: "W",
+            label: t("seasonStart"),
+          },
+          ...points,
+        ];
+  const startingDtr = computeStartingDtr(matches);
+  const allTimeStartingDtr = computeStartingDtr(allMatches);
+  const chartPoints: TtrPoint[] = withStartingPoint(matches.map(toChartPoint), startingDtr);
+  const allTimeChartPoints: TtrPoint[] = withStartingPoint(
+    allMatches.map(toChartPoint),
+    allTimeStartingDtr,
+  );
 
   const reverseMatches = [...matches].reverse();
-  const startingDtr = computeStartingDtr(matches);
   // The most recent graded match across EVERY season (skipping placement/
   // growth/floor/forfeit rows, which carry no K-factor) reflects the
   // player's actual current K — sourced from allMatches, not the

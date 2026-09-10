@@ -18,6 +18,10 @@ export interface TtrPoint {
   delta: number;
   score: string;
   result: "W" | "L" | "FF";
+  /** Set only for the synthetic season-start point — shown instead of the
+   * usual "vs opponent · score · result" line, with no delta (there's
+   * nothing before it to have changed from). */
+  label?: string;
 }
 
 interface Props {
@@ -47,24 +51,33 @@ function ChartTooltip({ active, payload, locale, vsLabel, dtrLabel }: TooltipRen
   return (
     <div className="bg-popover text-popover-foreground rounded-md border px-3 py-2 text-xs shadow-sm">
       <p className="font-medium">{formatDate(point.date, locale)}</p>
+      {point.label ? (
+        <p>{point.label}</p>
+      ) : (
+        <p>
+          {vsLabel} <span className="font-medium">{point.opponent}</span> · {point.score} ·{" "}
+          {point.result}
+        </p>
+      )}
       <p>
-        {vsLabel} <span className="font-medium">{point.opponent}</span> · {point.score} ·{" "}
-        {point.result}
-      </p>
-      <p>
-        {dtrLabel} {point.ttr}{" "}
-        <span
-          className={
-            point.delta > 0
-              ? "text-emerald-600"
-              : point.delta < 0
-                ? "text-red-600"
-                : "text-muted-foreground"
-          }
-        >
-          ({point.delta >= 0 ? "+" : ""}
-          {point.delta})
-        </span>
+        {dtrLabel} {point.ttr}
+        {!point.label && (
+          <>
+            {" "}
+            <span
+              className={
+                point.delta > 0
+                  ? "text-emerald-600"
+                  : point.delta < 0
+                    ? "text-red-600"
+                    : "text-muted-foreground"
+              }
+            >
+              ({point.delta >= 0 ? "+" : ""}
+              {point.delta})
+            </span>
+          </>
+        )}
       </p>
     </div>
   );
