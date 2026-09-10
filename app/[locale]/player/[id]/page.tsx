@@ -142,7 +142,16 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
   // season — for a past season, the summary's own settled DTR is the only
   // number that still means anything.
   const ranking = isCurrentSeason ? rankingRows.find((r) => r.id === player.id) : undefined;
-  const currentDtr = ranking?.dtr ?? summary?.latest_ttr ?? null;
+  // A player excluded from the live ranking (dropped off FLTT's official
+  // list) whose Inaktivitätsabzug already hit its cap in a prior season gets
+  // no fresh row in the current season either — nothing new to deduct, so
+  // the simulation never writes one. Rather than show "Not available" for
+  // someone whose real last-known rating we do have on file, fall back to
+  // their most recent settled summary from any season (seasonSummaries is
+  // already ordered newest-first, and only ever reaches this far when both
+  // `ranking` and the current season's own `summary` come up empty).
+  const currentDtr =
+    ranking?.dtr ?? summary?.latest_ttr ?? seasonSummaries?.[0]?.latest_ttr ?? null;
   const klassierung = ranking?.klassierung ?? null;
   const rankPosition = ranking?.rank ?? null;
   const totalPlayers = rankingRows.length;
