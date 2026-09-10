@@ -82,10 +82,18 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
 
   if (summariesError) throw new Error(summariesError.message);
 
-  // Seasons this player has any data for, newest first — only shown as tabs
-  // once there's more than one. Falls back to the current season if the URL
-  // names one the player has no data for.
-  const seasons = (seasonSummaries ?? []).map((s) => s.season);
+  // Seasons this player has any data for, newest first, plus the current
+  // season even if they haven't played a match in it yet — otherwise a
+  // player who has only played in a past season (no summary row for
+  // CURRENT_SEASON) would have exactly one entry here and the tabs below
+  // would never render, leaving them stuck with no way to reach their real
+  // past-season history. Only shown as tabs once there's more than one.
+  // Falls back to the current season if the URL names one the player has no
+  // data for.
+  const summarySeasons = (seasonSummaries ?? []).map((s) => s.season);
+  const seasons = summarySeasons.includes(CURRENT_SEASON)
+    ? summarySeasons
+    : [CURRENT_SEASON, ...summarySeasons];
   const selectedSeason =
     requestedSeason && seasons.includes(requestedSeason) ? requestedSeason : CURRENT_SEASON;
   const isCurrentSeason = selectedSeason === CURRENT_SEASON;
