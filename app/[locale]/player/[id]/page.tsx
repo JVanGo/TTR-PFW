@@ -4,7 +4,8 @@ import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRankingRows, CURRENT_SEASON } from "@/lib/ranking";
 import { isMatchInactive as computeIsMatchInactive } from "@/lib/import/ttr-simulation";
-import { TtrChart, type TtrPoint } from "@/components/player/TtrChart";
+import { type TtrPoint } from "@/components/player/TtrChart";
+import { TtrChartPanel } from "@/components/player/TtrChartPanel";
 import { KFactorBadge } from "@/components/player/KFactorBadge";
 import { SiteFooter } from "@/components/SiteFooter";
 
@@ -87,7 +88,11 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
   const isCurrentSeason = selectedSeason === CURRENT_SEASON;
   const summary = seasonSummaries?.find((s) => s.season === selectedSeason) ?? null;
 
-  const [{ data: matchesData, error: matchesError }, rankingRows] = await Promise.all([
+  const [
+    { data: matchesData, error: matchesError },
+    { data: allMatchesData, error: allMatchesError },
+    rankingRows,
+  ] = await Promise.all([
     supabase
       .from("matches")
       .select(
@@ -97,12 +102,22 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
       .eq("season", selectedSeason)
       .order("match_date", { ascending: true })
       .order("created_at", { ascending: true }),
+    supabase
+      .from("matches")
+      .select(
+        "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, k_age_bonus, k_is_newcomer_bonus, k_is_returning_bonus, created_at",
+      )
+      .eq("player_id", player.id)
+      .order("match_date", { ascending: true })
+      .order("created_at", { ascending: true }),
     getRankingRows(),
   ]);
 
   if (matchesError) throw new Error(matchesError.message);
+  if (allMatchesError) throw new Error(allMatchesError.message);
 
   const matches = matchesData ?? [];
+  const allMatches = allMatchesData ?? [];
   // The live ranking (rank/klassierung) only ever reflects the current
   // season — for a past season, the summary's own settled DTR is the only
   // number that still means anything.
@@ -112,14 +127,16 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
   const rankPosition = ranking?.rank ?? null;
   const totalPlayers = rankingRows.length;
 
-  const chartPoints: TtrPoint[] = matches.map((m) => ({
+  const toChartPoint = (m: (typeof matches)[number]): TtrPoint => ({
     date: m.match_date,
     ttr: m.new_ttr,
     opponent: m.opponent_name,
     delta: m.ttr_delta,
     score: m.score ?? "",
     result: m.result as "W" | "L" | "FF",
-  }));
+  });
+  const chartPoints: TtrPoint[] = matches.map(toChartPoint);
+  const allTimeChartPoints: TtrPoint[] = allMatches.map(toChartPoint);
 
   const reverseMatches = [...matches].reverse();
   const startingDtr = computeStartingDtr(matches);
@@ -242,12 +259,11 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
               </div>
             </section>
 
-            <section className="mt-8">
-              <h2 className="mb-3 text-lg font-semibold">{t("seasonDtr")}</h2>
-              <div className="text-foreground rounded-md border p-2">
-                <TtrChart points={chartPoints} />
-              </div>
-            </section>
+            <TtrChartPanel
+              seasonPoints={chartPoints}
+              allTimePoints={allTimeChartPoints}
+              showToggle={seasons.length > 1}
+            />
 
             <section className="mt-8">
               <h2 className="mb-3 text-lg font-semibold">{t("matchHistory")}</h2>
