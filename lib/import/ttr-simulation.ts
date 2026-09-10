@@ -49,6 +49,22 @@ export function isTournamentCompetition(competition: string): boolean {
   return upper.startsWith("TOU ") || upper === "TOU";
 }
 
+/**
+ * True for a stored `matches` row that's a genuine head-to-head game —
+ * false for the four synthetic adjustment rows this simulation also writes
+ * to the same table (tournament placement bonus, youth growth bonus,
+ * Ersteinstufung floor reset, Inaktivitätsabzug). Mirrors the
+ * player_season_summary view's own is_real_match filter — keep both in sync.
+ */
+export function isRealMatchRow(competition: string): boolean {
+  return (
+    !isTournamentCompetition(competition) &&
+    competition !== ERSTEINSTUFUNG_FLOOR_COMPETITION &&
+    competition !== "Nachwuchs-Spielstärkezuwachs" &&
+    competition !== INACTIVITY_DEDUCTION_COMPETITION
+  );
+}
+
 interface AgeRule {
   kBonus: number;
   ersteinstufung: number;

@@ -3,7 +3,10 @@ import { getTranslations, getLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRankingRows, CURRENT_SEASON } from "@/lib/ranking";
-import { isMatchInactive as computeIsMatchInactive } from "@/lib/import/ttr-simulation";
+import {
+  isMatchInactive as computeIsMatchInactive,
+  isRealMatchRow,
+} from "@/lib/import/ttr-simulation";
 import { type TtrPoint } from "@/components/player/TtrChart";
 import { TtrChartPanel } from "@/components/player/TtrChartPanel";
 import { KFactorBadge } from "@/components/player/KFactorBadge";
@@ -245,7 +248,8 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
                 <div className="rounded-md border p-4">
                   <p className="text-muted-foreground text-xs uppercase">{t("matchesPlayed")}</p>
                   <p className="mt-1 text-xl font-semibold tabular-nums">
-                    {summary?.matches_played ?? matches.length}
+                    {summary?.matches_played ??
+                      matches.filter((m) => isRealMatchRow(m.competition)).length}
                   </p>
                 </div>
                 <div className="rounded-md border p-4">

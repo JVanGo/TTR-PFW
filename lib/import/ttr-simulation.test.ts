@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ersteinstufungFor,
+  isRealMatchRow,
   ratingDelta,
   simulateSeason,
   winProbability,
@@ -83,6 +84,20 @@ describe("ersteinstufungFor", () => {
     expect(ersteinstufungFor("Junior")).toBe(950);
     expect(ersteinstufungFor("Espoirs")).toBe(1025);
     expect(ersteinstufungFor(null)).toBe(1025);
+  });
+});
+
+describe("isRealMatchRow", () => {
+  it("is true for a genuine head-to-head competition", () => {
+    expect(isRealMatchRow("CH SEN N2-D5 (R1)")).toBe(true);
+  });
+
+  it("is false for every synthetic adjustment row the simulation also writes to matches", () => {
+    expect(isRealMatchRow("TOU Biissen")).toBe(false);
+    expect(isRealMatchRow("TOU")).toBe(false);
+    expect(isRealMatchRow("Ersteinstufung-Mindestwert")).toBe(false);
+    expect(isRealMatchRow("Nachwuchs-Spielstärkezuwachs")).toBe(false);
+    expect(isRealMatchRow("Inaktivitätsabzug")).toBe(false);
   });
 });
 
