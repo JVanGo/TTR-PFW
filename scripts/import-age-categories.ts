@@ -17,6 +17,15 @@ config({ path: ".env.local" });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Update this filename each season. Note: at the 26/27 rollover, three
+// players newly surfaced this way (ZENNANE Laith, GREIVELDINGER Niels,
+// OLINGER Laurent) tripped audit-season-prod.ts's "new player isn't the
+// beginner default" check — all three checked out fine against fltt.lu/the
+// R2 backup. They were real veterans first synced into Supabase via that
+// same rollover's R2 catalog run, not actual beginners, so the flat D2/D3
+// default heuristic doesn't apply to them. Expect more of this kind of
+// false positive whenever a season's pipeline run surfaces previously-
+// untracked players with real history.
 const SOURCE_FILE = "Export-Members - 26-27_Espoirs.xlsx";
 
 if (!SUPABASE_URL || !SERVICE_ROLE) {
