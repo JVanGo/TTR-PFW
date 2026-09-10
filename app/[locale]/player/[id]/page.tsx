@@ -229,7 +229,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
                   "rounded-full px-3 py-1 text-xs font-medium " +
                   (s === selectedSeason
                     ? "bg-foreground text-background"
-                    : "bg-muted text-muted-foreground hover:bg-muted/70")
+                    : "bg-muted text-foreground hover:bg-muted/70")
                 }
               >
                 {s}

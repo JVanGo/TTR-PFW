@@ -30,7 +30,7 @@ export function TtrChartPanel({ seasonPoints, allTimePoints, showToggle }: Props
                 "rounded-full px-3 py-1 text-xs font-medium " +
                 (mode === "season"
                   ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground hover:bg-muted/70")
+                  : "bg-muted text-foreground hover:bg-muted/70")
               }
             >
               {t("thisSeason")}
@@ -42,7 +42,7 @@ export function TtrChartPanel({ seasonPoints, allTimePoints, showToggle }: Props
                 "rounded-full px-3 py-1 text-xs font-medium " +
                 (mode === "all"
                   ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground hover:bg-muted/70")
+                  : "bg-muted text-foreground hover:bg-muted/70")
               }
             >
               {t("allSeasons")}
