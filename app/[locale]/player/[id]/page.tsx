@@ -151,9 +151,13 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
 
   const reverseMatches = [...matches].reverse();
   const startingDtr = computeStartingDtr(matches);
-  // The most recent graded match (skipping placement/growth/floor/forfeit
-  // rows, which carry no K-factor) reflects the player's current K.
-  const currentKMatch = reverseMatches.find((m) => m.k_factor != null);
+  // The most recent graded match across EVERY season (skipping placement/
+  // growth/floor/forfeit rows, which carry no K-factor) reflects the
+  // player's actual current K — sourced from allMatches, not the
+  // season-scoped `matches`, so it doesn't disappear just because the
+  // currently-viewed season has no matches yet (or show a stale K from
+  // whichever past season happens to be selected).
+  const currentKMatch = [...allMatches].reverse().find((m) => m.k_factor != null);
   const isMatchInactive =
     player.age_category == null &&
     computeIsMatchInactive(player.last_match_date, new Date().toISOString().slice(0, 10));
