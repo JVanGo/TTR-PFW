@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { nameKey } from "@/lib/name-key";
 import { clubKey, identityKey } from "@/lib/identity-key";
+import { previousSeasonLabel } from "@/lib/season";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import {
   excludeKnownFalsePositives,
@@ -181,11 +182,7 @@ export function seasonStartYear(season: string): number {
   return Number(season.split("-")[0]);
 }
 
-/** "2026-2027" -> "2025-2026" — the SEASON_LABEL immediately before `current`. */
-export function previousSeasonLabel(current: string): string {
-  const [startYear, endYear] = current.split("-").map(Number);
-  return `${startYear - 1}-${endYear - 1}`;
-}
+export { previousSeasonLabel };
 
 // How many R2 player-history files to fetch at once. R2's bucket has no
 // server-side query/timeout to work around (unlike Cosmos), so this is just

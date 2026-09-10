@@ -11,6 +11,7 @@ import {
   isMatchInactive as computeIsMatchInactive,
 } from "@/lib/import/ttr-simulation";
 import { RETURNING_PLAYER_PFW_OVERRIDES } from "@/lib/import/season-start-overrides";
+import { previousSeasonLabel } from "@/lib/season";
 import { nameKey } from "@/lib/name-key";
 import { identityKey } from "@/lib/identity-key";
 
@@ -53,10 +54,13 @@ interface PlayerRow {
 
 /**
  * The one place a player's current DTR is computed: their latest simulated
- * rating this season, or — if they haven't played yet this season — the
- * season-starting rating that seeds the simulation for everyone. Both
- * `/ranking` and the player profile page read from here so the numbers
- * shown always agree.
+ * rating this season; or, if they haven't played yet this season, their own
+ * settled final rating from the season immediately prior (matches.player_id
+ * already IS this table's own id, so this needs none of the R2 identity
+ * resolution the season simulation does for the same lookup); or, failing
+ * that too (no prior-season history at all), the season-starting rating
+ * that seeds the simulation for everyone. Both `/ranking` and the player
+ * profile page read from here so the numbers shown always agree.
  */
 async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[]> {
   const [allPlayers, latestTtrByPlayer] = await Promise.all([
@@ -67,6 +71,15 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
     ),
     fetchLatestTtrByPlayer(supabase, CURRENT_SEASON),
   ]);
+  // Run sequentially, not alongside the two fetches above — each side of
+  // fetchLatestTtrByPlayer already fans out its own capped-concurrency page
+  // fetches, and running two of those full-table scans at once (this one
+  // over a whole prior, closed season is much bigger than the current
+  // season's) was enough to blow past Postgres's statement timeout.
+  const priorSeasonTtrByPlayer = await fetchLatestTtrByPlayer(
+    supabase,
+    previousSeasonLabel(CURRENT_SEASON),
+  );
 
   // A player who's dropped off FLTT's own official ranking list is excluded
   // from the ranking entirely (not just badged) — filtered out here, before
@@ -94,6 +107,8 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
     let dtr: number;
     if (latestTtrByPlayer.has(p.id)) {
       dtr = latestTtrByPlayer.get(p.id)!;
+    } else if (priorSeasonTtrByPlayer.has(p.id)) {
+      dtr = priorSeasonTtrByPlayer.get(p.id)!;
     } else if (seasonStart != null) {
       dtr = seasonStart;
     } else if (kl === "D3") {
