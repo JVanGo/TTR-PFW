@@ -1,5 +1,5 @@
 /**
- * Simulate season 2025-2026 TTR from match results (see DëschTennisRating.pdf)
+ * Simulate season 2026-2027 TTR from match results (see DëschTennisRating.pdf)
  * against PRODUCTION Supabase. Wipes and replaces the season's `matches` rows
  * — safe to re-run, always recomputes the whole season from scratch.
  *

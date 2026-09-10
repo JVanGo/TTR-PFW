@@ -45,18 +45,18 @@ import {
   type SimulationSummary,
 } from "@/lib/import/ttr-simulation";
 
-export const SEASON_LABEL = "2025-2026";
+export const SEASON_LABEL = "2026-2027";
 // Same season as SEASON_LABEL, in the "YY-YY" short form R2/FLTT's own data
 // uses (as opposed to the "YYYY-YYYY" display form).
-const SEASON_SHORT_LABEL = "25-26";
-const SEASON_START_ISO = "2025-07-01";
-// Each Teilrunde's [start, end) window, in order: Aug 1 2025 - Jan 1 2026
-// ("Hironn"), then Jan 1 2026 - Aug 1 2026. A youth-bracket player only earns
+const SEASON_SHORT_LABEL = "26-27";
+const SEASON_START_ISO = "2026-07-01";
+// Each Teilrunde's [start, end) window, in order: Aug 1 2026 - Jan 1 2027
+// ("Hironn"), then Jan 1 2027 - Aug 1 2027. A youth-bracket player only earns
 // a given period's bonus (landing on that period's `end` date) if they
 // played a graded match within that specific window.
 const YOUTH_GROWTH_PERIODS = [
-  { start: "2025-08-01", end: "2026-01-01" },
-  { start: "2026-01-01", end: "2026-08-01" },
+  { start: "2026-08-01", end: "2027-01-01" },
+  { start: "2027-01-01", end: "2027-08-01" },
 ];
 
 interface SeasonStartExportSnapshot {

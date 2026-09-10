@@ -50,7 +50,7 @@ if (CONFIRM !== "YES") {
 }
 
 const SAISONENTWICKLUNG = path.join("TTR", "TTR-Saisonentwicklung.xlsx");
-const SEASON = "2025-2026";
+const SEASON = "2026-2027";
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
   auth: { autoRefreshToken: false, persistSession: false },

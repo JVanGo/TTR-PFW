@@ -17,7 +17,7 @@ config({ path: ".env.local" });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SOURCE_FILE = "Export-Members - 25-26_Espoirs.xlsx";
+const SOURCE_FILE = "Export-Members - 26-27_Espoirs.xlsx";
 
 if (!SUPABASE_URL || !SERVICE_ROLE) {
   console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");

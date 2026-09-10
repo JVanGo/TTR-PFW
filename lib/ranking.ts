@@ -21,7 +21,7 @@ function isAgeCategory(value: string | null): value is AgeCategory {
 /** Tag used to invalidate the cached ranking after an admin edit or import. */
 export const RANKING_CACHE_TAG = "ranking";
 
-export const CURRENT_SEASON = "2025-2026";
+export const CURRENT_SEASON = "2026-2027";
 
 export interface RankingRow {
   id: string;
