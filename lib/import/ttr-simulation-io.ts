@@ -213,6 +213,7 @@ async function fetchSeasonData(season: string, log: (message: string) => void) {
   const placements: SeasonPlacementRow[] = [];
   const priorSeasonAgg: { flttPlayerId: string; count: number; lastIsoDate: string | null }[] = [];
   const seasonStartByFlttId = new Map<string, MappedSeasonStartSnapshot>();
+  const earliestClassByFlttId = new Map<string, PlayerClass>();
   const sentinelIso = staleLastMatchSentinelIso(SEASON_START_ISO);
 
   await mapWithConcurrency(catalog, R2_FETCH_CONCURRENCY, async (p) => {
@@ -229,6 +230,9 @@ async function fetchSeasonData(season: string, log: (message: string) => void) {
     if (mapped.seasonStartSnapshot) {
       seasonStartByFlttId.set(p.flttPlayerId, mapped.seasonStartSnapshot);
     }
+    if (mapped.earliestKnownClass) {
+      earliestClassByFlttId.set(p.flttPlayerId, mapped.earliestKnownClass);
+    }
   });
 
   return {
@@ -237,6 +241,7 @@ async function fetchSeasonData(season: string, log: (message: string) => void) {
     catalog,
     priorSeasonAgg,
     seasonStartByFlttId,
+    earliestClassByFlttId,
   };
 }
 
@@ -296,8 +301,14 @@ export async function computeSeasonSimulation(
   log: (message: string) => void = () => {},
 ): Promise<SeasonSimulationResult> {
   log("Fetching season data from R2 (player-history backup)...");
-  const { seasonMatches, placements, catalog, priorSeasonAgg, seasonStartByFlttId } =
-    await fetchSeasonData(SEASON_SHORT_LABEL, log);
+  const {
+    seasonMatches,
+    placements,
+    catalog,
+    priorSeasonAgg,
+    seasonStartByFlttId,
+    earliestClassByFlttId,
+  } = await fetchSeasonData(SEASON_SHORT_LABEL, log);
   log(
     `  ${seasonMatches.length} match rows, ${placements.length} tournament placements, ${catalog.length} catalog players.`,
   );
@@ -456,15 +467,23 @@ export async function computeSeasonSimulation(
     return candidates.find((c) => clubKey(c.club) === clubKey(knownClub))?.flttPlayerId ?? null;
   }
 
-  // Keyed by identityKey (name + club), not name alone — two different real
-  // players can share a name (see identityKey's own comment), and a plain
-  // name_key lookup here would let one's career-match history silently
-  // overwrite the other's, wrongly swaying the newcomer/inactivity K-bonus.
-  const priorStatsByNameKey = new Map<string, PriorSeasonStats>();
+  // Keyed by flttPlayerId directly — NOT by re-deriving an identityKey from
+  // the R2 catalog's own club guess, which is often null (only about half
+  // the catalog has real club coverage at all, since a player's own club
+  // isn't in their own R2 file — see r2-catalog-sync.ts) and so silently
+  // failed to match back to the Supabase player row's real club whenever the
+  // catalog didn't know it. That defaulted careerMatchesBeforeSeason to 0 for
+  // effectively every established player, wrongly applying the +4 newcomer
+  // bonus at season start regardless of real career length — confirmed by
+  // Jeff 2026-09-10 ("every player I checked started with the newcomer
+  // bonus"). resolveFlttId() below already solves the exact same name+club
+  // matching problem correctly (falls back to the sole same-name candidate
+  // when there's no ambiguity to resolve instead of demanding an exact club
+  // match), so this reuses its result per-player instead of a second,
+  // less reliable identity lookup.
+  const priorStatsByFlttId = new Map<string, PriorSeasonStats>();
   for (const row of priorSeasonAgg) {
-    const info = catalogByFlttId.get(row.flttPlayerId);
-    if (!info) continue;
-    priorStatsByNameKey.set(identityKey(info.nameKey, info.club), {
+    priorStatsByFlttId.set(row.flttPlayerId, {
       count: row.count,
       lastIsoDate: row.lastIsoDate,
     });
@@ -481,8 +500,10 @@ export async function computeSeasonSimulation(
   let youthErsteinstufungHits = 0;
   let exportHits = 0;
   let seasonStartHits = 0;
+  let earliestClassHits = 0;
   const players: SimPlayer[] = supabasePlayers.map((p) => {
-    const prior = priorStatsByNameKey.get(identityKey(p.name_key, p.club));
+    const flttId = resolveFlttId(p.name_key, p.club);
+    const prior = flttId ? priorStatsByFlttId.get(flttId) : undefined;
     const cls = p.class;
     const pfw = Number(p.pfw);
     const classementPoints = p.classement_points == null ? null : Number(p.classement_points);
@@ -499,14 +520,20 @@ export async function computeSeasonSimulation(
     // row had to be discarded, then FLTT's own season-start export when Jeff
     // has one on hand, then a snapshot inferred from their earliest match
     // this season (see mapPlayerHistoryToSeasonData's seasonStartSnapshot in
-    // r2-player-history.ts for why either beats today's catalog).
-    const flttId = resolveFlttId(p.name_key, p.club);
+    // r2-player-history.ts for why either beats today's catalog), then —
+    // still one notch better than today's catalog — the class FLTT's export
+    // recorded them at on their EARLIEST match that season (earliestClass),
+    // for a player whose matches never carry the richer snapshot at all
+    // (common for classement-class players): a real mid-season promotion
+    // (e.g. C2 -> B2) means "today's catalog" is their ENDING class, not
+    // their starting one.
     const returningPfwOverride = flttId ? returningPfwOverrideByFlttId.get(flttId) : undefined;
     const overrideClass = flttId ? overrideClassByFlttId.get(flttId) : undefined;
     const exportSnapshot = flttId ? seasonStartExportByFlttId.get(flttId) : undefined;
     const seasonStart: MappedSeasonStartSnapshot | undefined = flttId
       ? seasonStartByFlttId.get(flttId)
       : undefined;
+    const earliestClass = flttId ? earliestClassByFlttId.get(flttId) : undefined;
 
     // Each source only "claims" the player if it actually produces a number —
     // a classement-class export/season-start row with no points recorded
@@ -569,6 +596,13 @@ export async function computeSeasonSimulation(
       seasonStartHits++;
       startingTtr = seasonStart.ttr;
     }
+    if (startingTtr == null && earliestClass) {
+      const est = medianTtrByClass.get(earliestClass) ?? null;
+      if (est != null) {
+        earliestClassHits++;
+        startingTtr = est;
+      }
+    }
     if (startingTtr == null) {
       startingTtr = isPlayerClass(cls)
         ? estimateTtr(pfw, cls as PlayerClass, classementPoints)
@@ -614,8 +648,9 @@ export async function computeSeasonSimulation(
       `${returningOverrideHits} more used a fresh federation PFW as a returning player; ` +
       `${overrideHits} more used a manual season-start correction; ${youthErsteinstufungHits} more ` +
       `used their age-based Ersteinstufung (D3 youth); ${exportHits} more from FLTT's own export; ` +
-      `${seasonStartHits} more from their earliest match this season; the rest fall back to today's ` +
-      `catalog class/PFW.`,
+      `${seasonStartHits} more from their earliest match's own snapshot this season; ` +
+      `${earliestClassHits} more from their earliest match's class alone (no snapshot on file); ` +
+      `the rest fall back to today's catalog class/PFW.`,
   );
 
   // Fallback static rating for opponents we can't resolve to a tracked player:

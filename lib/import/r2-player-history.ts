@@ -298,6 +298,7 @@ export interface MappedR2SeasonData {
   placements: MappedTournamentPlacement[];
   priorSeasonStats: { count: number; lastIsoDate: string | null };
   seasonStartSnapshot: MappedSeasonStartSnapshot | null;
+  earliestKnownClass: PlayerClass | null;
 }
 
 export interface R2CatalogPlayerDoc {
@@ -538,10 +539,34 @@ export function mapPlayerHistoryToSeasonData(
     }
   }
 
+  // A fallback one notch weaker than seasonStartSnapshot: FLTT's export
+  // stamps a player's class on every match row's plain `playerRanking`
+  // field, even on the (common, for classement-class players especially)
+  // rows that don't carry the richer embedded performance/points JSON
+  // seasonStartSnapshot needs. Their earliest recorded class this season is
+  // still real historical evidence of where they actually started — and a
+  // meaningfully better guess than jumping straight to their current
+  // catalog class/PFW, which is only "roughly where they ended up" and can
+  // reflect a real mid-season promotion (e.g. C2 -> B2) that hadn't
+  // happened yet at the point being estimated.
+  const matchRowsByDate = (seasonEntry?.rencontresRows ?? [])
+    .filter((r) => r.rowType === "match")
+    .slice()
+    .sort((a, b) => (a.isoDate < b.isoDate ? -1 : a.isoDate > b.isoDate ? 1 : 0));
+  let earliestKnownClass: PlayerClass | null = null;
+  for (const row of matchRowsByDate) {
+    const cls = row.playerRanking.trim().toUpperCase();
+    if (isPlayerClass(cls)) {
+      earliestKnownClass = cls as PlayerClass;
+      break;
+    }
+  }
+
   return {
     seasonMatches,
     placements,
     priorSeasonStats: { count: priorMatchCount, lastIsoDate },
     seasonStartSnapshot,
+    earliestKnownClass,
   };
 }
