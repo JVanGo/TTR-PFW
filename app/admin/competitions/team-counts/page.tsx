@@ -3,6 +3,12 @@ import { getCompetitions } from "@/lib/competitions";
 import { CURRENT_SEASON } from "@/lib/ranking";
 import { ImportForm } from "./ImportForm";
 
+// Raises the Server Actions on this page as close to Vercel Hobby's ceiling
+// as the plan allows — fetching + parsing two PDFs plus a players query can
+// run past the 10s default, which kills the function outright (a bare
+// browser-level failure, not a graceful error message).
+export const maxDuration = 60;
+
 export default async function TeamCountsPage() {
   const competitions = await getCompetitions();
 

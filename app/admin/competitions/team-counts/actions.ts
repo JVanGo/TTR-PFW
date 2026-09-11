@@ -53,17 +53,25 @@ export async function importTeamCounts(_: ActionState, formData: FormData): Prom
   if (!season) return { status: "error", message: "Season is required." };
   if (!mainUrl) return { status: "error", message: "Main schedule PDF URL is required." };
 
+  const supabase = await createClient();
+
+  // Independent I/O run in parallel — two sequential PDF fetch+parses plus a
+  // players query risked tripping Vercel Hobby's 10s function timeout, which
+  // (killing the function outright, not a graceful error) is exactly what
+  // showed up as a bare browser-level failure rather than an error message.
   let mainText: string;
-  let topTierText: string | null = null;
+  let topTierText: string | null;
+  let players: { club: string | null }[];
   try {
-    mainText = await extractPdfText(mainUrl);
-    if (topTierUrl) topTierText = await extractPdfText(topTierUrl);
+    [mainText, topTierText, players] = await Promise.all([
+      extractPdfText(mainUrl),
+      topTierUrl ? extractPdfText(topTierUrl) : Promise.resolve(null),
+      fetchAllRows<{ club: string | null }>(supabase, "players", "club"),
+    ]);
   } catch (err) {
     return { status: "error", message: err instanceof Error ? err.message : String(err) };
   }
 
-  const supabase = await createClient();
-  const players = await fetchAllRows<{ club: string | null }>(supabase, "players", "club");
   const clubs = Array.from(new Set(players.map((p) => p.club).filter((c): c is string => !!c)));
 
   const { counts, unmatched } = extractTeamCounts(clubs, mainText, topTierText);
