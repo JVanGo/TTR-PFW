@@ -10,12 +10,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "50mb",
     },
   },
-  // pdf-parse (used by the competition team-count import) loads a separate
-  // pdf.worker.mjs file by path at runtime. Left to Next's default bundling
-  // that path resolution breaks once deployed, even though it works fine in
-  // local dev — this opts it out of bundling so Node requires it natively
-  // and Vercel ships the whole package (worker file included).
-  serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  // NOTE: pdf-parse (used by the competition team-count import) previously
+  // had serverExternalPackages set here, guessing its worker file needed to
+  // ship unbundled. That guess was wrong and actively broke it: Next's
+  // "external module" loader resolved pdf-parse/pdfjs-dist's browser build
+  // instead of the Node one, crashing with "ReferenceError: DOMMatrix is not
+  // defined" (confirmed via Vercel's runtime logs) — the Node/legacy build
+  // pdfjs-dist ships polyfills that one; the browser build assumes a real
+  // browser provides it. Left as Next's default (bundled) — that correctly
+  // resolves the Node build.
 };
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
