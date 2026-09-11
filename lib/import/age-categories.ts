@@ -2,17 +2,9 @@ import * as XLSX from "xlsx";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { nameKey } from "@/lib/name-key";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
+import { AGE_CATEGORIES, type AgeCategory } from "@/lib/age-categories";
 
-export const AGE_CATEGORIES = [
-  "Poussin",
-  "Benjamin",
-  "Minime",
-  "Cadet",
-  "Junior",
-  "Espoirs",
-] as const;
-
-export type AgeCategory = (typeof AGE_CATEGORIES)[number];
+export { AGE_CATEGORIES, type AgeCategory };
 
 const VALID_CATEGORIES = new Set<string>(AGE_CATEGORIES);
 

@@ -69,6 +69,19 @@ export default async function AdminPage() {
             Open import tool →
           </Link>
         </div>
+        <div className="rounded-md border p-4 lg:col-span-3">
+          <h2 className="text-base font-semibold">Competitions</h2>
+          <p className="text-muted-foreground mt-1 text-xs">
+            Manage the competitions the Lineup Builder&apos;s competition picker offers (fixed team
+            counts, team size, age limits).
+          </p>
+          <Link
+            href="/admin/competitions"
+            className="bg-foreground text-background mt-3 inline-flex rounded-md px-4 py-2 text-sm font-medium"
+          >
+            Manage competitions →
+          </Link>
+        </div>
       </section>
 
       <section className="mt-8">

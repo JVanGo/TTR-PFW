@@ -9,7 +9,7 @@ import {
 } from "./lineup";
 
 function player(id: string, dtr: number, opts: Partial<LineupPlayer> = {}): LineupPlayer {
-  return { id, name: id, dtr, isYouth: false, isKader: false, ...opts };
+  return { id, name: id, dtr, isYouth: false, isKader: false, ageCategory: null, ...opts };
 }
 
 describe("toleranceTierFor", () => {
@@ -78,6 +78,17 @@ describe("isValidArrangement", () => {
     ];
     expect(isValidArrangement(arrangement)).toBe(false);
   });
+
+  it("groups by teams of 3 when teamSize is 3, instead of 4", () => {
+    // a, b, c gaps to each other are all small (fine under either tolerance).
+    // d is 40 points above c: over the 35-point *team* tolerance, but within
+    // the 50-point *club* tolerance.
+    const players = [player("a", 1500), player("b", 1490), player("c", 1480), player("d", 1520)];
+    // teamSize 4: all one team, so c-d's 40-point gap violates the team tolerance.
+    expect(isValidArrangement(players, 4)).toBe(false);
+    // teamSize 3: d is alone in team 2, so c-d is judged by the wider club tolerance instead.
+    expect(isValidArrangement(players, 3)).toBe(true);
+  });
 });
 
 describe("movePlayer", () => {
@@ -130,5 +141,20 @@ describe("buildTeams", () => {
   it("breaks DTR ties by name for a deterministic order", () => {
     const teams = buildTeams([player("Zed", 1500), player("Anna", 1500)], 1);
     expect(teams[0].players.map((p) => p.id)).toEqual(["Anna", "Zed"]);
+  });
+
+  it("chunks into teams of 3 when teamSize is 3", () => {
+    const players = [
+      player("a", 1600),
+      player("b", 1500),
+      player("c", 1400),
+      player("d", 1300),
+      player("e", 1200),
+      player("f", 1100),
+    ];
+    const teams = buildTeams(players, 2, 3);
+    expect(teams).toHaveLength(2);
+    expect(teams[0].players.map((p) => p.id)).toEqual(["a", "b", "c"]);
+    expect(teams[1].players.map((p) => p.id)).toEqual(["d", "e", "f"]);
   });
 });

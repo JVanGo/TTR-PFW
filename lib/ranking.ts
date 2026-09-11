@@ -5,7 +5,7 @@ import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
 import { createPublicClient } from "@/lib/supabase/public";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
 import { klassierungForDtr, type Klassierung } from "@/lib/klassierung";
-import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
+import { AGE_CATEGORIES, type AgeCategory } from "@/lib/age-categories";
 import {
   ersteinstufungFor,
   isMatchInactive as computeIsMatchInactive,
@@ -36,6 +36,8 @@ export interface RankingRow {
   /** Non-null age_category (youth per the PDF's Ersteinstufung categories) — used by the Lineup Builder. */
   isYouth: boolean;
   isKader: boolean;
+  /** The raw age category behind `isYouth`, or null for an adult — used by the Lineup Builder's competition age-eligibility filter. */
+  ageCategory: AgeCategory | null;
 }
 
 interface PlayerRow {
@@ -132,6 +134,7 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
       klassierung: klassierungForDtr(dtr),
       isYouth: ageCategory != null,
       isKader: p.is_kader,
+      ageCategory,
     };
   });
 

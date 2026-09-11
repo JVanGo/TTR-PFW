@@ -14,6 +14,8 @@
  * just neighbor-by-neighbor.
  */
 
+import type { AgeCategory } from "@/lib/age-categories";
+
 export interface LineupPlayer {
   id: string;
   name: string;
@@ -22,6 +24,8 @@ export interface LineupPlayer {
   isYouth: boolean;
   /** True if the player is on the Kader (kaderzusammensetzung-november-2025.pdf). */
   isKader: boolean;
+  /** The player's raw age category, or null for an adult. Used for competition age-eligibility, not for tolerance tiers. */
+  ageCategory: AgeCategory | null;
 }
 
 export interface Team<T extends LineupPlayer = LineupPlayer> {
@@ -54,13 +58,15 @@ export function toleranceFor(a: LineupPlayer, b: LineupPlayer, sameTeam: boolean
 }
 
 /**
- * Whether the arrangement (index order = listed order, every 4 players a
- * team) satisfies the tolerance rule for every pair, not just neighbors.
+ * Whether the arrangement (index order = listed order, every `teamSize`
+ * players a team) satisfies the tolerance rule for every pair, not just
+ * neighbors. `teamSize` defaults to 4 (the only size before competitions
+ * could specify 3-player teams).
  */
-export function isValidArrangement(players: LineupPlayer[]): boolean {
+export function isValidArrangement(players: LineupPlayer[], teamSize = 4): boolean {
   for (let i = 0; i < players.length; i++) {
     for (let j = i + 1; j < players.length; j++) {
-      const sameTeam = Math.floor(i / 4) === Math.floor(j / 4);
+      const sameTeam = Math.floor(i / teamSize) === Math.floor(j / teamSize);
       const tolerance = toleranceFor(players[i], players[j], sameTeam);
       if (players[j].dtr - players[i].dtr > tolerance) return false;
     }
@@ -84,26 +90,35 @@ export function movePlayer<T>(list: T[], from: number, to: number): T[] {
  * buildTeams's sorted output is always valid, and every accepted move keeps
  * it that way).
  */
-export function legalTargetIndices(players: LineupPlayer[], fromIndex: number): number[] {
+export function legalTargetIndices(
+  players: LineupPlayer[],
+  fromIndex: number,
+  teamSize = 4,
+): number[] {
   const legal: number[] = [];
   for (let to = 0; to < players.length; to++) {
     if (to === fromIndex) continue;
-    if (isValidArrangement(movePlayer(players, fromIndex, to))) legal.push(to);
+    if (isValidArrangement(movePlayer(players, fromIndex, to), teamSize)) legal.push(to);
   }
   return legal;
 }
 
 /**
  * Sorts by DTR descending (ties broken by name for determinism) and chunks
- * into teams of 4, in order — Team 1 gets the top 4, Team 2 the next 4, etc.
- * Callers are expected to pass exactly `teamCount * 4` players; a short
- * final chunk (fewer than 4) is still returned as-is rather than dropped.
+ * into teams of `teamSize` (default 4), in order — Team 1 gets the top
+ * `teamSize`, Team 2 the next `teamSize`, etc. Callers are expected to pass
+ * exactly `teamCount * teamSize` players; a short final chunk is still
+ * returned as-is rather than dropped.
  */
-export function buildTeams<T extends LineupPlayer>(players: T[], teamCount: number): Team<T>[] {
+export function buildTeams<T extends LineupPlayer>(
+  players: T[],
+  teamCount: number,
+  teamSize = 4,
+): Team<T>[] {
   const sorted = [...players].sort((x, y) => y.dtr - x.dtr || x.name.localeCompare(y.name));
   const teams: Team<T>[] = [];
   for (let i = 0; i < teamCount; i++) {
-    teams.push({ players: sorted.slice(i * 4, i * 4 + 4) });
+    teams.push({ players: sorted.slice(i * teamSize, i * teamSize + teamSize) });
   }
   return teams;
 }

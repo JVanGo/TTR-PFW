@@ -60,6 +60,10 @@
   },
   "LineupBuilder": {
     "heading": "Mannschaftsaufstellung",
+    "competition": "Wettbewerb",
+    "customCompetition": "Benutzerdefiniert (kein Wettbewerb)",
+    "fixedTeamCount": "{count, plural, one {# Mannschaft (fest für diesen Wettbewerb)} other {# Mannschaften (fest für diesen Wettbewerb)}}",
+    "ineligibleHidden": "{count, plural, one {# Spieler ausgeblendet — nicht berechtigt wegen der Altersgrenze dieses Wettbewerbs} other {# Spieler ausgeblendet — nicht berechtigt wegen der Altersgrenze dieses Wettbewerbs}}",
     "numberOfTeams": "Anzahl Mannschaften",
     "fewerTeams": "Weniger Mannschaften",
     "moreTeams": "Mehr Mannschaften",

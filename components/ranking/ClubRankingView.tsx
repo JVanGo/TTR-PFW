@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { RankingRow } from "@/lib/ranking";
+import type { Competition } from "@/lib/competitions";
 import { RankingTable } from "@/components/ranking/RankingTable";
 import { LineupBuilder } from "@/components/ranking/LineupBuilder";
 
@@ -10,6 +11,7 @@ interface Props {
   clubs: string[];
   selectedLevel: string;
   initialClub: string;
+  competitions: Competition[];
 }
 
 /**
@@ -17,7 +19,7 @@ interface Props {
  * roster) can react live to the same club dropdown RankingTable renders,
  * rather than only seeing the club from the initial page load.
  */
-export function ClubRankingView({ rows, clubs, selectedLevel, initialClub }: Props) {
+export function ClubRankingView({ rows, clubs, selectedLevel, initialClub, competitions }: Props) {
   const [club, setClub] = useState(initialClub);
 
   // `rows` only ever contains roster-active players — lib/ranking.ts
@@ -33,7 +35,9 @@ export function ClubRankingView({ rows, clubs, selectedLevel, initialClub }: Pro
         club={club}
         onClubChange={setClub}
       />
-      {club && roster.length > 0 && <LineupBuilder club={club} roster={roster} />}
+      {club && roster.length > 0 && (
+        <LineupBuilder club={club} roster={roster} competitions={competitions} />
+      )}
     </div>
   );
 }

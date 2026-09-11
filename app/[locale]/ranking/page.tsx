@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { getRankingRows, type RankingRow } from "@/lib/ranking";
+import { getCompetitions, type Competition } from "@/lib/competitions";
 import { KLASSIERUNG_BANDS, type Klassierung } from "@/lib/klassierung";
 import { LevelPills } from "@/components/ranking/LevelPills";
 import { ClubRankingView } from "@/components/ranking/ClubRankingView";
@@ -21,7 +22,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
   const selectedLevel = sp.level && isKlassierung(sp.level) ? sp.level : null;
   const initialClub = sp.club ?? "";
 
-  const all = await getRankingRows();
+  const [all, competitions] = await Promise.all([getRankingRows(), getCompetitions()]);
 
   const counts: Record<string, number> = {};
   for (const p of all) {
@@ -44,7 +45,12 @@ export default async function RankingPage({ searchParams }: PageProps) {
             club={initialClub || null}
           />
           {selectedLevel || initialClub ? (
-            <RankingFiltered all={all} selectedLevel={selectedLevel} initialClub={initialClub} />
+            <RankingFiltered
+              all={all}
+              selectedLevel={selectedLevel}
+              initialClub={initialClub}
+              competitions={competitions}
+            />
           ) : (
             <RankingBrowserSection all={all} search={sp.search ?? ""} pageParam={sp.page} />
           )}
@@ -63,10 +69,12 @@ function RankingFiltered({
   all,
   selectedLevel,
   initialClub,
+  competitions,
 }: {
   all: RankingRow[];
   selectedLevel: Klassierung | null;
   initialClub: string;
+  competitions: Competition[];
 }) {
   const filtered = selectedLevel ? all.filter((p) => p.klassierung === selectedLevel) : all;
 
@@ -82,6 +90,7 @@ function RankingFiltered({
       clubs={clubs}
       selectedLevel={selectedLevel ?? "All"}
       initialClub={initialClub}
+      competitions={competitions}
     />
   );
 }

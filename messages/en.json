@@ -60,6 +60,10 @@
   },
   "LineupBuilder": {
     "heading": "Lineup Builder",
+    "competition": "Competition",
+    "customCompetition": "Custom (no competition)",
+    "fixedTeamCount": "{count, plural, one {# team (fixed for this competition)} other {# teams (fixed for this competition)}}",
+    "ineligibleHidden": "{count, plural, one {# player hidden — not eligible for this competition's age limit} other {# players hidden — not eligible for this competition's age limit}}",
     "numberOfTeams": "Number of teams",
     "fewerTeams": "Fewer teams",
     "moreTeams": "More teams",
