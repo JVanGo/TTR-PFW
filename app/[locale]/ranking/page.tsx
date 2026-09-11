@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
-import { getRankingRows, type RankingRow } from "@/lib/ranking";
+import { getRankingRows, CURRENT_SEASON, type RankingRow } from "@/lib/ranking";
 import { getCompetitions, type Competition } from "@/lib/competitions";
+import { getCompetitionTeamCounts } from "@/lib/competitionTeamCounts";
 import { KLASSIERUNG_BANDS, type Klassierung } from "@/lib/klassierung";
 import { LevelPills } from "@/components/ranking/LevelPills";
 import { ClubRankingView } from "@/components/ranking/ClubRankingView";
@@ -22,7 +23,11 @@ export default async function RankingPage({ searchParams }: PageProps) {
   const selectedLevel = sp.level && isKlassierung(sp.level) ? sp.level : null;
   const initialClub = sp.club ?? "";
 
-  const [all, competitions] = await Promise.all([getRankingRows(), getCompetitions()]);
+  const [all, competitions, teamCountsByCompetition] = await Promise.all([
+    getRankingRows(),
+    getCompetitions(),
+    getCompetitionTeamCounts(CURRENT_SEASON),
+  ]);
 
   const counts: Record<string, number> = {};
   for (const p of all) {
@@ -50,6 +55,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
               selectedLevel={selectedLevel}
               initialClub={initialClub}
               competitions={competitions}
+              teamCountsByCompetition={teamCountsByCompetition}
             />
           ) : (
             <RankingBrowserSection all={all} search={sp.search ?? ""} pageParam={sp.page} />
@@ -70,11 +76,13 @@ function RankingFiltered({
   selectedLevel,
   initialClub,
   competitions,
+  teamCountsByCompetition,
 }: {
   all: RankingRow[];
   selectedLevel: Klassierung | null;
   initialClub: string;
   competitions: Competition[];
+  teamCountsByCompetition: Record<string, Record<string, number>>;
 }) {
   const filtered = selectedLevel ? all.filter((p) => p.klassierung === selectedLevel) : all;
 
@@ -91,6 +99,7 @@ function RankingFiltered({
       selectedLevel={selectedLevel ?? "All"}
       initialClub={initialClub}
       competitions={competitions}
+      teamCountsByCompetition={teamCountsByCompetition}
     />
   );
 }

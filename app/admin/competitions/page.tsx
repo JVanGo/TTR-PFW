@@ -24,6 +24,12 @@ export default async function AdminCompetitionsPage() {
           Powers the competition picker in the Lineup Builder on the ranking page: how many teams
           are fixed (if any), what team size to use, and any max age category.
         </p>
+        <Link
+          href="/admin/competitions/team-counts"
+          className="text-muted-foreground mt-2 inline-block text-sm hover:underline"
+        >
+          Import per-club team counts from FLTT →
+        </Link>
       </div>
 
       <section className="mt-8 rounded-md border p-4">

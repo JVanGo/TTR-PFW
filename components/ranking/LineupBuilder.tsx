@@ -16,6 +16,7 @@ interface Props {
   club: string;
   roster: LineupRosterPlayer[];
   competitions: Competition[];
+  teamCountsByCompetition: Record<string, Record<string, number>>;
 }
 
 const MAX_TEAMS = 10;
@@ -40,7 +41,25 @@ function isEligibleForMaxAge(player: LineupRosterPlayer, maxAgeCategory: AgeCate
   return AGE_CATEGORIES.indexOf(player.ageCategory) <= AGE_CATEGORIES.indexOf(maxAgeCategory);
 }
 
-export function LineupBuilder({ club, roster, competitions }: Props) {
+/**
+ * A fixed count always wins; otherwise prefill with the imported per-club
+ * count for this competition, if one is known — falls back to whatever
+ * count was already set (a no-op) rather than forcing back to 1.
+ */
+function resolveTeamCount(
+  activeCompetition: Competition | null,
+  club: string,
+  teamCountsByCompetition: Record<string, Record<string, number>>,
+  fallback: number,
+): number {
+  if (activeCompetition?.fixedTeamCount != null) return activeCompetition.fixedTeamCount;
+  const known = activeCompetition
+    ? teamCountsByCompetition[activeCompetition.id]?.[club]
+    : undefined;
+  return known ?? fallback;
+}
+
+export function LineupBuilder({ club, roster, competitions, teamCountsByCompetition }: Props) {
   const t = useTranslations("LineupBuilder");
   const sortedRoster = [...roster].sort((a, b) => b.dtr - a.dtr || a.name.localeCompare(b.name));
 
@@ -65,17 +84,16 @@ export function LineupBuilder({ club, roster, competitions }: Props) {
   if (club !== prevClub) {
     setPrevClub(club);
     setSelectedIds(new Set());
+    setTeamCount((n) => resolveTeamCount(activeCompetition, club, teamCountsByCompetition, n));
   }
 
   // Switching competition — lock the team count to a fixed one if this
-  // competition has one, and drop any current picks who no longer qualify
-  // under its age limit.
+  // competition has one (or prefill it with a known per-club count),
+  // and drop any current picks who no longer qualify under its age limit.
   const [prevCompetitionId, setPrevCompetitionId] = useState(selectedCompetitionId);
   if (selectedCompetitionId !== prevCompetitionId) {
     setPrevCompetitionId(selectedCompetitionId);
-    if (activeCompetition?.fixedTeamCount != null) {
-      setTeamCount(activeCompetition.fixedTeamCount);
-    }
+    setTeamCount((n) => resolveTeamCount(activeCompetition, club, teamCountsByCompetition, n));
     if (activeCompetition?.maxAgeCategory) {
       const maxAgeCategory = activeCompetition.maxAgeCategory;
       setSelectedIds((prev) => {

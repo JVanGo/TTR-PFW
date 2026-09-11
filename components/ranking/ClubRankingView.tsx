@@ -12,6 +12,7 @@ interface Props {
   selectedLevel: string;
   initialClub: string;
   competitions: Competition[];
+  teamCountsByCompetition: Record<string, Record<string, number>>;
 }
 
 /**
@@ -19,7 +20,14 @@ interface Props {
  * roster) can react live to the same club dropdown RankingTable renders,
  * rather than only seeing the club from the initial page load.
  */
-export function ClubRankingView({ rows, clubs, selectedLevel, initialClub, competitions }: Props) {
+export function ClubRankingView({
+  rows,
+  clubs,
+  selectedLevel,
+  initialClub,
+  competitions,
+  teamCountsByCompetition,
+}: Props) {
   const [club, setClub] = useState(initialClub);
 
   // `rows` only ever contains roster-active players — lib/ranking.ts
@@ -36,7 +44,12 @@ export function ClubRankingView({ rows, clubs, selectedLevel, initialClub, compe
         onClubChange={setClub}
       />
       {club && roster.length > 0 && (
-        <LineupBuilder club={club} roster={roster} competitions={competitions} />
+        <LineupBuilder
+          club={club}
+          roster={roster}
+          competitions={competitions}
+          teamCountsByCompetition={teamCountsByCompetition}
+        />
       )}
     </div>
   );
