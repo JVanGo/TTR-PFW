@@ -1,6 +1,6 @@
 "use server";
 
-import "@/lib/import/dommatrix-polyfill";
+import "@/lib/import/pdf-parse-node-setup";
 import { revalidatePath } from "next/cache";
 import { PDFParse } from "pdf-parse";
 import { createClient } from "@/lib/supabase/server";
