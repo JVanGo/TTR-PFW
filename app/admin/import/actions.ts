@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseRangliste, diffRangliste, type RanglistEntry } from "@/lib/import/verbandsrangliste";
@@ -16,6 +17,52 @@ export interface RanglistImportState {
     added: number;
     deactivated: number;
   };
+}
+
+export interface RanglistPreviewState {
+  status: "idle" | "success" | "error";
+  message?: string;
+  toInsertCount?: number;
+  toUpdateCount?: number;
+  toDeactivateCount?: number;
+  clubChanges?: { name: string; from: string | null; to: string | null }[];
+  clubChangesTruncated?: boolean;
+  deactivated?: string[];
+  deactivatedTruncated?: boolean;
+}
+
+const PREVIEW_LIST_LIMIT = 30;
+
+interface ExistingPlayerRow {
+  id: string;
+  name: string;
+  name_key: string;
+  club: string | null;
+  is_active: boolean;
+}
+
+/** Paginated fetch of every player, shared by the preview and apply steps so
+ * both diff against the exact same snapshot's shape. */
+async function fetchAllPlayersForDiff(admin: SupabaseClient): Promise<ExistingPlayerRow[]> {
+  const existing: ExistingPlayerRow[] = [];
+  let from = 0;
+  const pageSize = 1000;
+  for (;;) {
+    const { data, error } = await admin
+      .from("players")
+      .select("id, name, name_key, club, is_active")
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    existing.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return existing;
+}
+
+function clubKey(club: string | null): string {
+  return (club ?? "").trim().toLowerCase();
 }
 
 export interface MatchImportState {
@@ -47,10 +94,14 @@ async function requireAdmin() {
   return admin;
 }
 
-export async function importRangliste(
-  _prev: RanglistImportState,
-  formData: FormData,
-): Promise<RanglistImportState> {
+/**
+ * Parses and diffs an uploaded Verbandsrangliste against production without
+ * writing anything — lets the admin see exactly what would happen (added,
+ * updated, and especially who'd be marked inactive for simply not appearing
+ * in this one file) before committing. See importRangliste for the same diff
+ * actually applied.
+ */
+export async function previewRangliste(formData: FormData): Promise<RanglistPreviewState> {
   try {
     const admin = await requireAdmin();
     const file = formData.get("file");
@@ -63,26 +114,54 @@ export async function importRangliste(
       return { status: "error", message: "Couldn't find any player rows in that file." };
     }
 
-    const existing: Array<{
-      id: string;
-      name_key: string;
-      club: string | null;
-      is_active: boolean;
-    }> = [];
-    let from = 0;
-    const pageSize = 1000;
-    for (;;) {
-      const { data, error } = await admin
-        .from("players")
-        .select("id, name_key, club, is_active")
-        .range(from, from + pageSize - 1);
-      if (error) return { status: "error", message: error.message };
-      if (!data || data.length === 0) break;
-      existing.push(...data);
-      if (data.length < pageSize) break;
-      from += pageSize;
+    const existing = await fetchAllPlayersForDiff(admin);
+    const diff = diffRangliste(parsed, existing);
+
+    const nameById = new Map(existing.map((p) => [p.id, p.name]));
+    const clubById = new Map(existing.map((p) => [p.id, p.club]));
+
+    const clubChangesAll = diff.toUpdate
+      .map(({ id, entry }) => ({
+        name: entry.name,
+        from: clubById.get(id) ?? null,
+        to: entry.club,
+      }))
+      .filter((c) => clubKey(c.from) !== clubKey(c.to));
+
+    const deactivatedAll = diff.toDeactivate
+      .map((id) => nameById.get(id))
+      .filter((n): n is string => n != null);
+
+    return {
+      status: "success",
+      toInsertCount: diff.toInsert.length,
+      toUpdateCount: diff.toUpdate.length,
+      toDeactivateCount: diff.toDeactivate.length,
+      clubChanges: clubChangesAll.slice(0, PREVIEW_LIST_LIMIT),
+      clubChangesTruncated: clubChangesAll.length > PREVIEW_LIST_LIMIT,
+      deactivated: deactivatedAll.slice(0, PREVIEW_LIST_LIMIT),
+      deactivatedTruncated: deactivatedAll.length > PREVIEW_LIST_LIMIT,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { status: "error", message };
+  }
+}
+
+export async function importRangliste(formData: FormData): Promise<RanglistImportState> {
+  try {
+    const admin = await requireAdmin();
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return { status: "error", message: "Pick a .xlsx file to upload." };
+    }
+    const buffer = await file.arrayBuffer();
+    const parsed = parseRangliste(buffer);
+    if (parsed.length === 0) {
+      return { status: "error", message: "Couldn't find any player rows in that file." };
     }
 
+    const existing = await fetchAllPlayersForDiff(admin);
     const diff = diffRangliste(parsed, existing);
 
     if (diff.toInsert.length > 0) {
