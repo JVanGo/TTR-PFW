@@ -60,23 +60,21 @@ function resolveTeamCount(
 }
 
 /**
- * One entry per team, in order. Normally every team is `baseSize`, but a
- * club can have some number of its weakest teams playing one tier down at
- * a smaller size (e.g. two Division 6 teams in an otherwise 4-man
- * competition) — `smallTrailingCount` of the last teams are built one
- * player smaller, capped at the actual team count.
+ * One entry per team, in order: `teamCount` normal teams at `baseSize`,
+ * followed by `smallTrailingCount` additional teams one player smaller
+ * (e.g. a club's Division 6 teams — those aren't part of the regular
+ * imported team count at all, since Division 6 isn't in the FLTT document
+ * that count comes from, so they're extra teams on top, not a re-sizing of
+ * the club's existing ones).
  */
 function computeTeamSizes(
   teamCount: number,
   baseSize: number,
   smallTrailingCount: number,
 ): number[] {
-  const sizes = Array<number>(teamCount).fill(baseSize);
-  const n = Math.min(Math.max(smallTrailingCount, 0), sizes.length);
-  for (let i = 0; i < n; i++) {
-    sizes[sizes.length - 1 - i] = baseSize - 1;
-  }
-  return sizes;
+  const bigTeams = Array<number>(Math.max(teamCount, 0)).fill(baseSize);
+  const smallTeams = Array<number>(Math.max(smallTrailingCount, 0)).fill(baseSize - 1);
+  return [...bigTeams, ...smallTeams];
 }
 
 export function LineupBuilder({ club, roster, competitions, teamCountsByCompetition }: Props) {
