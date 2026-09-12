@@ -155,7 +155,10 @@ export async function applyAgeCategoriesToSupabase(
     const chunk = result.updates.slice(i, i + 200);
     const results = await Promise.all(
       chunk.map(({ id, ageCategory }) =>
-        supabase.from("players").update({ age_category: ageCategory }).eq("id", id),
+        supabase
+          .from("players")
+          .update({ age_category: ageCategory, age_category_reviewed: true })
+          .eq("id", id),
       ),
     );
     const failed = results.find((r) => r.error);
@@ -168,7 +171,7 @@ export async function applyAgeCategoriesToSupabase(
       const chunk = result.cleared.slice(i, i + 200);
       const { error } = await supabase
         .from("players")
-        .update({ age_category: null })
+        .update({ age_category: null, age_category_reviewed: true })
         .in("id", chunk);
       if (error) throw new Error(error.message);
     }

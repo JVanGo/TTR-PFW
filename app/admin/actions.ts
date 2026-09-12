@@ -12,7 +12,7 @@ export interface ActionState {
   message?: string;
 }
 
-async function requireAdmin(): Promise<string> {
+export async function requireAdmin(): Promise<string> {
   const supabase = await createClient();
   const {
     data: { user },
