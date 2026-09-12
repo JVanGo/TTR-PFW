@@ -1,8 +1,8 @@
 "use server";
 
-import "@/lib/import/pdf-parse-node-setup";
+import "@/lib/import/dommatrix-polyfill";
 import { revalidatePath } from "next/cache";
-import { PDFParse } from "pdf-parse";
+import { extractText, getDocumentProxy } from "unpdf";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
@@ -41,9 +41,9 @@ async function extractPdfText(url: string): Promise<string> {
   });
   if (!res.ok) throw new Error(`Fetching ${url} failed: HTTP ${res.status}`);
   const data = await res.arrayBuffer();
-  const parser = new PDFParse({ data });
-  const result = await parser.getText();
-  return result.text;
+  const pdf = await getDocumentProxy(new Uint8Array(data));
+  const { text } = await extractText(pdf, { mergePages: true });
+  return text;
 }
 
 export async function importTeamCounts(_: ActionState, formData: FormData): Promise<ActionState> {
