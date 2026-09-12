@@ -12,6 +12,7 @@ interface CompetitionFormValues {
   max_age_category?: string | null;
   fixed_team_count?: number | string | null;
   team_size?: number | string;
+  small_last_team_clubs?: string[];
 }
 
 interface Props {
@@ -77,6 +78,19 @@ export function CompetitionForm({ mode, initial }: Props) {
             </option>
           ))}
         </select>
+      </label>
+      <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+        <span className="font-medium">Clubs with a smaller (3-man) last team</span>
+        <textarea
+          name="small_last_team_clubs"
+          rows={3}
+          defaultValue={(initial?.small_last_team_clubs ?? []).join("\n")}
+          className="border-input bg-background rounded-md border px-3 py-2 text-sm"
+        />
+        <span className="text-muted-foreground text-xs">
+          One club per line (or comma-separated). Their last team builds one player smaller than the
+          rest — e.g. a club with a team in Division 6 while the competition is otherwise 4-man.
+        </span>
       </label>
       <div className="flex items-center gap-3 sm:col-span-2">
         <button

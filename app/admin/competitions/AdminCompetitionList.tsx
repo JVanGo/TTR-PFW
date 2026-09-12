@@ -10,6 +10,7 @@ export interface AdminCompetitionRow {
   max_age_category: string | null;
   fixed_team_count: number | null;
   team_size: number;
+  small_last_team_clubs: string[];
 }
 
 interface Props {
@@ -28,6 +29,7 @@ export function AdminCompetitionList({ competitions }: Props) {
             <th className="px-3 py-2 text-right font-medium">Team size</th>
             <th className="px-3 py-2 text-right font-medium">Fixed teams</th>
             <th className="px-3 py-2 text-left font-medium">Max age category</th>
+            <th className="px-3 py-2 text-left font-medium">Smaller last team</th>
             <th className="px-3 py-2 text-right font-medium">Actions</th>
           </tr>
         </thead>
@@ -43,7 +45,7 @@ export function AdminCompetitionList({ competitions }: Props) {
           ))}
           {competitions.length === 0 && (
             <tr>
-              <td colSpan={5} className="text-muted-foreground px-3 py-8 text-center">
+              <td colSpan={6} className="text-muted-foreground px-3 py-8 text-center">
                 No competitions yet — add one above.
               </td>
             </tr>
@@ -65,7 +67,7 @@ function RowOrEditor({ competition, editing, onEdit, onCancel }: RowProps) {
   if (editing) {
     return (
       <tr>
-        <td colSpan={5} className="bg-muted/30 border-t px-3 py-4">
+        <td colSpan={6} className="bg-muted/30 border-t px-3 py-4">
           <CompetitionForm mode="edit" initial={competition} />
           <button
             type="button"
@@ -88,6 +90,11 @@ function RowOrEditor({ competition, editing, onEdit, onCancel }: RowProps) {
       </td>
       <td className="text-muted-foreground px-3 py-2">
         {competition.max_age_category ? `${competition.max_age_category} or younger` : "—"}
+      </td>
+      <td className="text-muted-foreground px-3 py-2">
+        {competition.small_last_team_clubs.length > 0
+          ? competition.small_last_team_clubs.join(", ")
+          : "—"}
       </td>
       <td className="px-3 py-2 text-right">
         <div className="flex justify-end gap-3">

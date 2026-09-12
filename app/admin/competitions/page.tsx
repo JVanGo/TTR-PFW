@@ -9,7 +9,7 @@ export default async function AdminCompetitionsPage() {
   const competitions = await fetchAllRows<AdminCompetitionRow>(
     supabase,
     "competitions",
-    "id, name, max_age_category, fixed_team_count, team_size",
+    "id, name, max_age_category, fixed_team_count, team_size, small_last_team_clubs",
   );
   competitions.sort((a, b) => a.name.localeCompare(b.name));
 

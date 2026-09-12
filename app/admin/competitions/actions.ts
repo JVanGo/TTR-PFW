@@ -35,6 +35,7 @@ interface CompetitionInput {
   max_age_category: string | null;
   fixed_team_count: number | null;
   team_size: number;
+  small_last_team_clubs: string[];
 }
 
 function parseCompetitionForm(formData: FormData): CompetitionInput | string {
@@ -42,6 +43,7 @@ function parseCompetitionForm(formData: FormData): CompetitionInput | string {
   const maxAgeRaw = (formData.get("max_age_category") as string | null)?.trim();
   const fixedTeamCountRaw = (formData.get("fixed_team_count") as string | null)?.trim();
   const teamSizeRaw = (formData.get("team_size") as string | null)?.trim();
+  const smallLastTeamClubsRaw = (formData.get("small_last_team_clubs") as string | null) ?? "";
 
   if (!name) return "Name is required.";
 
@@ -61,11 +63,21 @@ function parseCompetitionForm(formData: FormData): CompetitionInput | string {
   const teamSize = Number(teamSizeRaw);
   if (teamSize !== 3 && teamSize !== 4) return "Team size must be 3 or 4.";
 
+  const smallLastTeamClubs = Array.from(
+    new Set(
+      smallLastTeamClubsRaw
+        .split(/[,\n]/)
+        .map((c) => c.trim())
+        .filter(Boolean),
+    ),
+  );
+
   return {
     name,
     max_age_category: maxAgeCategory,
     fixed_team_count: fixedTeamCount,
     team_size: teamSize,
+    small_last_team_clubs: smallLastTeamClubs,
   };
 }
 

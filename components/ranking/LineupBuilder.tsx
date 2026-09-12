@@ -59,6 +59,24 @@ function resolveTeamCount(
   return known ?? fallback;
 }
 
+/**
+ * One entry per team, in order. Normally every team is `baseSize`, but a
+ * club whose weakest team plays one tier down at a smaller size (e.g. a
+ * Division 6 team in an otherwise 4-man competition) gets its last team
+ * built one player smaller.
+ */
+function computeTeamSizes(
+  teamCount: number,
+  baseSize: number,
+  hasSmallLastTeam: boolean,
+): number[] {
+  const sizes = Array<number>(teamCount).fill(baseSize);
+  if (hasSmallLastTeam && sizes.length > 0) {
+    sizes[sizes.length - 1] = baseSize - 1;
+  }
+  return sizes;
+}
+
 export function LineupBuilder({ club, roster, competitions, teamCountsByCompetition }: Props) {
   const t = useTranslations("LineupBuilder");
   const sortedRoster = [...roster].sort((a, b) => b.dtr - a.dtr || a.name.localeCompare(b.name));
@@ -70,8 +88,13 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
 
   const activeCompetition = competitions.find((c) => c.id === selectedCompetitionId) ?? null;
-  const teamSize = activeCompetition?.teamSize ?? DEFAULT_TEAM_SIZE;
-  const needed = teamCount * teamSize;
+  const hasSmallLastTeam = activeCompetition?.smallLastTeamClubs.includes(club) ?? false;
+  const teamSizes = computeTeamSizes(
+    teamCount,
+    activeCompetition?.teamSize ?? DEFAULT_TEAM_SIZE,
+    hasSmallLastTeam,
+  );
+  const needed = teamSizes.reduce((a, b) => a + b, 0);
 
   const eligibleRoster = activeCompetition?.maxAgeCategory
     ? sortedRoster.filter((p) => isEligibleForMaxAge(p, activeCompetition.maxAgeCategory!))
@@ -106,9 +129,9 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
     }
   }
 
-  // Shrinking the team count (or team size) below the current selection —
+  // Shrinking the team count (or team sizes) below the current selection —
   // trim down to the new capacity, keeping the highest-DTR picks.
-  const capacityKey = `${teamCount}|${teamSize}`;
+  const capacityKey = teamSizes.join(",");
   const [prevCapacityKey, setPrevCapacityKey] = useState(capacityKey);
   if (capacityKey !== prevCapacityKey) {
     setPrevCapacityKey(capacityKey);
@@ -122,26 +145,25 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
     }
   }
 
-  // Whenever the actual set of selected players (or the team count/size)
+  // Whenever the actual set of selected players (or the team sizes)
   // changes, rebuild the arrangement fresh — manual swaps only persist until
   // then. Partial selections still render: teams fill in one player at a
   // time rather than waiting for a full quota.
-  const selectionKey = `${Array.from(selectedIds).sort().join(",")}|${teamCount}|${teamSize}`;
+  const selectionKey = `${Array.from(selectedIds).sort().join(",")}|${capacityKey}`;
   const [prevSelectionKey, setPrevSelectionKey] = useState(selectionKey);
   if (selectionKey !== prevSelectionKey) {
     setPrevSelectionKey(selectionKey);
     setArrangement(
       buildTeams(
         eligibleRoster.filter((p) => selectedIds.has(p.id)),
-        teamCount,
-        teamSize,
+        teamSizes,
       ).flatMap((team) => team.players),
     );
     setMovingIndex(null);
   }
 
   const legalTargets =
-    movingIndex !== null ? new Set(legalTargetIndices(arrangement, movingIndex, teamSize)) : null;
+    movingIndex !== null ? new Set(legalTargetIndices(arrangement, movingIndex, teamSizes)) : null;
 
   function toggle(id: string) {
     setSelectedIds((prev) => {
@@ -275,15 +297,15 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
             {movingIndex === null ? t("clickToMove") : t("clickHighlighted")}
           </p>
           <div className="flex flex-col">
-            {Array.from({ length: Math.ceil(arrangement.length / teamSize) }, (_, teamIndex) => (
-              <div key={teamIndex} className={teamIndex > 0 ? "mt-3 border-t-2 pt-3" : ""}>
-                <p className="text-muted-foreground mb-1 text-xs font-medium uppercase">
-                  {t("team", { number: teamIndex + 1 })}
-                </p>
-                {arrangement
-                  .slice(teamIndex * teamSize, teamIndex * teamSize + teamSize)
-                  .map((p, slotIndex) => {
-                    const i = teamIndex * teamSize + slotIndex;
+            {teamSizes.map((size, teamIndex) => {
+              const start = teamSizes.slice(0, teamIndex).reduce((a, b) => a + b, 0);
+              return (
+                <div key={teamIndex} className={teamIndex > 0 ? "mt-3 border-t-2 pt-3" : ""}>
+                  <p className="text-muted-foreground mb-1 text-xs font-medium uppercase">
+                    {t("team", { number: teamIndex + 1 })}
+                  </p>
+                  {arrangement.slice(start, start + size).map((p, slotIndex) => {
+                    const i = start + slotIndex;
                     const isMoving = i === movingIndex;
                     const isLegalTarget = legalTargets?.has(i) ?? false;
                     return (
@@ -317,8 +339,9 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
                       </button>
                     );
                   })}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (

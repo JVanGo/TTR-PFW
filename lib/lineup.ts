@@ -58,15 +58,30 @@ export function toleranceFor(a: LineupPlayer, b: LineupPlayer, sameTeam: boolean
 }
 
 /**
- * Whether the arrangement (index order = listed order, every `teamSize`
- * players a team) satisfies the tolerance rule for every pair, not just
- * neighbors. `teamSize` defaults to 4 (the only size before competitions
- * could specify 3-player teams).
+ * Which team (0-indexed) a position falls into, given each team's size in
+ * order — e.g. teamSizes [4, 4, 3] puts positions 0-3 in team 0, 4-7 in
+ * team 1, 8-10 in team 2. Lets a competition's last team be a different
+ * size than the rest (e.g. a club's Division 6 team is 3-man while the
+ * rest of Championnat Seniors is 4-man).
  */
-export function isValidArrangement(players: LineupPlayer[], teamSize = 4): boolean {
+function teamIndexAt(position: number, teamSizes: number[]): number {
+  let cumulative = 0;
+  for (let team = 0; team < teamSizes.length; team++) {
+    cumulative += teamSizes[team];
+    if (position < cumulative) return team;
+  }
+  return teamSizes.length;
+}
+
+/**
+ * Whether the arrangement (index order = listed order, chunked into teams
+ * per `teamSizes`) satisfies the tolerance rule for every pair, not just
+ * neighbors.
+ */
+export function isValidArrangement(players: LineupPlayer[], teamSizes: number[]): boolean {
   for (let i = 0; i < players.length; i++) {
     for (let j = i + 1; j < players.length; j++) {
-      const sameTeam = Math.floor(i / teamSize) === Math.floor(j / teamSize);
+      const sameTeam = teamIndexAt(i, teamSizes) === teamIndexAt(j, teamSizes);
       const tolerance = toleranceFor(players[i], players[j], sameTeam);
       if (players[j].dtr - players[i].dtr > tolerance) return false;
     }
@@ -93,32 +108,30 @@ export function movePlayer<T>(list: T[], from: number, to: number): T[] {
 export function legalTargetIndices(
   players: LineupPlayer[],
   fromIndex: number,
-  teamSize = 4,
+  teamSizes: number[],
 ): number[] {
   const legal: number[] = [];
   for (let to = 0; to < players.length; to++) {
     if (to === fromIndex) continue;
-    if (isValidArrangement(movePlayer(players, fromIndex, to), teamSize)) legal.push(to);
+    if (isValidArrangement(movePlayer(players, fromIndex, to), teamSizes)) legal.push(to);
   }
   return legal;
 }
 
 /**
  * Sorts by DTR descending (ties broken by name for determinism) and chunks
- * into teams of `teamSize` (default 4), in order — Team 1 gets the top
- * `teamSize`, Team 2 the next `teamSize`, etc. Callers are expected to pass
- * exactly `teamCount * teamSize` players; a short final chunk is still
+ * into teams sized per `teamSizes`, in order — Team 1 gets the top
+ * `teamSizes[0]`, Team 2 the next `teamSizes[1]`, etc. Callers are expected
+ * to pass exactly `sum(teamSizes)` players; a short final chunk is still
  * returned as-is rather than dropped.
  */
-export function buildTeams<T extends LineupPlayer>(
-  players: T[],
-  teamCount: number,
-  teamSize = 4,
-): Team<T>[] {
+export function buildTeams<T extends LineupPlayer>(players: T[], teamSizes: number[]): Team<T>[] {
   const sorted = [...players].sort((x, y) => y.dtr - x.dtr || x.name.localeCompare(y.name));
   const teams: Team<T>[] = [];
-  for (let i = 0; i < teamCount; i++) {
-    teams.push({ players: sorted.slice(i * teamSize, i * teamSize + teamSize) });
+  let start = 0;
+  for (const size of teamSizes) {
+    teams.push({ players: sorted.slice(start, start + size) });
+    start += size;
   }
   return teams;
 }
