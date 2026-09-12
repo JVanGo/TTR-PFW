@@ -21,6 +21,8 @@ interface Props {
 
 const MAX_TEAMS = 10;
 const DEFAULT_TEAM_SIZE = 4;
+/** Most clubs building a lineup are doing it for this — picked as the default competition instead of "Custom". */
+const DEFAULT_COMPETITION_NAME = "Championnat Seniors";
 
 function clampTeamCount(n: number): number {
   return Math.min(MAX_TEAMS, Math.max(1, n));
@@ -81,11 +83,17 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
   const t = useTranslations("LineupBuilder");
   const sortedRoster = [...roster].sort((a, b) => b.dtr - a.dtr || a.name.localeCompare(b.name));
 
-  const [teamCount, setTeamCount] = useState(1);
+  const defaultCompetition = competitions.find((c) => c.name === DEFAULT_COMPETITION_NAME) ?? null;
+
+  const [teamCount, setTeamCount] = useState(() =>
+    resolveTeamCount(defaultCompetition, club, teamCountsByCompetition, 1),
+  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [arrangement, setArrangement] = useState<LineupRosterPlayer[]>([]);
   const [movingIndex, setMovingIndex] = useState<number | null>(null);
-  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(
+    defaultCompetition?.id ?? null,
+  );
 
   const activeCompetition = competitions.find((c) => c.id === selectedCompetitionId) ?? null;
   const smallTrailingCount = activeCompetition?.smallLastTeamCounts[club] ?? 0;
