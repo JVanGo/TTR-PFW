@@ -35,7 +35,23 @@ interface CompetitionInput {
   max_age_category: string | null;
   fixed_team_count: number | null;
   team_size: number;
-  small_last_team_clubs: string[];
+  small_last_team_counts: Record<string, number>;
+}
+
+/** Each line is a club name, optionally followed by "N" (default 1) if more than one of that club's teams plays at the smaller size — e.g. "Bartreng: 2". */
+function parseSmallLastTeamCounts(raw: string): Record<string, number> | string {
+  const counts: Record<string, number> = {};
+  for (const rawLine of raw.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const match = /^(.+?)(?:\s*[:,]\s*(\d+))?$/.exec(line);
+    if (!match) return `Couldn't read this line: "${line}".`;
+    const club = match[1].trim();
+    const count = match[2] ? Number(match[2]) : 1;
+    if (!club || count < 1) return `Couldn't read this line: "${line}".`;
+    counts[club] = count;
+  }
+  return counts;
 }
 
 function parseCompetitionForm(formData: FormData): CompetitionInput | string {
@@ -43,7 +59,7 @@ function parseCompetitionForm(formData: FormData): CompetitionInput | string {
   const maxAgeRaw = (formData.get("max_age_category") as string | null)?.trim();
   const fixedTeamCountRaw = (formData.get("fixed_team_count") as string | null)?.trim();
   const teamSizeRaw = (formData.get("team_size") as string | null)?.trim();
-  const smallLastTeamClubsRaw = (formData.get("small_last_team_clubs") as string | null) ?? "";
+  const smallLastTeamCountsRaw = (formData.get("small_last_team_counts") as string | null) ?? "";
 
   if (!name) return "Name is required.";
 
@@ -63,21 +79,15 @@ function parseCompetitionForm(formData: FormData): CompetitionInput | string {
   const teamSize = Number(teamSizeRaw);
   if (teamSize !== 3 && teamSize !== 4) return "Team size must be 3 or 4.";
 
-  const smallLastTeamClubs = Array.from(
-    new Set(
-      smallLastTeamClubsRaw
-        .split(/[,\n]/)
-        .map((c) => c.trim())
-        .filter(Boolean),
-    ),
-  );
+  const smallLastTeamCounts = parseSmallLastTeamCounts(smallLastTeamCountsRaw);
+  if (typeof smallLastTeamCounts === "string") return smallLastTeamCounts;
 
   return {
     name,
     max_age_category: maxAgeCategory,
     fixed_team_count: fixedTeamCount,
     team_size: teamSize,
-    small_last_team_clubs: smallLastTeamClubs,
+    small_last_team_counts: smallLastTeamCounts,
   };
 }
 

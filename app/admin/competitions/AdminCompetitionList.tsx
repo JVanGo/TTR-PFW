@@ -10,7 +10,7 @@ export interface AdminCompetitionRow {
   max_age_category: string | null;
   fixed_team_count: number | null;
   team_size: number;
-  small_last_team_clubs: string[];
+  small_last_team_counts: Record<string, number>;
 }
 
 interface Props {
@@ -92,8 +92,10 @@ function RowOrEditor({ competition, editing, onEdit, onCancel }: RowProps) {
         {competition.max_age_category ? `${competition.max_age_category} or younger` : "—"}
       </td>
       <td className="text-muted-foreground px-3 py-2">
-        {competition.small_last_team_clubs.length > 0
-          ? competition.small_last_team_clubs.join(", ")
+        {Object.keys(competition.small_last_team_counts).length > 0
+          ? Object.entries(competition.small_last_team_counts)
+              .map(([club, count]) => (count > 1 ? `${club} (${count})` : club))
+              .join(", ")
           : "—"}
       </td>
       <td className="px-3 py-2 text-right">

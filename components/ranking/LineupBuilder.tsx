@@ -61,18 +61,20 @@ function resolveTeamCount(
 
 /**
  * One entry per team, in order. Normally every team is `baseSize`, but a
- * club whose weakest team plays one tier down at a smaller size (e.g. a
- * Division 6 team in an otherwise 4-man competition) gets its last team
- * built one player smaller.
+ * club can have some number of its weakest teams playing one tier down at
+ * a smaller size (e.g. two Division 6 teams in an otherwise 4-man
+ * competition) — `smallTrailingCount` of the last teams are built one
+ * player smaller, capped at the actual team count.
  */
 function computeTeamSizes(
   teamCount: number,
   baseSize: number,
-  hasSmallLastTeam: boolean,
+  smallTrailingCount: number,
 ): number[] {
   const sizes = Array<number>(teamCount).fill(baseSize);
-  if (hasSmallLastTeam && sizes.length > 0) {
-    sizes[sizes.length - 1] = baseSize - 1;
+  const n = Math.min(Math.max(smallTrailingCount, 0), sizes.length);
+  for (let i = 0; i < n; i++) {
+    sizes[sizes.length - 1 - i] = baseSize - 1;
   }
   return sizes;
 }
@@ -88,11 +90,11 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
 
   const activeCompetition = competitions.find((c) => c.id === selectedCompetitionId) ?? null;
-  const hasSmallLastTeam = activeCompetition?.smallLastTeamClubs.includes(club) ?? false;
+  const smallTrailingCount = activeCompetition?.smallLastTeamCounts[club] ?? 0;
   const teamSizes = computeTeamSizes(
     teamCount,
     activeCompetition?.teamSize ?? DEFAULT_TEAM_SIZE,
-    hasSmallLastTeam,
+    smallTrailingCount,
   );
   const needed = teamSizes.reduce((a, b) => a + b, 0);
 
