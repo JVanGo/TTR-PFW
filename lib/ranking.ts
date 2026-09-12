@@ -153,9 +153,17 @@ async function computeRankingRows(supabase: SupabaseClient): Promise<RankingRow[
  * the site feeling slow. The data barely changes (an admin edit, an import,
  * or an out-of-band season re-simulation), so it's cached for 5 minutes and
  * invalidated immediately on admin writes via `RANKING_CACHE_TAG`.
+ *
+ * Cache key has a "-v2" suffix: the "-v1" entry was found (2026-09-12)
+ * serving `ageCategory`-less rows on production many hours after that field
+ * was added to this function — Vercel's Data Cache persists across
+ * deployments by design, and its 5-minute `revalidate` evidently never
+ * actually re-ran for this key in practice. Bump this suffix again if this
+ * ever recurs (a shape change to RankingRow that a live check doesn't
+ * reflect within a few minutes).
  */
 export const getRankingRows = unstable_cache(
   async (): Promise<RankingRow[]> => computeRankingRows(createPublicClient()),
-  ["ranking-rows"],
+  ["ranking-rows-v2"],
   { revalidate: 300, tags: [RANKING_CACHE_TAG] },
 );
