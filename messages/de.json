@@ -79,8 +79,6 @@
   "PlayerPage": {
     "backToRanking": "← Zurück zur Rangliste",
     "kaderBadge": "Kader",
-    "inactiveBadge": "inaktiv",
-    "inactiveNotice": "Dieser Spieler ist nicht in der aktuellen Verbandsrangliste.",
     "matchInactiveBadge": "seit 24+ Monaten inaktiv",
     "howItWorks": "Wie DTR funktioniert →",
     "rankOf": " · #{rank, number} von {total, number} nach DTR.",

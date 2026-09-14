@@ -82,6 +82,11 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
 
   if (error) throw new Error(`Failed to load player: ${error.message}`);
   if (!player) notFound();
+  // Inactive players are already excluded from the ranking list (see
+  // getRankingRows) — hide their profile page too, rather than leaving it
+  // reachable via a direct link or as an opponent link in someone else's
+  // match history.
+  if (!player.is_active) notFound();
 
   const { data: seasonSummaries, error: summariesError } = await supabase
     .from("player_season_summary")
@@ -229,11 +234,6 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
                 </span>
               )}{" "}
               {player.club ?? "—"}
-              {!player.is_active && (
-                <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                  {t("inactiveBadge")}
-                </span>
-              )}
               {isMatchInactive && (
                 <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                   {t("matchInactiveBadge")}
@@ -288,10 +288,6 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
           </Link>
           {rankPosition !== null && t("rankOf", { rank: rankPosition, total: totalPlayers })}
         </p>
-
-        {!player.is_active && (
-          <p className="bg-muted/40 mt-3 rounded-md border p-3 text-sm">{t("inactiveNotice")}</p>
-        )}
 
         {matches.length > 0 ? (
           <>
