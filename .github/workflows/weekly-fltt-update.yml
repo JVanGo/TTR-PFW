@@ -1,0 +1,47 @@
+name: Weekly results update
+
+# Runs automatically every Thursday at 11:00 Luxembourg time (09:00 UTC —
+# this drifts to 10:00 local once Luxembourg switches back to winter time in
+# late October, since GitHub's schedule only understands UTC). Chosen to run
+# a few hours after the federation's own weekly Thursday data refresh, which
+# has no guaranteed exact time.
+on:
+  schedule:
+    - cron: "0 9 * * 4"
+  # Lets a person start it by hand from GitHub's Actions tab, e.g. to test it.
+  workflow_dispatch: {}
+
+jobs:
+  update:
+    name: Sync player list + recalculate season ratings
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      CONFIRM: "YES"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Updates class/PFW/club for tracked players and adds genuinely new
+      # ones. Runs first so the season recalculation below sees the latest
+      # player list. Safe to re-run — see the script's own doc comment.
+      - name: Sync player catalog
+        run: npx tsx scripts/import-fltt-catalog-r2-prod.ts
+
+      # Recomputes the whole season's ratings from every match result seen so
+      # far, replacing what's on the live site. Safe to re-run — always
+      # recomputes from scratch rather than layering on top of last time.
+      - name: Recalculate season ratings
+        run: npx tsx scripts/simulate-season-ttr-prod.ts
