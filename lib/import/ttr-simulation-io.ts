@@ -33,6 +33,7 @@ import {
   SEASON_START_OVERRIDES,
   RETURNING_PLAYER_PFW_OVERRIDES,
 } from "@/lib/import/season-start-overrides";
+import { FLTT_ID_OVERRIDES } from "@/lib/import/flttid-overrides";
 import {
   simulateSeason,
   ersteinstufungFor,
@@ -458,7 +459,18 @@ export async function computeSeasonSimulation(
     if (list) list.push(entry);
     else catalogByNameKey.set(key, [entry]);
   }
+  // name+club -> flttPlayerId, for name collisions no automatic signal can
+  // resolve — see flttid-overrides.ts for why (R2's own per-candidate club is
+  // always null, so the club comparison below can never succeed against a
+  // real, non-null club on more than one candidate).
+  const flttIdOverrideByKey = new Map<string, string>();
+  for (const o of FLTT_ID_OVERRIDES) {
+    flttIdOverrideByKey.set(`${nameKey(o.name)}|${clubKey(o.club)}`, o.flttPlayerId);
+  }
+
   function resolveFlttId(candidateNameKey: string, knownClub: string | null): string | null {
+    const override = flttIdOverrideByKey.get(`${candidateNameKey}|${clubKey(knownClub)}`);
+    if (override) return override;
     const candidates = catalogByNameKey.get(candidateNameKey) ?? [];
     if (candidates.length <= 1) return candidates[0]?.flttPlayerId ?? null;
     return candidates.find((c) => clubKey(c.club) === clubKey(knownClub))?.flttPlayerId ?? null;
