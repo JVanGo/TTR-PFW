@@ -86,6 +86,7 @@ export async function createPlayer(_: ActionState, formData: FormData): Promise<
   }
   revalidatePath("/admin");
   revalidatePath("/");
+  revalidatePath("/ranking");
   updateTag(RANKING_CACHE_TAG);
   return { status: "success", message: `Added ${parsed.name}.` };
 }
@@ -107,6 +108,7 @@ export async function updatePlayer(
   }
   revalidatePath("/admin");
   revalidatePath("/");
+  revalidatePath("/ranking");
   revalidatePath(`/player/${id}`);
   updateTag(RANKING_CACHE_TAG);
   return { status: "success", message: `Updated ${parsed.name}.` };
@@ -119,6 +121,7 @@ export async function deletePlayer(id: string): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
   revalidatePath("/");
+  revalidatePath("/ranking");
   updateTag(RANKING_CACHE_TAG);
 }
 
