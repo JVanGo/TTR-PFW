@@ -242,17 +242,19 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
             </Button>
             <input
               type="number"
-              min={1}
+              min={1 + smallTrailingCount}
               max={MAX_TEAMS}
-              value={teamCount}
-              onChange={(e) => setTeamCount(clampTeamCount(Number(e.target.value) || 1))}
+              value={teamCount + smallTrailingCount}
+              onChange={(e) =>
+                setTeamCount(clampTeamCount((Number(e.target.value) || 1) - smallTrailingCount))
+              }
               className="border-input bg-background w-12 rounded-md border px-2 py-1 text-center"
             />
             <Button
               type="button"
               variant="outline"
               size="icon-sm"
-              disabled={teamCount >= MAX_TEAMS}
+              disabled={teamCount + smallTrailingCount >= MAX_TEAMS}
               onClick={() => setTeamCount((n) => clampTeamCount(n + 1))}
               aria-label={t("moreTeams")}
             >
