@@ -406,6 +406,25 @@ export interface PerformanceGapRow extends MatchCandidateRow {
 // than risk flagging a real, already-rated match as a forfeit candidate.
 const PERFORMANCE_WINDOW_SAFETY_DAYS = 335;
 
+// The opposite edge: FLTT's own Performance-table crawl trails its
+// Rencontres (games) table by some number of days, independent of the
+// 12-month window above — confirmed for real 2026-10-02 via MINDEN
+// Christophe, whose CH SEN N2-D5 Performance rows existed for his Sept 19
+// and Sept 26 matchdays but not yet for Sept 30 (2 days before the check).
+// A match newer than this is simply too fresh for FLTT's own Performance
+// table to have caught up to yet — not a forfeit candidate at all — so it's
+// excluded the same way an aged-out-the-other-end match is, rather than
+// flagged as a gap. Without this, re-running this check shortly after a
+// matchday (the normal case: the weekly automation runs a few hours after
+// FLTT's own Thursday refresh) produces a flood of perfectly normal,
+// just-played matches as false candidates, swamping the genuine ones —
+// confirmed for real the same day: 151 of 175 candidates were from the two
+// most recent matchdays alone, several with plainly non-forfeit scores
+// (3-2, 1-3, etc.) proving they were real, competitively played matches.
+// 10 days leaves a comfortable margin over the ~6 days observed, without
+// delaying real forfeits' detection by more than about a week and a half.
+const PERFORMANCE_CRAWL_LAG_SAFETY_DAYS = 10;
+
 function daysBetween(earlierIsoDate: string, laterIsoDate: string): number {
   const msPerDay = 24 * 60 * 60 * 1000;
   return Math.round(
@@ -493,6 +512,16 @@ export interface PerformanceGapResult {
  * by `nowIsoDate`, dropping anything old enough that it could plausibly have
  * rolled off already.
  *
+ * A fifth cause, the opposite edge of the fourth: the match is too NEW —
+ * FLTT's own Performance-table crawl trails its Rencontres table by some
+ * number of days, so a just-played match hasn't had its Performance row
+ * populated yet regardless of outcome (see `PERFORMANCE_CRAWL_LAG_SAFETY_DAYS`
+ * above). Confirmed for real 2026-10-02: running this mid-season, days after
+ * the two most recent matchdays, produced 151 of 175 candidates from those
+ * two days alone, several with plainly non-forfeit scores (3-2, 1-3) proving
+ * they were real, competitively played matches FLTT just hadn't caught up on
+ * yet — also filtered by `nowIsoDate`.
+ *
  * What's left after all of that still isn't a confirmed forfeit — it's a
  * candidate worth Jeff checking against the live fltt.lu page, the same way
  * every case above was checked. Once he has, add it to `confirmed` (in
@@ -517,12 +546,15 @@ export function findPerformanceGapForfeits(
   nowIsoDate: string,
   confirmed: PerformanceGapConfirmedForfeit[] = [],
 ): PerformanceGapResult {
-  const ratedRows = rows.filter(
-    (r) =>
+  const ratedRows = rows.filter((r) => {
+    const age = daysBetween(r.isoDate, nowIsoDate);
+    return (
       !isTournamentCompetition(r.competition) &&
       !isNonRatedCompetition(r.competition) &&
-      daysBetween(r.isoDate, nowIsoDate) < PERFORMANCE_WINDOW_SAFETY_DAYS,
-  );
+      age >= PERFORMANCE_CRAWL_LAG_SAFETY_DAYS &&
+      age < PERFORMANCE_WINDOW_SAFETY_DAYS
+    );
+  });
 
   const playersWithSomePerformance = new Set<string>();
   for (const r of ratedRows) {

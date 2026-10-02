@@ -378,10 +378,12 @@ describe("excludeKnownFalsePositives", () => {
 });
 
 describe("findPerformanceGapForfeits", () => {
-  // A fixed "today" for every test below, chosen close to the rows' default
-  // isoDate so the trailing-12-month window doesn't accidentally swallow
-  // rows that aren't testing that behavior specifically.
-  const NOW = "2026-05-20";
+  // A fixed "today" for every test below: close enough to the rows' default
+  // isoDate (2026-05-16) that the trailing-12-month window doesn't
+  // accidentally swallow rows that aren't testing that behavior
+  // specifically, but far enough past it (14 days) to clear
+  // PERFORMANCE_CRAWL_LAG_SAFETY_DAYS too, for the same reason.
+  const NOW = "2026-05-30";
 
   function row(overrides: Partial<PerformanceGapRow>): PerformanceGapRow {
     return {
@@ -493,6 +495,29 @@ describe("findPerformanceGapForfeits", () => {
         id: "recent-present",
         opponentName: "SOMEONE ELSE",
         isoDate: "2026-05-01",
+        hasPerformance: true,
+      }),
+    ];
+    const result = findPerformanceGapForfeits(rows, new Set(), NOW);
+    expect(result.reviewLines).toHaveLength(0);
+  });
+
+  // Confirmed for real against fltt.lu (2026-10-02): MINDEN Christophe's
+  // CH SEN N2-D5 Performance rows existed for his Sept 19 and Sept 26
+  // matchdays but not yet for Sept 30 (2 days before the check) — FLTT's own
+  // Performance crawl just hadn't caught up to the newest matchday, not a
+  // forfeit. A just-played match must never be treated as a candidate,
+  // mirroring the aged-out-the-other-end case above.
+  it("excludes a match too recent for FLTT's own Performance crawl to have caught up to yet", () => {
+    const rows = [
+      // 2 days before NOW — well inside the crawl-lag margin.
+      row({ id: "too-new", isoDate: "2026-05-28", score: "3-2" }),
+      // Recent and present, so the player clearly isn't a Poos-Piotr-style
+      // whole-season crawl gap — isolates the lag cutoff as the reason.
+      row({
+        id: "recent-present",
+        opponentName: "SOMEONE ELSE",
+        isoDate: "2026-05-10",
         hasPerformance: true,
       }),
     ];
