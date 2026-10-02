@@ -312,13 +312,25 @@ export interface R2CatalogPlayerDoc {
   club: null;
   /** Most recent parseable class/PFW snapshot found across the player's
    * entire history (any season), newest first — approximates what the Mongo
-   * `players` collection's ranking crawl would show "today". Blank/0 when no
-   * row ever carried a parseable snapshot (see parseFlttMatchSnapshot) —
-   * matches MongoCatalogPlayerDoc's shape so downstream code (which already
-   * treats an unrecognized ranking as "not a player class, skip") needs no
-   * changes. */
+   * `players` collection's ranking crawl would show "today". Falls back to
+   * the plain-text `playerRanking` off their most recent graded match when
+   * no row ever carried a parseable snapshot (see parseFlttMatchSnapshot) —
+   * confirmed for real 2026-10-02: a whole season's worth of newcomers
+   * (every match missing the JSON snapshot format entirely, not just an
+   * occasional row) were silently invisible to `syncR2CatalogToSupabase`'s
+   * new-player insertion otherwise, since `ranking` stayed blank — see
+   * `hasRealPerformanceScore` for why that fallback doesn't extend to PFW
+   * too. */
   ranking: string;
   performanceScore: number;
+  /** False when `ranking` came from the plain-text fallback above rather
+   * than a real snapshot — there's no parallel fallback for a numeric PFW
+   * (nothing else on a match row estimates one), so `performanceScore` is
+   * meaningless (left 0) whenever this is false. `syncR2CatalogToSupabase`
+   * uses this to insert a brand-new player on `ranking` class alone (with a
+   * median-PFW-for-that-class placeholder) while still never using a
+   * placeholder to clobber an EXISTING player's real recorded PFW. */
+  hasRealPerformanceScore: boolean;
   /** Most recent parseable classement-points value (C1-D3 estimates only —
    * see lib/conversions.ts), from the same snapshot mechanism as
    * ranking/performanceScore but not necessarily the same row. Null when no
@@ -418,12 +430,31 @@ export async function fetchCatalogFromR2(
 
     let ranking = "";
     let performanceScore = 0;
+    let hasRealPerformanceScore = false;
     for (const row of allSnapshotRows) {
       const parsed = parseFlttMatchSnapshot(row.points, flttPlayerId);
       if (!parsed || parsed.performance == null) continue;
       ranking = parsed.ranking.trim().toUpperCase();
       performanceScore = parsed.performance;
+      hasRealPerformanceScore = true;
       break;
+    }
+
+    // Fallback when no row ever carried the richer JSON snapshot at all —
+    // confirmed for real 2026-10-02: an entire season's worth of genuine
+    // newcomers (37 recently-active players, not an occasional gap) had
+    // ranking stuck blank this way, invisible to new-player insertion. The
+    // plain-text class off their most recent graded match still reliably
+    // exists on every row regardless (see PlayerMatch.rencontres.playerRanking)
+    // — there's just no PFW number to go with it, hence
+    // hasRealPerformanceScore staying false.
+    if (ranking === "") {
+      const sortedMatches = history.unifiedMatches
+        .filter((m) => m.rencontres?.playerRanking)
+        .slice()
+        .sort((a, b) => (a.isoDate < b.isoDate ? 1 : a.isoDate > b.isoDate ? -1 : 0)); // newest first
+      const latest = sortedMatches[0];
+      if (latest) ranking = latest.rencontres.playerRanking.trim().toUpperCase();
     }
 
     // Independent of the ranking/performance row above — a row can carry one
@@ -450,6 +481,7 @@ export async function fetchCatalogFromR2(
       club: null,
       ranking,
       performanceScore,
+      hasRealPerformanceScore,
       classementPoints,
       lastMatchIsoDate,
     };

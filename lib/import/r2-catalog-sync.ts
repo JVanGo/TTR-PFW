@@ -19,6 +19,7 @@ interface ExistingPlayer {
   class: string;
   pfw: number;
   classement_points: number | null;
+  is_active: boolean;
 }
 
 export interface ClubTransfer {
@@ -33,6 +34,10 @@ export interface NewPlayerInsert {
   pfw: number;
   club: string | null;
   classementPoints: number | null;
+  /** True when `pfw` is a median-for-class stand-in (no real snapshot on
+   * any of their matches — see fetchCatalogFromR2's `hasRealPerformanceScore`
+   * doc comment), not a number FLTT actually recorded for them. */
+  pfwIsPlaceholder: boolean;
 }
 
 export interface CatalogSyncSummary {
@@ -45,6 +50,7 @@ export interface CatalogSyncSummary {
   skippedAmbiguous: number;
   skippedNoSnapshot: number;
   inserted: number;
+  insertedWithPlaceholderPfw: number;
   insertedPlayers: NewPlayerInsert[];
   skippedNotRecentEnough: number;
   classementPointsUpdated: number;
@@ -128,7 +134,7 @@ export async function syncR2CatalogToSupabase(
   for (;;) {
     const { data, error } = await supabase
       .from("players")
-      .select("id, name, name_key, club, class, pfw, classement_points")
+      .select("id, name, name_key, club, class, pfw, classement_points, is_active")
       .range(from, from + pageSize - 1);
     if (error) throw new Error(error.message);
     if (!data || data.length === 0) break;
@@ -179,7 +185,17 @@ export async function syncR2CatalogToSupabase(
       classement_points?: number;
     } = {};
 
-    if (isPlayerClass(match.ranking) && Number.isFinite(match.performanceScore)) {
+    // hasRealPerformanceScore guards against fetchCatalogFromR2's plain-text
+    // ranking fallback (see its own doc comment) — that fallback exists so a
+    // brand-new player can still be INSERTED on class alone below, but an
+    // EXISTING player's real recorded PFW must never be overwritten with the
+    // fallback's meaningless placeholder 0 just because this week's match
+    // happened to lack the richer snapshot.
+    if (
+      match.hasRealPerformanceScore &&
+      isPlayerClass(match.ranking) &&
+      Number.isFinite(match.performanceScore)
+    ) {
       if (match.ranking !== p.class || match.performanceScore !== p.pfw) {
         payload.class = match.ranking;
         payload.pfw = match.performanceScore;
@@ -242,8 +258,31 @@ export async function syncR2CatalogToSupabase(
     log(`  ... and ${clubTransfers.length - 30} more club transfers.`);
   }
 
+  // "Typical player in this class" stand-in for a brand-new player with no
+  // real PFW anywhere on their own matches — same median-among-active-
+  // players convention used for SEASON_START_OVERRIDES in
+  // lib/import/season-start-overrides.ts.
+  const pfwsByClass = new Map<string, number[]>();
+  for (const p of existing) {
+    if (!p.is_active || !isPlayerClass(p.class)) continue;
+    const list = pfwsByClass.get(p.class);
+    if (list) list.push(p.pfw);
+    else pfwsByClass.set(p.class, [p.pfw]);
+  }
+  const medianPfwByClass = new Map<string, number>();
+  for (const [cls, pfws] of pfwsByClass) {
+    const sorted = [...pfws].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    medianPfwByClass.set(cls, median);
+  }
+
   // New players: any R2 name with no existing Supabase candidate at all,
-  // recent enough to trust (see the doc comment above for why).
+  // recent enough to trust (see the doc comment above for why). Only
+  // `ranking` is required now, not a real PFW — see fetchCatalogFromR2's
+  // `hasRealPerformanceScore` doc comment for why an entire season's worth
+  // of genuine newcomers (37 of them, confirmed 2026-10-02) would otherwise
+  // never be inserted at all, invisible to /admin/newcomers forever.
   const existingNameKeys = new Set(existing.map((p) => p.name_key));
   const today = new Date().toISOString().slice(0, 10);
   const insertedPlayers: NewPlayerInsert[] = [];
@@ -252,7 +291,7 @@ export async function syncR2CatalogToSupabase(
   for (const [key, candidates] of r2ByNameKey) {
     if (existingNameKeys.has(key)) continue;
     for (const c of candidates) {
-      if (!isPlayerClass(c.ranking) || !Number.isFinite(c.performanceScore)) continue;
+      if (!isPlayerClass(c.ranking)) continue;
       const isRecentlyActive =
         c.lastMatchIsoDate != null && !isMatchInactive(c.lastMatchIsoDate, today);
       if (!isRecentlyActive) {
@@ -263,12 +302,15 @@ export async function syncR2CatalogToSupabase(
       const classementPoints = CLASSEMENT_RANKINGS.has(c.ranking)
         ? (exportClassementByFlttId.get(c.flttPlayerId) ?? c.classementPoints)
         : null;
+      const pfwIsPlaceholder = !c.hasRealPerformanceScore;
+      const pfw = pfwIsPlaceholder ? (medianPfwByClass.get(c.ranking) ?? 0) : c.performanceScore;
       insertedPlayers.push({
         name: c.name,
         class: c.ranking,
-        pfw: c.performanceScore,
+        pfw,
         club: sighting ? sighting.club : null,
         classementPoints,
+        pfwIsPlaceholder,
       });
     }
   }
@@ -288,11 +330,21 @@ export async function syncR2CatalogToSupabase(
       if (error) throw new Error(error.message);
     }
     for (const c of insertedPlayers.slice(0, 30)) {
-      log(`  [new player] ${c.name} (${c.class}, ${c.pfw}${c.club ? `, ${c.club}` : ""})`);
+      log(
+        `  [new player] ${c.name} (${c.class}, ${c.pfw}${c.pfwIsPlaceholder ? " — placeholder, no real PFW on file" : ""}${c.club ? `, ${c.club}` : ""})`,
+      );
     }
     if (insertedPlayers.length > 30) {
       log(`  ... and ${insertedPlayers.length - 30} more new players.`);
     }
+  }
+  const insertedWithPlaceholderPfw = insertedPlayers.filter((c) => c.pfwIsPlaceholder).length;
+  if (insertedWithPlaceholderPfw > 0) {
+    log(
+      `  ${insertedWithPlaceholderPfw} of those had no real PFW anywhere on their matches — ` +
+        `inserted with a median-for-class placeholder instead (their season-start rating still ` +
+        `comes from their real class via the earliestClass fallback, not this PFW).`,
+    );
   }
 
   return {
@@ -305,6 +357,7 @@ export async function syncR2CatalogToSupabase(
     skippedAmbiguous,
     skippedNoSnapshot,
     inserted: insertedPlayers.length,
+    insertedWithPlaceholderPfw,
     insertedPlayers,
     skippedNotRecentEnough,
     classementPointsUpdated,
