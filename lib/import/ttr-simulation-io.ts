@@ -430,8 +430,8 @@ export async function computeSeasonSimulation(
     const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
     medianTtrByClass.set(cls, Math.round(median));
   }
-  const overrideClassByFlttId = new Map(
-    SEASON_START_OVERRIDES.map((o) => [o.flttPlayerId, o.class]),
+  const seasonStartOverrideByFlttId = new Map(
+    SEASON_START_OVERRIDES.map((o) => [o.flttPlayerId, o]),
   );
   const returningPfwOverrideByFlttId = new Map(
     RETURNING_PLAYER_PFW_OVERRIDES.map((o) => [o.flttPlayerId, o.pfw]),
@@ -537,7 +537,7 @@ export async function computeSeasonSimulation(
     // (e.g. C2 -> B2) means "today's catalog" is their ENDING class, not
     // their starting one.
     const returningPfwOverride = flttId ? returningPfwOverrideByFlttId.get(flttId) : undefined;
-    const overrideClass = flttId ? overrideClassByFlttId.get(flttId) : undefined;
+    const seasonStartOverride = flttId ? seasonStartOverrideByFlttId.get(flttId) : undefined;
     const exportSnapshot = flttId ? seasonStartExportByFlttId.get(flttId) : undefined;
     const seasonStart: MappedSeasonStartSnapshot | undefined = flttId
       ? seasonStartByFlttId.get(flttId)
@@ -564,8 +564,11 @@ export async function computeSeasonSimulation(
         startingTtr = est;
       }
     }
-    if (startingTtr == null && overrideClass) {
-      const est = medianTtrByClass.get(overrideClass) ?? null;
+    if (startingTtr == null && seasonStartOverride) {
+      // A pinned `ttr` (Jeff judging the class median not right for this
+      // specific player) wins over the median stand-in when present.
+      const est =
+        seasonStartOverride.ttr ?? medianTtrByClass.get(seasonStartOverride.class) ?? null;
       if (est != null) {
         overrideHits++;
         startingTtr = est;
