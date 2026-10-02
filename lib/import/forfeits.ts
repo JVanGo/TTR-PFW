@@ -356,6 +356,44 @@ export const FORFEIT_EXCLUSIONS: ForfeitExclusion[] = [
       "Real match, not a forfeit — his teammate's board that same day (vs HAMROUNI Slim, same " +
       "tie) is the actual forfeit and should stay FF.",
   },
+  // Confirmed with Jeff 2026-10-02: both of RASOULI Sadra's Sept 19 matches
+  // (CH SEN N2-D5 (R1)) are real, competitively played games — 0-3 and 1-3,
+  // not forfeits. They surfaced via the Performance-table gap signal only
+  // because Rasouli himself was newly tracked (see season-start-overrides.ts)
+  // and his matches never carry FLTT's own Performance-snapshot data at all
+  // (the same gap that blocked his automatic catalog insertion), so both
+  // opponents' own rows against him looked exactly like a missing-Performance
+  // forfeit. Each match needs both sides excluded — canonicalizeMatches
+  // treats a tracked-vs-tracked pair as forfeited if EITHER mirrored row says
+  // so, so excluding only one side leaves the match FF via the other.
+  {
+    flttPlayerId: "17292",
+    name: "GAUDRONT Cyrille",
+    isoDate: "2026-09-19",
+    opponentName: "RASOULI Sadra",
+    note: "Real match (0-3), not a forfeit — see RASOULI Sadra's own entry below.",
+  },
+  {
+    flttPlayerId: "28585",
+    name: "RASOULI Sadra",
+    isoDate: "2026-09-19",
+    opponentName: "GAUDRONT Cyrille",
+    note: "Real match (3-0), not a forfeit — his opponent just lacks Performance data against him.",
+  },
+  {
+    flttPlayerId: "26588",
+    name: "KOHLL Georges",
+    isoDate: "2026-09-19",
+    opponentName: "RASOULI Sadra",
+    note: "Real match (3-1), not a forfeit — see RASOULI Sadra's own entry below.",
+  },
+  {
+    flttPlayerId: "28585",
+    name: "RASOULI Sadra",
+    isoDate: "2026-09-19",
+    opponentName: "KOHLL Georges",
+    note: "Real match (1-3), not a forfeit — his opponent just lacks Performance data against him.",
+  },
 ];
 
 /**
