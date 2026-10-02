@@ -15,7 +15,6 @@ import {
   type PerformanceGapRow,
 } from "@/lib/import/forfeits";
 import { FORFEIT_OVERRIDES } from "@/lib/import/forfeit-overrides";
-import { PERFORMANCE_GAP_CONFIRMED_FORFEITS } from "@/lib/import/performance-gap-confirmed-forfeits";
 import { fetchLatestTtrByPlayer } from "@/lib/supabase/latestTtr";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/import/age-categories";
 import {
@@ -345,45 +344,37 @@ export async function computeSeasonSimulation(
         `present in Forfaits.xlsx at all.`,
     );
   }
-  const knownForfeitedRowIds = excludeKnownFalsePositives(
-    forfeitCandidateRows,
-    new Set([...xlsxForfeitedRowIds, ...markerOnlyRowIds]),
-    FORFEIT_EXCLUSIONS,
-  );
+  const xlsxAndMarkerForfeitedRowIds = new Set([...xlsxForfeitedRowIds, ...markerOnlyRowIds]);
 
-  // Third signal. Two outcomes: rows matched against
-  // PERFORMANCE_GAP_CONFIRMED_FORFEITS (Jeff's own manual review — see that
-  // file's doc comment) ARE folded into forfeitedRowIds below, same as the
-  // other two sources. Everything else is still review-only, with zero
-  // effect on ratings — surfaced as candidates for Jeff to check against
-  // fltt.lu by hand; see findPerformanceGapForfeits' doc comment for why an
-  // unreviewed candidate isn't reliable enough to auto-apply.
+  // Third signal, auto-applied directly since 2026-10-02 (track record: 73/73
+  // confirmed 2026-08-15, then a second 5/5 random spot-check the day the
+  // too-new crawl-lag filter below was added) — see findPerformanceGapForfeits'
+  // own doc comment for the full history and why no per-case human sign-off
+  // is needed anymore.
   const performanceGapRows: PerformanceGapRow[] = forfeitCandidateRows.map((r, i) => ({
     ...r,
     playerName: seasonMatches[i].playerName,
     hasPerformance: seasonMatches[i].hasPerformance,
   }));
-  const { confirmedForfeitRowIds, reviewLines: performanceGapReviewLines } =
-    findPerformanceGapForfeits(
-      performanceGapRows,
-      knownForfeitedRowIds,
-      new Date().toISOString().slice(0, 10),
-      PERFORMANCE_GAP_CONFIRMED_FORFEITS,
-    );
-  if (confirmedForfeitRowIds.size > 0) {
+  const { forfeitedRowIds: performanceGapRowIds } = findPerformanceGapForfeits(
+    performanceGapRows,
+    xlsxAndMarkerForfeitedRowIds,
+    new Date().toISOString().slice(0, 10),
+  );
+  if (performanceGapRowIds.size > 0) {
     log(
-      `  ${confirmedForfeitRowIds.size} more forfeited rows applied from Jeff's manual ` +
-        `performance-gap review (PERFORMANCE_GAP_CONFIRMED_FORFEITS).`,
+      `  ${performanceGapRowIds.size} more forfeited rows found via the Performance-table gap, ` +
+        `not present in Forfaits.xlsx or FLTT's own internal marker.`,
     );
   }
-  for (const line of performanceGapReviewLines) log(`  [performance-gap review] ${line}`);
-  if (performanceGapReviewLines.length > 0) {
-    log(
-      `  ${performanceGapReviewLines.length} more candidates found via the Performance-table gap — ` +
-        `NOT applied as forfeits, needs a manual fltt.lu check first.`,
-    );
-  }
-  const forfeitedRowIds = new Set([...knownForfeitedRowIds, ...confirmedForfeitRowIds]);
+
+  // Exclusions run last, against the full union of all three signals, so a
+  // known false positive is vetoed regardless of which one produced it.
+  const forfeitedRowIds = excludeKnownFalsePositives(
+    forfeitCandidateRows,
+    new Set([...xlsxAndMarkerForfeitedRowIds, ...performanceGapRowIds]),
+    FORFEIT_EXCLUSIONS,
+  );
 
   log("Loading players from Supabase...");
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(

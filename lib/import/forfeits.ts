@@ -329,12 +329,16 @@ export interface ForfeitExclusion {
 }
 
 /**
- * A known false positive: a specific board that both detection paths (a
- * clean "0-3" from Forfaits.xlsx, or FLTT's own internal marker) would
- * otherwise treat as a forfeit, but Jeff has personally confirmed was a real,
- * played match — a genuine blowout loss just happens to look identical to a
- * forfeit from the score alone. Applied last, after both detection paths
- * have run, so it can veto either one regardless of which found it.
+ * A known false positive: a specific board that one of the three detection
+ * signals (a clean "0-3" from Forfaits.xlsx, FLTT's own internal marker, or
+ * the Performance-table gap) would otherwise treat as a forfeit, but Jeff
+ * has personally confirmed was a real, played match — a genuine blowout
+ * loss just happens to look identical to a forfeit from the score alone, or
+ * a real match just hasn't had its Performance row crawled yet (now that
+ * the gap signal auto-applies, this is also its safety valve for a false
+ * positive that slips past its own structural filters). Applied last, after
+ * all three signals have run, so it can veto any of them regardless of
+ * which found it.
  *
  * Confirmed for real with Jeff on 2026-08-13: BRITTNACHER Jürgen's
  * Forfaits.xlsx entry (S-1.4/XG-0142, Zolwer 1's 2025-10-11 tie at
@@ -434,9 +438,11 @@ function daysBetween(earlierIsoDate: string, laterIsoDate: string): number {
 }
 
 /** One entry from Jeff's manual review of a `findPerformanceGapForfeits`
- * candidate — see `PERFORMANCE_GAP_CONFIRMED_FORFEITS` in
- * `lib/import/performance-gap-confirmed-forfeits.ts` for the actual list and
- * its full review history. */
+ * candidate, from back when every candidate needed individual sign-off — see
+ * `PERFORMANCE_GAP_CONFIRMED_FORFEITS` in
+ * `lib/import/performance-gap-confirmed-forfeits.ts` for the full history.
+ * No longer consulted by `findPerformanceGapForfeits` itself (see that
+ * function's doc comment for why), kept only as that record. */
 export interface PerformanceGapConfirmedForfeit {
   flttPlayerId: string;
   name: string;
@@ -445,15 +451,13 @@ export interface PerformanceGapConfirmedForfeit {
 }
 
 export interface PerformanceGapResult {
-  /** Rows matched against a `PerformanceGapConfirmedForfeit` entry — a human
-   * already checked these (or the batch they belong to), so unlike
-   * `reviewLines` these ARE safe to merge into an applied `forfeitedRowIds`
-   * set. */
-  confirmedForfeitRowIds: Set<string>;
-  /** Everything else: not a forfeit determination, just candidates worth a
-   * human look, same spirit as `ForfeitMatchResult.reviewLines`. Never merge
-   * into an applied forfeit set automatically. */
-  reviewLines: string[];
+  /** Every row this signal surfaced, after all of its own structural
+   * filters (tournament/cup exclusion, opponent-of-forfeit dedup, the
+   * too-old and too-new Performance-window margins, and the whole-player
+   * crawl-gap skip) — auto-applied directly, same trust level as the other
+   * two forfeit signals. See the function's doc comment for why this no
+   * longer needs a human to confirm each one first. */
+  forfeitedRowIds: Set<string>;
 }
 
 /**
@@ -470,12 +474,17 @@ export interface PerformanceGapResult {
  * existed to exclude cases like his automatically — he was never actually
  * one of these 150 candidates.) See
  * `lib/import/performance-gap-confirmed-forfeits.ts` for that review's full
- * history and the resulting confirmed list. Despite that strong track
- * record, this signal still isn't reliable enough to auto-apply for NEW,
- * never-reviewed candidates the way the internal marker is — two distinct
- * causes can produce the exact same "missing Performance row" shape without
- * being a forfeit at all, and both had to be filtered out before what's left
- * is worth a human's attention:
+ * history.
+ *
+ * Auto-applied directly since 2026-10-02 — every surfaced candidate folds
+ * straight into `forfeitedRowIds`, same trust level as the other two
+ * signals, no per-case human sign-off first. Two track records back that:
+ * the 73/73 clean result above, and a second spot-check the day the
+ * too-new crawl-lag filter below was added — 5 candidates picked at random
+ * from that day's post-fix list, all 5 confirmed genuine by Jeff against
+ * fltt.lu. Two distinct causes can still produce the exact same "missing
+ * Performance row" shape without being a forfeit at all, so both are
+ * filtered out structurally before anything reaches `forfeitedRowIds`:
  *
  * 1. Tournament (TOU) and cup (COU FELTEN) games never get a Performance row
  *    regardless of outcome — excluded via `isTournamentCompetition` /
@@ -522,29 +531,20 @@ export interface PerformanceGapResult {
  * they were real, competitively played matches FLTT just hadn't caught up on
  * yet — also filtered by `nowIsoDate`.
  *
- * What's left after all of that still isn't a confirmed forfeit — it's a
- * candidate worth Jeff checking against the live fltt.lu page, the same way
- * every case above was checked. Once he has, add it to `confirmed` (in
- * practice, `PERFORMANCE_GAP_CONFIRMED_FORFEITS`) rather than
- * `forfeit-overrides.ts` — that file's own doc comment restricts it to
- * disambiguating an entry already IN Forfaits.xlsx, which none of these
- * are.
- *
- * `confirmed` is matched on (flttPlayerId, isoDate) only, not per-opponent —
- * every candidate row for a given player on a given date has, in practice,
- * always been confirmed together as a batch (e.g. Hansen Finja forfeited
- * all 6 boards she played that one day, not some subset), so date-level
- * granularity is simpler and just as safe as matching per-opponent would
- * be. Matches whichever side's row happens to be in `confirmed` (the
- * forfeiting player's own row, or their opponent's) — either is enough:
- * `simulateSeason`'s `canonicalizeMatches` already treats a
- * tracked-vs-tracked match as a forfeit if EITHER mirrored row says so.
+ * What's left after all of that is applied straight to `forfeitedRowIds` —
+ * whichever side's row this is (the forfeiting player's own row, or their
+ * opponent's), either is enough: `simulateSeason`'s `canonicalizeMatches`
+ * already treats a tracked-vs-tracked match as a forfeit if EITHER mirrored
+ * row says so. If a genuinely wrong case ever turns up despite this track
+ * record, exclude it via `FORFEIT_EXCLUSIONS` in `forfeit-overrides.ts`
+ * (it's keyed generically enough to cover a row from any of the three
+ * signals, not just Forfaits.xlsx) rather than reviving a confirm-first
+ * gate here.
  */
 export function findPerformanceGapForfeits(
   rows: PerformanceGapRow[],
   alreadyForfeited: Set<string>,
   nowIsoDate: string,
-  confirmed: PerformanceGapConfirmedForfeit[] = [],
 ): PerformanceGapResult {
   const ratedRows = rows.filter((r) => {
     const age = daysBetween(r.isoDate, nowIsoDate);
@@ -573,10 +573,7 @@ export function findPerformanceGapForfeits(
     );
   }
 
-  const confirmedKeys = new Set(confirmed.map((c) => `${c.flttPlayerId}|${c.isoDate}`));
-
-  const confirmedForfeitRowIds = new Set<string>();
-  const reviewLines: string[] = [];
+  const forfeitedRowIds = new Set<string>();
   for (const r of ratedRows) {
     if (r.hasPerformance) continue;
     if (alreadyForfeited.has(r.id)) continue;
@@ -588,17 +585,8 @@ export function findPerformanceGapForfeits(
     // The winning side of an already-known forfeit — not a new candidate.
     if (mirror && alreadyForfeited.has(mirror.id)) continue;
 
-    if (confirmedKeys.has(`${r.flttPlayerId}|${r.isoDate}`)) {
-      confirmedForfeitRowIds.add(r.id);
-      continue;
-    }
-
-    reviewLines.push(
-      `${r.flttPlayerId} ${r.playerName} vs ${r.opponentName} — ${r.isoDate} — ${r.competition} — ` +
-        `score ${r.score} — missing from the Performance table, not flagged by either other method — ` +
-        `check fltt.lu directly before treating as a forfeit`,
-    );
+    forfeitedRowIds.add(r.id);
   }
 
-  return { confirmedForfeitRowIds, reviewLines };
+  return { forfeitedRowIds };
 }

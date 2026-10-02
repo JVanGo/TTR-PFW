@@ -1,11 +1,13 @@
 import type { PerformanceGapConfirmedForfeit } from "@/lib/import/forfeits";
 
 /**
- * The result of Jeff manually reviewing every one of season 25-26's 150
+ * Historical record only — no longer read by `findPerformanceGapForfeits`,
+ * which auto-applies every candidate directly since 2026-10-02 (see its own
+ * doc comment for why). Kept for the full history below: the result of Jeff
+ * manually reviewing every one of season 25-26's 150
  * `findPerformanceGapForfeits` candidate rows (73 deduped real-world
- * incidents) against fltt.lu, 2026-08-14 through 2026-08-15. Unlike that
- * function's own output, every row implied by this list IS safe to fold
- * into `forfeitedRowIds` — a human checked it, not just a heuristic.
+ * incidents) against fltt.lu, 2026-08-14 through 2026-08-15 — the track
+ * record that justified switching to auto-apply in the first place.
  *
  * Review process, in order:
  * 1. 15 incidents individually checked against the live fltt.lu page (see

@@ -4,7 +4,6 @@ import {
   type ForfeitEntry,
   type ForfeitExclusion,
   type MatchCandidateRow,
-  type PerformanceGapConfirmedForfeit,
   type PerformanceGapRow,
   excludeKnownFalsePositives,
   findMarkerOnlyForfeits,
@@ -405,7 +404,10 @@ describe("findPerformanceGapForfeits", () => {
   // Confirmed for real against fltt.lu (2026-08-14): HANSEN Finja forfeited
   // 6 games neither Forfaits.xlsx nor the internal marker caught, spread
   // across 3 ties on one day — this is the shape one of those rows takes.
-  it("surfaces a missing-Performance row for an otherwise-normal player", () => {
+  // Auto-applied directly since 2026-10-02 (see findPerformanceGapForfeits'
+  // own doc comment for the track record behind that) — no separate
+  // confirmed-list step needed anymore.
+  it("auto-applies a missing-Performance row for an otherwise-normal player", () => {
     const rows = [
       row({ id: "target" }),
       // Establishes the player has Performance data elsewhere this season —
@@ -427,8 +429,25 @@ describe("findPerformanceGapForfeits", () => {
       }),
     ];
     const result = findPerformanceGapForfeits(rows, new Set(), NOW);
-    expect(result.reviewLines).toHaveLength(1);
-    expect(result.reviewLines[0]).toContain("HANSEN Finja");
+    expect(result.forfeitedRowIds).toEqual(new Set(["target"]));
+  });
+
+  // Multiple boards for the same player on the same day (e.g. Hansen Finja
+  // forfeiting all 6 she played that day) all surface independently — no
+  // special grouping needed now that every candidate is applied directly.
+  it("auto-applies every board of a multi-board forfeit the same way", () => {
+    const rows = [
+      row({ id: "board-1", opponentName: "SCHOLTES Pit" }),
+      row({ id: "board-2", opponentName: "VALENTE Noah" }),
+      row({
+        id: "other-present",
+        opponentName: "SOMEONE ELSE",
+        isoDate: "2026-01-01",
+        hasPerformance: true,
+      }),
+    ];
+    const result = findPerformanceGapForfeits(rows, new Set(), NOW);
+    expect(result.forfeitedRowIds).toEqual(new Set(["board-1", "board-2"]));
   });
 
   it("excludes TOU tournaments and the COU FELTEN cup, same as the rating simulation", () => {
@@ -437,7 +456,7 @@ describe("findPerformanceGapForfeits", () => {
       row({ id: "cup", competition: "COU FELTEN (Q)" }),
     ];
     const result = findPerformanceGapForfeits(rows, new Set(), NOW);
-    expect(result.reviewLines).toHaveLength(0);
+    expect(result.forfeitedRowIds.size).toBe(0);
   });
 
   it("silently drops the winning side of an already-known forfeit", () => {
@@ -475,7 +494,7 @@ describe("findPerformanceGapForfeits", () => {
     ];
     // "loser" is already a known forfeit (e.g. from Forfaits.xlsx).
     const result = findPerformanceGapForfeits(rows, new Set(["loser"]), NOW);
-    expect(result.reviewLines).toHaveLength(0);
+    expect(result.forfeitedRowIds.size).toBe(0);
   });
 
   // Confirmed with Jeff on 2026-08-15: FLTT's Performance table is a rolling
@@ -499,7 +518,7 @@ describe("findPerformanceGapForfeits", () => {
       }),
     ];
     const result = findPerformanceGapForfeits(rows, new Set(), NOW);
-    expect(result.reviewLines).toHaveLength(0);
+    expect(result.forfeitedRowIds.size).toBe(0);
   });
 
   // Confirmed for real against fltt.lu (2026-10-02): MINDEN Christophe's
@@ -522,7 +541,7 @@ describe("findPerformanceGapForfeits", () => {
       }),
     ];
     const result = findPerformanceGapForfeits(rows, new Set(), NOW);
-    expect(result.reviewLines).toHaveLength(0);
+    expect(result.forfeitedRowIds.size).toBe(0);
   });
 
   // Confirmed for real against fltt.lu (2026-08-14): POOS Piotr's entire
@@ -553,7 +572,7 @@ describe("findPerformanceGapForfeits", () => {
       }),
     ];
     const result = findPerformanceGapForfeits(rows, new Set(), NOW);
-    expect(result.reviewLines).toHaveLength(0);
+    expect(result.forfeitedRowIds.size).toBe(0);
   });
 
   it("doesn't re-surface a row that's already a known forfeit", () => {
@@ -567,94 +586,6 @@ describe("findPerformanceGapForfeits", () => {
       }),
     ];
     const result = findPerformanceGapForfeits(rows, new Set(["known"]), NOW);
-    expect(result.reviewLines).toHaveLength(0);
-  });
-
-  describe("with a confirmed list", () => {
-    function confirmed(
-      overrides: Partial<PerformanceGapConfirmedForfeit>,
-    ): PerformanceGapConfirmedForfeit {
-      return {
-        flttPlayerId: "25657",
-        name: "HANSEN Finja",
-        isoDate: "2026-05-16",
-        ...overrides,
-      };
-    }
-
-    it("moves a matched candidate into confirmedForfeitRowIds instead of reviewLines", () => {
-      const rows = [
-        row({ id: "target" }),
-        row({
-          id: "other-present",
-          opponentName: "SOMEONE ELSE",
-          isoDate: "2026-01-01",
-          hasPerformance: true,
-        }),
-      ];
-      const result = findPerformanceGapForfeits(rows, new Set(), NOW, [confirmed({})]);
-      expect(result.confirmedForfeitRowIds).toEqual(new Set(["target"]));
-      expect(result.reviewLines).toHaveLength(0);
-    });
-
-    it("matches on (flttPlayerId, isoDate) regardless of which opponent the row names", () => {
-      const rows = [
-        row({ id: "board-1", opponentName: "SCHOLTES Pit" }),
-        row({ id: "board-2", opponentName: "VALENTE Noah" }),
-        row({
-          id: "other-present",
-          opponentName: "SOMEONE ELSE",
-          isoDate: "2026-01-01",
-          hasPerformance: true,
-        }),
-      ];
-      const result = findPerformanceGapForfeits(rows, new Set(), NOW, [confirmed({})]);
-      expect(result.confirmedForfeitRowIds).toEqual(new Set(["board-1", "board-2"]));
-    });
-
-    it("matches on the row's own identity even when that row belongs to the winning opponent, not the forfeiting player", () => {
-      // Mirrors PIRES Yannick's real case: EIFFES-SCHAUS Lex is the one who
-      // actually forfeited, but only the winning opponent's (Pires') own row
-      // made it into the candidate set — so the confirmed entry has to be
-      // keyed on Pires' identity, not Lex's, for it to match anything here.
-      const rows = [
-        row({
-          id: "opponent-row",
-          flttPlayerId: "27886",
-          playerName: "PIRES Yannick",
-          opponentName: "EIFFES-SCHAUS Lex",
-          isoDate: "2026-02-07",
-        }),
-        row({
-          id: "other-present",
-          flttPlayerId: "27886",
-          playerName: "PIRES Yannick",
-          opponentName: "SOMEONE ELSE",
-          isoDate: "2026-01-01",
-          hasPerformance: true,
-        }),
-      ];
-      const result = findPerformanceGapForfeits(rows, new Set(), NOW, [
-        confirmed({ flttPlayerId: "27886", name: "PIRES Yannick", isoDate: "2026-02-07" }),
-      ]);
-      expect(result.confirmedForfeitRowIds).toEqual(new Set(["opponent-row"]));
-    });
-
-    it("leaves an unmatched candidate in reviewLines untouched", () => {
-      const rows = [
-        row({ id: "unrelated", flttPlayerId: "99999", playerName: "Someone Else Entirely" }),
-        row({
-          id: "other-present",
-          flttPlayerId: "99999",
-          playerName: "Someone Else Entirely",
-          opponentName: "SOMEONE ELSE",
-          isoDate: "2026-01-01",
-          hasPerformance: true,
-        }),
-      ];
-      const result = findPerformanceGapForfeits(rows, new Set(), NOW, [confirmed({})]);
-      expect(result.confirmedForfeitRowIds.size).toBe(0);
-      expect(result.reviewLines).toHaveLength(1);
-    });
+    expect(result.forfeitedRowIds.size).toBe(0);
   });
 });
