@@ -211,6 +211,14 @@ export interface SimulationInput {
   youthGrowthPeriods: { start: string; end: string }[];
   /** ISO date the season starts (for the inactivity check). */
   seasonStartIsoDate: string;
+  /**
+   * "Today". A Teilrunde boundary dated after this hasn't arrived yet, so
+   * none of the three rules that land on one (youth growth bonus,
+   * Ersteinstufung floor, Inaktivitätsabzug) is applied for it — even though
+   * that Teilrunde is part of the season being simulated. Omit to apply
+   * every boundary regardless of date.
+   */
+  asOfIsoDate?: string;
 }
 
 export interface OutputMatchRow {
@@ -500,7 +508,15 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
 
   const matchRows: OutputMatchRow[] = [];
   const growthDatesApplied = new Set<string>();
-  const sortedGrowthDates = [...playedByPeriodEnd.keys()].sort();
+  // Mid-season the current Teilrunde's own end date is still in the future,
+  // and nothing is owed for it until it closes — so boundaries past
+  // asOfIsoDate are dropped here rather than guarded at each of the three
+  // rules below. That also covers the force-everything flush after the event
+  // loop, which calls each rule with the boundary date as its own "today"
+  // and would otherwise hand out a future Teilrunde's adjustments today.
+  const sortedGrowthDates = [...playedByPeriodEnd.keys()]
+    .sort()
+    .filter((date) => input.asOfIsoDate == null || date <= input.asOfIsoDate);
 
   // "Bei Jugendspielern gilt, dass sie, falls sie beim Erstellen einer
   // Rangliste unter ihrem Ersteinstufungswert liegen, ihren DTR-Wert wieder

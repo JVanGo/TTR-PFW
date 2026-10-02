@@ -764,6 +764,7 @@ export async function computeSeasonSimulation(
     placements: rawPlacements,
     youthGrowthPeriods: YOUTH_GROWTH_PERIODS,
     seasonStartIsoDate: SEASON_START_ISO,
+    asOfIsoDate: new Date().toISOString().slice(0, 10),
   });
 
   log(

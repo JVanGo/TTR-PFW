@@ -733,6 +733,72 @@ describe("simulateSeason", () => {
     expect(matchRows.some((r) => r.playerId === "a")).toBe(false);
   });
 
+  it("does not hand out a Teilrunde boundary's adjustments before that boundary has arrived", () => {
+    const players = [
+      // Below Cadet's own 900 Ersteinstufung, so the floor would be due too
+      // if the boundary counted.
+      player({ id: "a", name: "Cadet Player", startingTtr: 850, ageCategory: "Cadet" }),
+      player({ id: "d", name: "Filler", startingTtr: 1000 }),
+    ];
+    const matches = [
+      match({
+        isoDate: "2025-09-01",
+        playerNameKey: "cadet player",
+        opponentNameKey: "filler",
+        won: false,
+      }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthPeriods: STANDARD_GROWTH_PERIODS,
+      seasonStartIsoDate: SEASON_START,
+      // Mid-first-Teilrunde: Jan 1 hasn't happened yet.
+      asOfIsoDate: "2025-12-15",
+    });
+
+    expect(matchRows.filter((r) => !isRealMatchRow(r.competition))).toEqual([]);
+    expect(summary.youthGrowthBonusesApplied).toBe(0);
+    expect(summary.ersteinstufungFloorsApplied).toBe(0);
+  });
+
+  it("hands out a Teilrunde boundary's adjustments on the day it arrives, and still withholds the next one", () => {
+    const players = [
+      player({ id: "a", name: "Cadet Player", startingTtr: 850, ageCategory: "Cadet" }),
+      player({ id: "d", name: "Filler", startingTtr: 1000 }),
+    ];
+    const matches = [
+      match({
+        isoDate: "2025-09-01",
+        playerNameKey: "cadet player",
+        opponentNameKey: "filler",
+        won: false,
+      }),
+    ];
+    const { matchRows, summary } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthPeriods: STANDARD_GROWTH_PERIODS,
+      seasonStartIsoDate: SEASON_START,
+      asOfIsoDate: "2026-01-01",
+    });
+
+    const adjustments = matchRows
+      .filter((r) => r.playerId === "a" && !isRealMatchRow(r.competition))
+      .map((r) => [r.matchDate, r.competition]);
+    // Only the Jan 1 boundary — the second Teilrunde's Aug 1 close is still
+    // ahead, so it contributes nothing yet.
+    expect(adjustments).toEqual([
+      ["2026-01-01", "Ersteinstufung-Mindestwert"],
+      ["2026-01-01", "Nachwuchs-Spielstärkezuwachs"],
+    ]);
+    expect(summary.youthGrowthBonusesApplied).toBe(1);
+  });
+
   it("floors a youth player's DTR back up to their Ersteinstufung at the Teilrunde boundary, before the growth bonus stacks on top", () => {
     const players = [
       // Below Cadet's own 900 Ersteinstufung — a loss can only push this
