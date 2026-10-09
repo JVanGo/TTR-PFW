@@ -156,6 +156,26 @@ async function streamToString(body: unknown): Promise<string> {
   return Buffer.concat(chunks).toString("utf-8");
 }
 
+/** Retries a single transient socket drop (e.g. ECONNRESET) talking to R2 —
+ * confirmed in prod 2026-10-08, where one dropped connection ~5000 files into
+ * an 8-minute, 5,116-file catalog fetch killed the whole weekly sync. Waits
+ * 1s/2s between the 3 attempts; a non-transient failure (e.g. bad creds)
+ * still surfaces immediately on the final attempt. */
+async function withR2Retry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 /** Fetches one player's match-history file, using a local disk cache so a
  * repeated run of the season simulation doesn't re-download every player. */
 export async function fetchPlayerHistoryFromR2(flttPlayerId: string): Promise<PlayerHistory> {
@@ -167,10 +187,12 @@ export async function fetchPlayerHistoryFromR2(flttPlayerId: string): Promise<Pl
     return sanitizeHistoryNames(JSON.parse(readFileSync(cachePath, "utf-8")) as PlayerHistory);
   }
 
-  const response = await r2Client().send(
-    new GetObjectCommand({ Bucket: r2Bucket(), Key: `player-histories/${flttPlayerId}.json` }),
-  );
-  const text = await streamToString(response.Body);
+  const text = await withR2Retry(async () => {
+    const response = await r2Client().send(
+      new GetObjectCommand({ Bucket: r2Bucket(), Key: `player-histories/${flttPlayerId}.json` }),
+    );
+    return streamToString(response.Body);
+  });
   mkdirSync(CACHE_DIR, { recursive: true });
   writeFileSync(cachePath, text, "utf-8");
   return sanitizeHistoryNames(JSON.parse(text) as PlayerHistory);
