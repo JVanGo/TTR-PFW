@@ -1,13 +1,15 @@
 name: Weekly results update
 
-# Runs automatically every Thursday at 11:00 Luxembourg time (09:00 UTC —
-# this drifts to 10:00 local once Luxembourg switches back to winter time in
-# late October, since GitHub's schedule only understands UTC). Chosen to run
-# a few hours after the federation's own weekly Thursday data refresh, which
-# has no guaranteed exact time.
+# Runs automatically every Friday at 08:00 Luxembourg time (06:00 UTC —
+# this drifts to 07:00 local once Luxembourg switches back to winter time in
+# late October, since GitHub's schedule only understands UTC). The
+# federation's own weekly Thursday upload has no fixed time and is spread
+# over hours (2026-10-15: 12:40-17:05 local, most files in the last 25 min);
+# the old Thursday 11:00 slot, started ~5h late by GitHub, read mid-upload
+# and missed many of that week's matches. Friday morning leaves a wide margin.
 on:
   schedule:
-    - cron: "0 9 * * 4"
+    - cron: "0 6 * * 5"
   # Lets a person start it by hand from GitHub's Actions tab, e.g. to test it.
   workflow_dispatch: {}
 
