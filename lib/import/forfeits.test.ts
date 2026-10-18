@@ -407,6 +407,39 @@ describe("findPerformanceGapForfeits", () => {
   // Auto-applied directly since 2026-10-02 (see findPerformanceGapForfeits'
   // own doc comment for the track record behind that) — no separate
   // confirmed-list step needed anymore.
+  it("skips every row involving an exempt player, from either side", () => {
+    const exempt = [{ flttPlayerId: "99999", name: "EXEMPT Player", note: "" }];
+    const rows = [
+      row({
+        id: "present",
+        opponentName: "SOMEONE ELSE",
+        isoDate: "2026-01-01",
+        hasPerformance: true,
+      }),
+      // The opponent's side of a match against the exempt player.
+      row({ id: "vs-exempt", opponentName: "EXEMPT Player" }),
+      // The exempt player's own side.
+      row({
+        id: "exempt-own",
+        flttPlayerId: "99999",
+        playerName: "EXEMPT Player",
+        opponentName: "HANSEN Finja",
+      }),
+      row({
+        id: "exempt-present",
+        flttPlayerId: "99999",
+        playerName: "EXEMPT Player",
+        opponentName: "X",
+        isoDate: "2026-01-01",
+        hasPerformance: true,
+      }),
+      // A normal gap for the same player is still caught.
+      row({ id: "normal-gap" }),
+    ];
+    const { forfeitedRowIds } = findPerformanceGapForfeits(rows, new Set(), NOW, exempt);
+    expect([...forfeitedRowIds]).toEqual(["normal-gap"]);
+  });
+
   it("auto-applies a missing-Performance row for an otherwise-normal player", () => {
     const rows = [
       row({ id: "target" }),

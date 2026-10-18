@@ -356,44 +356,7 @@ export const FORFEIT_EXCLUSIONS: ForfeitExclusion[] = [
       "Real match, not a forfeit — his teammate's board that same day (vs HAMROUNI Slim, same " +
       "tie) is the actual forfeit and should stay FF.",
   },
-  // Confirmed with Jeff 2026-10-02: both of RASOULI Sadra's Sept 19 matches
-  // (CH SEN N2-D5 (R1)) are real, competitively played games — 0-3 and 1-3,
-  // not forfeits. They surfaced via the Performance-table gap signal only
-  // because Rasouli himself was newly tracked (see season-start-overrides.ts)
-  // and his matches never carry FLTT's own Performance-snapshot data at all
-  // (the same gap that blocked his automatic catalog insertion), so both
-  // opponents' own rows against him looked exactly like a missing-Performance
-  // forfeit. Each match needs both sides excluded — canonicalizeMatches
-  // treats a tracked-vs-tracked pair as forfeited if EITHER mirrored row says
-  // so, so excluding only one side leaves the match FF via the other.
-  {
-    flttPlayerId: "17292",
-    name: "GAUDRONT Cyrille",
-    isoDate: "2026-09-19",
-    opponentName: "RASOULI Sadra",
-    note: "Real match (0-3), not a forfeit — see RASOULI Sadra's own entry below.",
-  },
-  {
-    flttPlayerId: "28585",
-    name: "RASOULI Sadra",
-    isoDate: "2026-09-19",
-    opponentName: "GAUDRONT Cyrille",
-    note: "Real match (3-0), not a forfeit — his opponent just lacks Performance data against him.",
-  },
-  {
-    flttPlayerId: "26588",
-    name: "KOHLL Georges",
-    isoDate: "2026-09-19",
-    opponentName: "RASOULI Sadra",
-    note: "Real match (3-1), not a forfeit — see RASOULI Sadra's own entry below.",
-  },
-  {
-    flttPlayerId: "28585",
-    name: "RASOULI Sadra",
-    isoDate: "2026-09-19",
-    opponentName: "KOHLL Georges",
-    note: "Real match (1-3), not a forfeit — his opponent just lacks Performance data against him.",
-  },
+  // RASOULI Sadra's matches are handled player-wide by PERFORMANCE_GAP_EXEMPT_PLAYERS below.
 ];
 
 /**
@@ -432,6 +395,32 @@ export interface PerformanceGapRow extends MatchCandidateRow {
   playerName: string;
   hasPerformance: boolean;
 }
+
+export interface PerformanceGapExemptPlayer {
+  flttPlayerId: string;
+  name: string;
+  note: string;
+}
+
+/**
+ * Players FLTT deliberately keeps out of the Performance table, so a missing
+ * Performance row says nothing about a forfeit for any match they're in.
+ * Every such match is skipped by `findPerformanceGapForfeits` — from the
+ * player's own side AND from each opponent's side (matched by name, since an
+ * opponent's row only carries the exempt player's name) — while Forfaits.xlsx
+ * and FLTT's own marker still apply to them as normal.
+ */
+export const PERFORMANCE_GAP_EXEMPT_PLAYERS: PerformanceGapExemptPlayer[] = [
+  {
+    flttPlayerId: "28585",
+    name: "RASOULI Sadra",
+    note:
+      "Confirmed with Jeff 2026-10-18: FLTT manually excluded all his 2026-2027 games from the " +
+      "Performance table because his starting rating was set too low there, to protect his " +
+      "opponents. Every game is real and rated here, from the corrected start in " +
+      "SEASON_START_OVERRIDES.",
+  },
+];
 
 // FLTT's Performance table is a rolling trailing-12-months window measured
 // from whenever it's crawled, NOT scoped to the FLTT season (which is itself
@@ -583,10 +572,15 @@ export function findPerformanceGapForfeits(
   rows: PerformanceGapRow[],
   alreadyForfeited: Set<string>,
   nowIsoDate: string,
+  exemptPlayers: PerformanceGapExemptPlayer[] = PERFORMANCE_GAP_EXEMPT_PLAYERS,
 ): PerformanceGapResult {
+  const exemptIds = new Set(exemptPlayers.map((p) => p.flttPlayerId));
+  const exemptNameKeys = new Set(exemptPlayers.map((p) => nameKey(p.name)));
   const ratedRows = rows.filter((r) => {
     const age = daysBetween(r.isoDate, nowIsoDate);
     return (
+      !exemptIds.has(r.flttPlayerId) &&
+      !exemptNameKeys.has(nameKey(r.opponentName)) &&
       !isTournamentCompetition(r.competition) &&
       !isNonRatedCompetition(r.competition) &&
       age >= PERFORMANCE_CRAWL_LAG_SAFETY_DAYS &&

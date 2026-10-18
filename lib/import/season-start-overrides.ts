@@ -36,10 +36,10 @@ export interface SeasonStartOverride {
  * ttr-simulation-io.ts) — a "typical player in this class" stand-in, not a
  * precise number. RASOULI Sadra needed more than that: the B2 median (1383)
  * read as too low for his actual current strength, so Jeff pinned an exact
- * 1550 instead via `ttr`.
+ * 1550 instead via `ttr`, raised to 1600 on 2026-10-18.
  */
 export const SEASON_START_OVERRIDES: SeasonStartOverride[] = [
-  { flttPlayerId: "28585", name: "RASOULI Sadra", club: "Schëffleng", class: "B2", ttr: 1550 },
+  { flttPlayerId: "28585", name: "RASOULI Sadra", club: "Schëffleng", class: "B2", ttr: 1600 },
 ];
 
 export interface ReturningPlayerPfwOverride {
