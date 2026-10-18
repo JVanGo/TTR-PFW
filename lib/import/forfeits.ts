@@ -399,6 +399,8 @@ export interface PerformanceGapRow extends MatchCandidateRow {
 export interface PerformanceGapExemptPlayer {
   flttPlayerId: string;
   name: string;
+  /** Last match date (inclusive) the exemption covers — later matches get the normal check. */
+  untilIsoDate: string;
   note: string;
 }
 
@@ -407,18 +409,20 @@ export interface PerformanceGapExemptPlayer {
  * Performance row says nothing about a forfeit for any match they're in.
  * Every such match is skipped by `findPerformanceGapForfeits` — from the
  * player's own side AND from each opponent's side (matched by name, since an
- * opponent's row only carries the exempt player's name) — while Forfaits.xlsx
+ * opponent's row only carries the exempt player's name), up to and including
+ * each entry's `untilIsoDate` — while Forfaits.xlsx
  * and FLTT's own marker still apply to them as normal.
  */
 export const PERFORMANCE_GAP_EXEMPT_PLAYERS: PerformanceGapExemptPlayer[] = [
   {
     flttPlayerId: "28585",
     name: "RASOULI Sadra",
+    untilIsoDate: "2026-10-18",
     note:
       "Confirmed with Jeff 2026-10-18: FLTT manually excluded all his 2026-2027 games from the " +
       "Performance table because his starting rating was set too low there, to protect his " +
-      "opponents. Every game is real and rated here, from the corrected start in " +
-      "SEASON_START_OVERRIDES.",
+      "opponents. Every game up to 2026-10-18 is real and rated here, from the corrected start " +
+      "in SEASON_START_OVERRIDES. Later games get the normal check (Jeff, 2026-10-18).",
   },
 ];
 
@@ -574,13 +578,16 @@ export function findPerformanceGapForfeits(
   nowIsoDate: string,
   exemptPlayers: PerformanceGapExemptPlayer[] = PERFORMANCE_GAP_EXEMPT_PLAYERS,
 ): PerformanceGapResult {
-  const exemptIds = new Set(exemptPlayers.map((p) => p.flttPlayerId));
-  const exemptNameKeys = new Set(exemptPlayers.map((p) => nameKey(p.name)));
+  const isExempt = (r: PerformanceGapRow) =>
+    exemptPlayers.some(
+      (p) =>
+        (p.flttPlayerId === r.flttPlayerId || nameKey(p.name) === nameKey(r.opponentName)) &&
+        r.isoDate <= p.untilIsoDate,
+    );
   const ratedRows = rows.filter((r) => {
     const age = daysBetween(r.isoDate, nowIsoDate);
     return (
-      !exemptIds.has(r.flttPlayerId) &&
-      !exemptNameKeys.has(nameKey(r.opponentName)) &&
+      !isExempt(r) &&
       !isTournamentCompetition(r.competition) &&
       !isNonRatedCompetition(r.competition) &&
       age >= PERFORMANCE_CRAWL_LAG_SAFETY_DAYS &&

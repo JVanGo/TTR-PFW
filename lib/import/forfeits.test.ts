@@ -407,8 +407,10 @@ describe("findPerformanceGapForfeits", () => {
   // Auto-applied directly since 2026-10-02 (see findPerformanceGapForfeits'
   // own doc comment for the track record behind that) — no separate
   // confirmed-list step needed anymore.
-  it("skips every row involving an exempt player, from either side", () => {
-    const exempt = [{ flttPlayerId: "99999", name: "EXEMPT Player", note: "" }];
+  it("skips rows involving an exempt player, from either side, up to the cutoff", () => {
+    const exempt = [
+      { flttPlayerId: "99999", name: "EXEMPT Player", untilIsoDate: "2026-05-16", note: "" },
+    ];
     const rows = [
       row({
         id: "present",
@@ -435,9 +437,11 @@ describe("findPerformanceGapForfeits", () => {
       }),
       // A normal gap for the same player is still caught.
       row({ id: "normal-gap" }),
+      // A match against the exempt player after the cutoff gets the normal check.
+      row({ id: "vs-exempt-later", opponentName: "EXEMPT Player", isoDate: "2026-05-17" }),
     ];
     const { forfeitedRowIds } = findPerformanceGapForfeits(rows, new Set(), NOW, exempt);
-    expect([...forfeitedRowIds]).toEqual(["normal-gap"]);
+    expect([...forfeitedRowIds]).toEqual(["normal-gap", "vs-exempt-later"]);
   });
 
   it("auto-applies a missing-Performance row for an otherwise-normal player", () => {
