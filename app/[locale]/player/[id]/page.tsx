@@ -143,7 +143,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
 
   const matches = matchesData ?? [];
   const allMatches = allMatchesData ?? [];
-  // The live ranking (rank/klassierung) only ever reflects the current
+  // The live ranking (rank) only ever reflects the current
   // season — for a past season, the summary's own settled DTR is the only
   // number that still means anything.
   const ranking = isCurrentSeason ? rankingRows.find((r) => r.id === player.id) : undefined;
@@ -157,7 +157,6 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
   // `ranking` and the current season's own `summary` come up empty).
   const currentDtr =
     ranking?.dtr ?? summary?.latest_ttr ?? seasonSummaries?.[0]?.latest_ttr ?? null;
-  const klassierung = ranking?.klassierung ?? null;
   const rankPosition = ranking?.rank ?? null;
   const totalPlayers = rankingRows.length;
 
@@ -218,11 +217,6 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{player.name}</h1>
             <p className="text-muted-foreground text-sm">
-              {klassierung && (
-                <span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-                  {klassierung}
-                </span>
-              )}
               {player.is_kader && (
                 <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                   {t("kaderBadge")}

@@ -16,7 +16,6 @@ interface Labels {
   columnRank: string;
   columnName: string;
   columnClub: string;
-  columnClass: string;
   columnDtr: string;
   inactiveBadge: string;
   noResults: string;
@@ -40,7 +39,6 @@ export function RankingTableRows({ rows, formatNumber, labels }: Props) {
             <th className="px-3 py-2 text-right font-medium">{labels.columnRank}</th>
             <th className="px-3 py-2 text-left font-medium">{labels.columnName}</th>
             <th className="px-3 py-2 text-left font-medium">{labels.columnClub}</th>
-            <th className="px-3 py-2 text-left font-medium">{labels.columnClass}</th>
             <th className="px-3 py-2 text-right font-medium">{labels.columnDtr}</th>
           </tr>
         </thead>
@@ -61,13 +59,12 @@ export function RankingTableRows({ rows, formatNumber, labels }: Props) {
                 )}
               </td>
               <td className="text-muted-foreground px-3 py-2">{row.club ?? "—"}</td>
-              <td className="px-3 py-2">{row.klassierung}</td>
               <td className="px-3 py-2 text-right tabular-nums">{row.dtr}</td>
             </tr>
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={5} className="text-muted-foreground px-3 py-10 text-center">
+              <td colSpan={4} className="text-muted-foreground px-3 py-10 text-center">
                 {labels.noResults}
               </td>
             </tr>

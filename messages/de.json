@@ -36,21 +36,16 @@
     "title": "FLTT DTR-Rangliste",
     "subtitle": "Alle Spieler, sortiert nach aktuellem DTR — vom höchsten zum niedrigsten."
   },
-  "LevelPills": {
-    "all": "Alle"
-  },
   "RankingTable": {
     "searchPlaceholder": "Nach Namen suchen…",
     "searchAriaLabel": "Spieler nach Namen suchen",
     "clubFilterAriaLabel": "Nach Verein filtern",
     "allClubs": "Alle Vereine",
     "showing": "{count, number} Spieler werden angezeigt",
-    "inClass": ", Klasse {level}",
     "atClub": ", Verein {club}",
     "columnRank": "#",
     "columnName": "Name",
     "columnClub": "Verein",
-    "columnClass": "Klasse",
     "columnDtr": "DTR",
     "inactiveBadge": "inaktiv",
     "noResults": "Keine Spieler entsprechen den aktuellen Filtern.",
@@ -148,7 +143,6 @@
     "backToRanking": "← Zurück zur Rangliste"
   },
   "DtrDistributionChart": {
-    "tooltipCount": "{count, plural, one {# Spieler} other {# Spieler}}",
-    "clickHint": "Klicken für Klasse {klassierung} in der Rangliste →"
+    "tooltipCount": "{count, plural, one {# Spieler} other {# Spieler}}"
   }
 }

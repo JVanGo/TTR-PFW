@@ -13,12 +13,11 @@ export type { RankingTableRow };
 interface Props {
   rows: RankingTableRow[];
   clubs: string[];
-  selectedLevel: string;
   club: string;
   onClubChange: (club: string) => void;
 }
 
-export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }: Props) {
+export function RankingTable({ rows, clubs, club, onClubChange }: Props) {
   const t = useTranslations("RankingTable");
   const format = useFormatter();
   const [search, setSearch] = useState("");
@@ -76,7 +75,6 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
 
       <p className="text-muted-foreground text-sm">
         {t("showing", { count: filtered.length })}
-        {selectedLevel !== "All" && t("inClass", { level: selectedLevel })}
         {club && t("atClub", { club })}.
       </p>
 
@@ -87,7 +85,6 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
           columnRank: t("columnRank"),
           columnName: t("columnName"),
           columnClub: t("columnClub"),
-          columnClass: t("columnClass"),
           columnDtr: t("columnDtr"),
           inactiveBadge: t("inactiveBadge"),
           noResults: t("noResults"),
