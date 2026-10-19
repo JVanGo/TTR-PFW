@@ -22,8 +22,6 @@ export interface LineupPlayer {
   dtr: number;
   /** True if the player has a non-null age_category (youth, per the PDF's Ersteinstufung categories). */
   isYouth: boolean;
-  /** True if the player is on the Kader (kaderzusammensetzung-november-2025.pdf). */
-  isKader: boolean;
   /** The player's raw age category, or null for an adult. Used for competition age-eligibility, not for tolerance tiers. */
   ageCategory: AgeCategory | null;
 }
@@ -36,18 +34,16 @@ export interface Team<T extends LineupPlayer = LineupPlayer> {
 export const TOLERANCE = {
   base: { team: 35, club: 50 },
   youth: { team: 70, club: 85 },
-  kader: { team: 105, club: 120 },
 } as const;
 
 export type ToleranceTier = keyof typeof TOLERANCE;
 
 /**
- * The PDF states each tier as an independent bump from the same base (50/35)
- * rather than stacking youth-then-Kader, so a pair takes the single most
- * generous tier either player qualifies for.
+ * A pair takes the youth tier if either player qualifies. The PDF also
+ * describes a wider Kader tier (105/120); it's deliberately not applied here
+ * (Jeff's call, 2026-10-20).
  */
 export function toleranceTierFor(a: LineupPlayer, b: LineupPlayer): ToleranceTier {
-  if (a.isKader || b.isKader) return "kader";
   if (a.isYouth || b.isYouth) return "youth";
   return "base";
 }
@@ -97,15 +93,12 @@ export function movePlayer<T>(list: T[], from: number, to: number): T[] {
   return next;
 }
 
-/**
- * Every index (other than `fromIndex` itself) that the player at `fromIndex`
- * could legally move to — i.e. dropping them there, shifting everyone else
- * up or down by one, still satisfies isValidArrangement. Assumes `players`
- * is already valid before the move (true for anything this tool produces:
- * buildTeams's sorted output is always valid, and every accepted move keeps
- * it that way).
- */
-export function legalTargetIndices(
+function sortByDtr<T extends LineupPlayer>(players: T[]): T[] {
+  return [...players].sort((x, y) => y.dtr - x.dtr || x.name.localeCompare(y.name));
+}
+
+/** Every index the player at `fromIndex` could move to with the pairwise rule alone still holding. */
+function pairwiseTargets(
   players: LineupPlayer[],
   fromIndex: number,
   teamSizes: number[],
@@ -119,6 +112,46 @@ export function legalTargetIndices(
 }
 
 /**
+ * Each player's own range of allowed positions, fixed from the plain
+ * DTR-sorted lineup: their sorted slot plus every slot they could move to
+ * from there on their own. Without this, the pairwise rule alone lets one
+ * player's tolerance leak into another's: moving a youth player to the top
+ * (legal, thanks to the youth tolerance) puts an adult behind them, and from
+ * that new spot the adult could slide further down than they ever could from
+ * the sorted lineup — e.g. Beetebuerg-P's REKAWEK Radoslaw (1736) may only
+ * drop to 2nd in Team 1, but after REKAWEK Jan (youth, 1675) moved above him,
+ * he could reach Team 2.
+ */
+function allowedSlotsById(players: LineupPlayer[], teamSizes: number[]): Map<string, Set<number>> {
+  const sorted = sortByDtr(players);
+  const allowed = new Map<string, Set<number>>();
+  sorted.forEach((p, i) =>
+    allowed.set(p.id, new Set([i, ...pairwiseTargets(sorted, i, teamSizes)])),
+  );
+  return allowed;
+}
+
+/**
+ * Every index (other than `fromIndex` itself) that the player at `fromIndex`
+ * could legally move to — i.e. dropping them there, shifting everyone else
+ * up or down by one, still satisfies isValidArrangement AND keeps every
+ * player within their own allowed range (allowedSlotsById). Assumes
+ * `players` is already valid before the move (true for anything this tool
+ * produces: buildTeams's sorted output is always valid, and every accepted
+ * move keeps it that way).
+ */
+export function legalTargetIndices(
+  players: LineupPlayer[],
+  fromIndex: number,
+  teamSizes: number[],
+): number[] {
+  const allowed = allowedSlotsById(players, teamSizes);
+  return pairwiseTargets(players, fromIndex, teamSizes).filter((to) =>
+    movePlayer(players, fromIndex, to).every((p, i) => allowed.get(p.id)?.has(i) ?? true),
+  );
+}
+
+/**
  * Sorts by DTR descending (ties broken by name for determinism) and chunks
  * into teams sized per `teamSizes`, in order — Team 1 gets the top
  * `teamSizes[0]`, Team 2 the next `teamSizes[1]`, etc. Callers are expected
@@ -126,7 +159,7 @@ export function legalTargetIndices(
  * returned as-is rather than dropped.
  */
 export function buildTeams<T extends LineupPlayer>(players: T[], teamSizes: number[]): Team<T>[] {
-  const sorted = [...players].sort((x, y) => y.dtr - x.dtr || x.name.localeCompare(y.name));
+  const sorted = sortByDtr(players);
   const teams: Team<T>[] = [];
   let start = 0;
   for (const size of teamSizes) {

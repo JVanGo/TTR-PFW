@@ -75,11 +75,6 @@ export default async function AboutPage() {
               <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.youth.team}</td>
               <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.youth.club}</td>
             </tr>
-            <tr className="border-t">
-              <td className="px-3 py-2">{t("tableKader")}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.kader.team}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.kader.club}</td>
-            </tr>
           </tbody>
         </table>
       </div>

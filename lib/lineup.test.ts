@@ -9,27 +9,17 @@ import {
 } from "./lineup";
 
 function player(id: string, dtr: number, opts: Partial<LineupPlayer> = {}): LineupPlayer {
-  return { id, name: id, dtr, isYouth: false, isKader: false, ageCategory: null, ...opts };
+  return { id, name: id, dtr, isYouth: false, ageCategory: null, ...opts };
 }
 
 describe("toleranceTierFor", () => {
-  it("is base when neither player is youth or Kader", () => {
+  it("is base when neither player is youth", () => {
     expect(toleranceTierFor(player("a", 1500), player("b", 1500))).toBe("base");
   });
 
   it("is youth if either player is youth", () => {
     expect(toleranceTierFor(player("a", 1500, { isYouth: true }), player("b", 1500))).toBe("youth");
     expect(toleranceTierFor(player("a", 1500), player("b", 1500, { isYouth: true }))).toBe("youth");
-  });
-
-  it("prefers Kader over youth when a player is both, or the pair is mixed", () => {
-    expect(toleranceTierFor(player("a", 1500, { isKader: true }), player("b", 1500))).toBe("kader");
-    expect(
-      toleranceTierFor(
-        player("a", 1500, { isKader: true, isYouth: true }),
-        player("b", 1500, { isYouth: true }),
-      ),
-    ).toBe("kader");
   });
 });
 
@@ -51,19 +41,13 @@ describe("isValidArrangement", () => {
     expect(isValidArrangement([...team0, player("b1", 1521)], [4, 1])).toBe(false); // gap to a4 = 51
   });
 
-  it("widens tolerance to 70/85 when either player is youth, 105/120 for Kader", () => {
+  it("widens tolerance to 70/85 when either player is youth", () => {
     expect(
       isValidArrangement([player("weak", 1430, { isYouth: true }), player("strong", 1500)], [4]),
     ).toBe(true); // gap 70
     expect(
       isValidArrangement([player("weak", 1429, { isYouth: true }), player("strong", 1500)], [4]),
     ).toBe(false); // gap 71
-    expect(
-      isValidArrangement([player("weak", 1395, { isKader: true }), player("strong", 1500)], [4]),
-    ).toBe(true); // gap 105
-    expect(
-      isValidArrangement([player("weak", 1394, { isKader: true }), player("strong", 1500)], [4]),
-    ).toBe(false); // gap 106
   });
 
   it("catches a violation between non-adjacent players even when every adjacent gap is within tolerance", () => {
@@ -138,6 +122,26 @@ describe("legalTargetIndices", () => {
     // Moving a (1500) past b (1470, gap 30) is fine; past c or d creates a
     // >35 gap against whoever it lands next to.
     expect(legalTargetIndices(players, 0, [4])).toEqual([1]);
+  });
+
+  it("doesn't let a youth player's tolerance stretch an adult's own range after a move", () => {
+    // Beetebuerg-P, 2026-10-20: Radoslaw may only drop to 2nd in Team 1.
+    const sorted = [
+      player("REKAWEK Radoslaw", 1736),
+      player("CLOOS Steve", 1705),
+      player("SUNNEN Jean-Paul", 1697),
+      player("HAMROUNI Slim", 1694),
+      player("WALDBILLIG Francis", 1681),
+      player("REKAWEK Jan", 1675, { isYouth: true }),
+      player("ZUANG Max", 1674),
+      player("VAN GOIDSENOVEN Jeff", 1655),
+    ];
+    expect(legalTargetIndices(sorted, 0, [4, 4])).toEqual([1]);
+    // Jan may still move to the top, pushing Radoslaw to 2nd...
+    expect(legalTargetIndices(sorted, 5, [4, 4])).toContain(0);
+    // ...but from there Radoslaw can only go back up, not further down.
+    const janFirst = movePlayer(sorted, 5, 0);
+    expect(legalTargetIndices(janFirst, 1, [4, 4])).toEqual([0]);
   });
 });
 

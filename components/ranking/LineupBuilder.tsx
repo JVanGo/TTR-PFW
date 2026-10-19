@@ -284,11 +284,6 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
                   aria-label={t("includePlayer", { name: p.name })}
                 />
                 <span className="min-w-0 flex-1">{p.name}</span>
-                {p.isKader && (
-                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                    {t("kaderBadge")}
-                  </span>
-                )}
                 {p.isYouth && (
                   <span className="bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px]">
                     {t("youthBadge")}
@@ -334,11 +329,6 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
                       >
                         <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                           <span className="min-w-0">{p.name}</span>
-                          {p.isKader && (
-                            <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                              {t("kaderBadge")}
-                            </span>
-                          )}
                           {p.isYouth && (
                             <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[10px]">
                               {t("youthBadge")}
