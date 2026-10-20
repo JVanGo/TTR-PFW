@@ -4,6 +4,7 @@ import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import { AdminPlayerList, type AdminPlayerRow } from "./AdminPlayerList";
 import { PlayerForm } from "./PlayerForm";
 import { signOut } from "./actions";
+import { CURRENT_SEASON } from "@/lib/ranking";
 
 interface RawPlayer {
   id: string;
@@ -12,6 +13,10 @@ interface RawPlayer {
   pfw: number;
   club: string | null;
   is_active: boolean;
+  classement_points: number | null;
+  age_category: string | null;
+  starting_dtr: number | null;
+  starting_dtr_season: string | null;
 }
 
 export default async function AdminPage() {
@@ -19,7 +24,7 @@ export default async function AdminPage() {
   const data = await fetchAllRows<RawPlayer>(
     supabase,
     "players",
-    "id, name, class, pfw, club, is_active",
+    "id, name, class, pfw, club, is_active, classement_points, age_category, starting_dtr, starting_dtr_season",
   );
   data.sort((a, b) => b.pfw - a.pfw);
 
@@ -35,6 +40,11 @@ export default async function AdminPage() {
     pfw: Number(p.pfw),
     club: p.club,
     is_active: p.is_active,
+    classement_points: p.classement_points == null ? null : Number(p.classement_points),
+    age_category: p.age_category,
+    // One entered for an earlier season no longer applies, so the form
+    // shows it blank rather than implying it's still in effect.
+    starting_dtr: p.starting_dtr_season === CURRENT_SEASON ? p.starting_dtr : null,
   }));
 
   return (

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlayerClass, type PlayerClass } from "@/lib/conversions";
-import { RANKING_CACHE_TAG } from "@/lib/ranking";
+import { CURRENT_SEASON, RANKING_CACHE_TAG } from "@/lib/ranking";
+import { AGE_CATEGORIES, type AgeCategory } from "@/lib/age-categories";
 
 export interface ActionState {
   status: "idle" | "success" | "error";
@@ -39,6 +40,10 @@ interface PlayerInput {
   club: string | null;
   is_active: boolean;
   classement_points: number | null;
+  age_category: AgeCategory | null;
+  age_category_reviewed: true;
+  starting_dtr: number | null;
+  starting_dtr_season: string | null;
 }
 
 function parsePlayerForm(formData: FormData): PlayerInput | string {
@@ -48,6 +53,8 @@ function parsePlayerForm(formData: FormData): PlayerInput | string {
   const club = (formData.get("club") as string | null)?.trim() || null;
   const isActive = formData.get("is_active") === "on";
   const classementRaw = (formData.get("classement_points") as string | null)?.trim();
+  const ageCategoryRaw = (formData.get("age_category") as string | null)?.trim() ?? "";
+  const startingDtrRaw = (formData.get("starting_dtr") as string | null)?.trim();
 
   if (!name) return "Name is required.";
   if (!klRaw || !isPlayerClass(klRaw)) return "Pick a valid class (A1–D3).";
@@ -63,6 +70,17 @@ function parsePlayerForm(formData: FormData): PlayerInput | string {
     }
   }
 
+  if (ageCategoryRaw !== "" && !(AGE_CATEGORIES as readonly string[]).includes(ageCategoryRaw)) {
+    return "Pick a valid age category.";
+  }
+
+  let startingDtr: number | null = null;
+  if (startingDtrRaw) {
+    startingDtr = Number(startingDtrRaw);
+    if (!Number.isInteger(startingDtr)) return "Starting DTR must be a whole number.";
+    if (startingDtr < 0 || startingDtr > 3000) return "Starting DTR must be between 0 and 3000.";
+  }
+
   return {
     name,
     class: klRaw,
@@ -70,6 +88,10 @@ function parsePlayerForm(formData: FormData): PlayerInput | string {
     club,
     is_active: isActive,
     classement_points: classementPoints,
+    age_category: ageCategoryRaw === "" ? null : (ageCategoryRaw as AgeCategory),
+    age_category_reviewed: true,
+    starting_dtr: startingDtr,
+    starting_dtr_season: startingDtr == null ? null : CURRENT_SEASON,
   };
 }
 

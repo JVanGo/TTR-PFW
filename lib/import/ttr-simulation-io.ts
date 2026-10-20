@@ -252,6 +252,8 @@ interface SupabasePlayerRow {
   classement_points: string | number | null;
   age_category: string | null;
   is_active: boolean;
+  starting_dtr: number | null;
+  starting_dtr_season: string | null;
 }
 
 /**
@@ -380,7 +382,7 @@ export async function computeSeasonSimulation(
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(
     supabase,
     "players",
-    "id, name, name_key, club, class, pfw, classement_points, age_category, is_active",
+    "id, name, name_key, club, class, pfw, classement_points, age_category, is_active, starting_dtr, starting_dtr_season",
   );
   log(`  ${supabasePlayers.length} players.`);
 
@@ -494,6 +496,7 @@ export async function computeSeasonSimulation(
 
   const seasonStartExportByFlttId = loadSeasonStartExport(log);
 
+  let adminStartHits = 0;
   let priorSeasonHits = 0;
   let returningOverrideHits = 0;
   let overrideHits = 0;
@@ -543,7 +546,18 @@ export async function computeSeasonSimulation(
     // C1) straight to the flat newcomer/age default, skipping every real
     // fallback meant to catch exactly this case.
     let startingTtr: number | null = null;
-    const priorSeasonDtr = priorSeasonDtrByPlayerId.get(p.id);
+    // A starting DTR Jeff entered on the admin player form for THIS season
+    // beats every source, the prior-season carry-forward included: it's an
+    // explicit "start them here", the same call a pinned `ttr` in
+    // SEASON_START_OVERRIDES makes, just without a code change. One entered
+    // for an earlier season is ignored (see the starting_dtr migration).
+    const adminStartingDtr =
+      p.starting_dtr != null && p.starting_dtr_season === SEASON_LABEL ? p.starting_dtr : null;
+    if (adminStartingDtr != null) {
+      adminStartHits++;
+      startingTtr = adminStartingDtr;
+    }
+    const priorSeasonDtr = startingTtr == null ? priorSeasonDtrByPlayerId.get(p.id) : undefined;
     if (priorSeasonDtr != null) {
       priorSeasonHits++;
       startingTtr = priorSeasonDtr;
@@ -638,8 +652,10 @@ export async function computeSeasonSimulation(
       // normally). Every other source seeds 0, so the checkpoints apply the
       // real deduction visibly, in full, the first time this feature
       // evaluates them.
+      // An admin-set starting DTR is treated like case (2): Jeff's number is
+      // where they start, so no deduction is taken off it.
       inactivityDeductionAlreadyApplied:
-        returningPfwOverride != null
+        adminStartingDtr != null || returningPfwOverride != null
           ? INACTIVITY_DEDUCTION_STAGE_3_TOTAL
           : priorSeasonDtr != null
             ? inactivityDeductionAppliedAsOf(lastMatchIsoDateBeforeSeason, SEASON_START_ISO)
@@ -647,7 +663,8 @@ export async function computeSeasonSimulation(
     };
   });
   log(
-    `  ${priorSeasonHits} of ${players.length} players carried forward their prior-season DTR; ` +
+    `  ${adminStartHits} of ${players.length} players used a starting DTR set on the admin page; ` +
+      `${priorSeasonHits} more carried forward their prior-season DTR; ` +
       `${returningOverrideHits} more used a fresh federation PFW as a returning player; ` +
       `${overrideHits} more used a manual season-start correction; ${youthErsteinstufungHits} more ` +
       `used their age-based Ersteinstufung (D3 youth); ${exportHits} more from FLTT's own export; ` +

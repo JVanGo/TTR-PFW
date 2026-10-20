@@ -12,6 +12,9 @@ export interface AdminPlayerRow {
   pfw: number;
   club: string | null;
   is_active: boolean;
+  classement_points: number | null;
+  age_category: string | null;
+  starting_dtr: number | null;
 }
 
 interface Props {

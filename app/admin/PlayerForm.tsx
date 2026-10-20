@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { PLAYER_CLASSES } from "@/lib/conversions";
+import { AGE_CATEGORIES } from "@/lib/age-categories";
 import { createPlayer, updatePlayer, type ActionState } from "./actions";
 
 const INITIAL: ActionState = { status: "idle" };
@@ -14,6 +15,8 @@ interface PlayerFormValues {
   club?: string | null;
   is_active?: boolean;
   classement_points?: number | string | null;
+  age_category?: string | null;
+  starting_dtr?: number | null;
 }
 
 interface Props {
@@ -77,6 +80,37 @@ export function PlayerForm({ mode, initial }: Props) {
         />
         <span className="text-muted-foreground text-xs">
           Only used for C1–D3 · leave blank otherwise.
+        </span>
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Age category</span>
+        <select
+          name="age_category"
+          defaultValue={initial?.age_category ?? ""}
+          className="border-input bg-background rounded-md border px-3 py-2 text-sm"
+        >
+          <option value="">Adult (no age group)</option>
+          {AGE_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium">Starting DTR (this season)</span>
+        <input
+          name="starting_dtr"
+          type="number"
+          step="1"
+          min={0}
+          max={3000}
+          placeholder="Automatic"
+          defaultValue={initial?.starting_dtr ?? ""}
+          className="border-input bg-background rounded-md border px-3 py-2 text-sm"
+        />
+        <span className="text-muted-foreground text-xs">
+          Leave blank to calculate it automatically · applies from the next weekly update.
         </span>
       </label>
       <label className="flex flex-col gap-1 text-sm sm:col-span-2">
