@@ -33,7 +33,11 @@ export const INACTIVITY_DEDUCTION_STAGE_3_TOTAL = 120;
 const INACTIVITY_DEDUCTION_COMPETITION = "Inaktivitätsabzug";
 const INACTIVITY_DEDUCTION_OPPONENT_LABEL = "Inactivity deduction";
 
-const PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 15, 2: 10, 3: 5 };
+// Lowered from 15/10/5 on 2026-10-20 (Jeff's call): every placement bonus is
+// new rating created from nothing, and at 15/10/5 it was the main source of
+// rating inflation, concentrated on the players who enter the most
+// tournaments.
+export const PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 12, 2: 8, 3: 4 };
 
 // Competitions that never count towards the rating at all — no per-game
 // score, no placement bonus either, unlike TOU club tournaments.

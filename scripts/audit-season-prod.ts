@@ -66,7 +66,7 @@ import {
   previousSeasonLabel,
   SEASON_LABEL,
 } from "../lib/import/ttr-simulation-io";
-import type { OutputMatchRow } from "../lib/import/ttr-simulation";
+import { PLACEMENT_TTR_BONUS, type OutputMatchRow } from "../lib/import/ttr-simulation";
 import { fetchLatestTtrByPlayer } from "../lib/supabase/latestTtr";
 import { newPlayerChecks, type Finding, type PlayerRow } from "../lib/import/new-player-checks";
 
@@ -168,9 +168,9 @@ function diffKey(row: {
 
 const VALID_K_FACTORS = new Set([16, 20, 24, 28, 32]);
 const PLACEMENT_BONUS_BY_LABEL: Record<string, number> = {
-  "1st": 15,
-  "2nd": 10,
-  "3rd": 5,
+  "1st": PLACEMENT_TTR_BONUS[1],
+  "2nd": PLACEMENT_TTR_BONUS[2],
+  "3rd": PLACEMENT_TTR_BONUS[3],
 };
 
 function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>): Finding[] {
