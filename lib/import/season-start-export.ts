@@ -6,14 +6,18 @@ import { isPlayerClass, usesClassementPoints, type PlayerClass } from "@/lib/con
 const CLASSEMENT_MIN = -5.5;
 const CLASSEMENT_MAX = 11.5;
 
-// FLTT itself promotes a classement-class player (C1-D3) to B3 or higher at
-// the start of the season if their performancePf already clears this bar —
-// confirmed with Jeff (2026-08-08) via SUN Pumo: export row says C1, but he
-// actually started the season as B3. So a classement row at or above this
-// PFW uses the PFW regression like a B1-B3 row, ignoring its classement
-// points entirely (rather than the flat classement-points formula, which
-// tops out well below what this PFW would regress to).
+// FLTT itself promotes a C1 player to B3 or higher at the start of the
+// season if their performancePf already clears this bar — confirmed with
+// Jeff (2026-08-08) via SUN Pumo: export row says C1, but he actually
+// started the season as B3. So a C1 row at or above this PFW uses the PFW
+// regression like a B1-B3 row, ignoring its classement points entirely
+// (rather than the flat classement-points formula, which tops out well below
+// what this PFW would regress to). Limited to C1 on 2026-10-23: none of the
+// C2/C3 rows over the bar in the 25/26 export were actually promoted (all
+// still C2/C3 in FLTT's list), and treating them as B3 jumped e.g.
+// SCHWEICHER Loïc (C3) three classes, +303 at season start.
 const CLASSEMENT_PFW_PROMOTION_THRESHOLD = 215;
+const PROMOTABLE_CLASS: PlayerClass = "C1";
 
 // FLTT can produce a membership export snapshotting every player's class,
 // classement points, and PFW as of a given date — the authoritative source
@@ -92,7 +96,7 @@ export function parseSeasonStartExport(buffer: ArrayBuffer | Buffer): SeasonStar
     }
 
     const promoted =
-      usesClassementPoints(cls) && pfwUsable && pfwRaw >= CLASSEMENT_PFW_PROMOTION_THRESHOLD;
+      cls === PROMOTABLE_CLASS && pfwUsable && pfwRaw >= CLASSEMENT_PFW_PROMOTION_THRESHOLD;
 
     out.push({
       flttPlayerId,

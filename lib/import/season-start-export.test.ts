@@ -28,21 +28,30 @@ describe("parseSeasonStartExport", () => {
     ]);
   });
 
-  it("promotes a classement-class row (C1-D3) to B3 when performancePf clears the promotion threshold", () => {
+  it("promotes a C1 row to B3 when performancePf clears the promotion threshold", () => {
     const buf = buildWorkbook([
       { licenceNumber: 1, ranking: "C1", rankingPoints: 11.5, performancePf: 215 },
-      { licenceNumber: 2, ranking: "D3", rankingPoints: 0, performancePf: 300 },
       { licenceNumber: 3, ranking: "C1", rankingPoints: 11.5, performancePf: 214.99 },
     ]);
     const parsed = parseSeasonStartExport(buf);
     expect(parsed[0]).toEqual({ flttPlayerId: "1", class: "B3", pfw: 215, classementPoints: 11.5 });
-    expect(parsed[1]).toEqual({ flttPlayerId: "2", class: "B3", pfw: 300, classementPoints: 0 });
-    expect(parsed[2]).toEqual({
+    expect(parsed[1]).toEqual({
       flttPlayerId: "3",
       class: "C1",
       pfw: 214.99,
       classementPoints: 11.5,
     });
+  });
+
+  it("doesn't promote C2-D3 rows even above the threshold", () => {
+    const buf = buildWorkbook([
+      { licenceNumber: 1, ranking: "C3", rankingPoints: 2.5, performancePf: 221.26 },
+      { licenceNumber: 2, ranking: "D3", rankingPoints: 0, performancePf: 300 },
+    ]);
+    expect(parseSeasonStartExport(buf)).toEqual([
+      { flttPlayerId: "1", class: "C3", pfw: 221.26, classementPoints: 2.5 },
+      { flttPlayerId: "2", class: "D3", pfw: 300, classementPoints: 0 },
+    ]);
   });
 
   it("doesn't promote a non-classement class (B1-A1) even above the threshold — already PFW-based", () => {
