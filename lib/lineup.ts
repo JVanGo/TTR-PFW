@@ -131,16 +131,8 @@ function allowedSlotsById(players: LineupPlayer[], teamSizes: number[]): Map<str
   return allowed;
 }
 
-/**
- * Every index (other than `fromIndex` itself) that the player at `fromIndex`
- * could legally move to — i.e. dropping them there, shifting everyone else
- * up or down by one, still satisfies isValidArrangement AND keeps every
- * player within their own allowed range (allowedSlotsById). Assumes
- * `players` is already valid before the move (true for anything this tool
- * produces: buildTeams's sorted output is always valid, and every accepted
- * move keeps it that way).
- */
-export function legalTargetIndices(
+/** Every legal target under the DTR tolerance rule alone — see legalTargetIndices. */
+function toleranceTargets(
   players: LineupPlayer[],
   fromIndex: number,
   teamSizes: number[],
@@ -149,6 +141,58 @@ export function legalTargetIndices(
   return pairwiseTargets(players, fromIndex, teamSizes).filter((to) =>
     movePlayer(players, fromIndex, to).every((p, i) => allowed.get(p.id)?.has(i) ?? true),
   );
+}
+
+/**
+ * Every index (other than `fromIndex` itself) that the player at `fromIndex`
+ * could legally move to — i.e. dropping them there, shifting everyone else
+ * up or down by one, still satisfies isValidArrangement AND keeps every
+ * player within their own allowed range (allowedSlotsById). Assumes
+ * `players` is already valid before the move (true for anything this tool
+ * produces: buildTeams's sorted output is always valid, and every accepted
+ * move keeps it that way).
+ *
+ * The first `adjacentOnlyTeams` teams (a club's NL1–NL3 teams in
+ * Championnat Seniors) follow a stricter rule instead, with no DTR
+ * tolerance at all: a player there may only swap with the spot directly
+ * above or below — across team boundaries too — and nobody may end up more
+ * than one spot away from their DTR-sorted position, so after #1 and #2
+ * swap, the original #1 can't carry on down to #3. The remaining teams keep
+ * the tolerance rule among themselves.
+ */
+export function legalTargetIndices(
+  players: LineupPlayer[],
+  fromIndex: number,
+  teamSizes: number[],
+  adjacentOnlyTeams = 0,
+): number[] {
+  const adjacentOnlySlots = teamSizes.slice(0, adjacentOnlyTeams).reduce((a, b) => a + b, 0);
+  if (adjacentOnlySlots === 0) return toleranceTargets(players, fromIndex, teamSizes);
+
+  const sortedSlot = new Map(sortByDtr(players).map((p, i) => [p.id, i]));
+  const staysNearSortedSlot = (to: number) =>
+    movePlayer(players, fromIndex, to).every((p, i) => {
+      const sorted = sortedSlot.get(p.id) ?? i;
+      return (i >= adjacentOnlySlots && sorted >= adjacentOnlySlots) || Math.abs(i - sorted) <= 1;
+    });
+
+  const neighbors = [fromIndex - 1, fromIndex + 1].filter(
+    (to) =>
+      to >= 0 &&
+      to < players.length &&
+      Math.min(fromIndex, to) < adjacentOnlySlots &&
+      staysNearSortedSlot(to),
+  );
+  if (fromIndex < adjacentOnlySlots) return neighbors;
+
+  const rest = toleranceTargets(
+    players.slice(adjacentOnlySlots),
+    fromIndex - adjacentOnlySlots,
+    teamSizes.slice(adjacentOnlyTeams),
+  )
+    .map((to) => to + adjacentOnlySlots)
+    .filter(staysNearSortedSlot);
+  return [...neighbors, ...rest].sort((a, b) => a - b);
 }
 
 /**

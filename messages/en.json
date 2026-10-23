@@ -68,7 +68,9 @@
     "clickToMove": "Click a player to see where they could legally move.",
     "clickHighlighted": "Click a highlighted spot to move them there, or click them again to cancel.",
     "team": "Team {number}",
-    "checkPlayers": "Check players below to start building teams."
+    "checkPlayers": "Check players below to start building teams.",
+    "adjacentOnlyHint": "{count, plural, one {Team 1 plays in NL1–NL3: its players can only swap with the spot directly above or below, regardless of DTR.} other {Teams 1–# play in NL1–NL3: their players can only swap with the spot directly above or below (across those teams too), regardless of DTR.}}",
+    "adjacentOnlyBadge": "NL1–NL3"
   },
   "PlayerPage": {
     "backToRanking": "← Back to ranking",
@@ -132,6 +134,7 @@
     "tableEveryone": "Everyone",
     "tableYouth": "Either player is a youth player",
     "lineupRulesFootnote": "The rule is checked between every pair of players in the lineup, not just neighbors: a chain of small swaps can otherwise add up to two players ending up further apart than the limit allows, even though each individual swap looked fine.",
+    "lineupRulesAdjacentOnly": "In Championnat Seniors, teams playing in NL1–NL3 follow a stricter rule instead: a player there can only swap with the spot directly above or below them — including across two of the club's NL teams — no matter how close their DTRs are, and nobody can end up more than one spot away from their DTR-ranked position. The club's teams below NL3 keep the limits in the table above.",
     "furtherReadingHeading": "Further reading",
     "furtherReadingFlttTitle": "FLTT IR-22 Performance System (PDF)",
     "furtherReadingFlttBody": " — the official PFW computation.",

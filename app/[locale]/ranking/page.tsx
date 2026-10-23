@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { getRankingRows, CURRENT_SEASON, type RankingRow } from "@/lib/ranking";
 import { getCompetitions, type Competition } from "@/lib/competitions";
-import { getCompetitionTeamCounts } from "@/lib/competitionTeamCounts";
+import { getCompetitionTeamCounts, type ClubTeamCount } from "@/lib/competitionTeamCounts";
 import { ClubRankingView } from "@/components/ranking/ClubRankingView";
 import { RankingBrowser } from "@/components/ranking/RankingBrowser";
 import { PAGE_SIZE } from "@/components/ranking/RankingTableRows";
@@ -61,7 +61,7 @@ function RankingFiltered({
   all: RankingRow[];
   initialClub: string;
   competitions: Competition[];
-  teamCountsByCompetition: Record<string, Record<string, number>>;
+  teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>;
 }) {
   const clubSet = new Set<string>();
   for (const p of all) {

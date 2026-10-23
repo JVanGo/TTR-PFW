@@ -74,7 +74,11 @@ export async function importTeamCounts(_: ActionState, formData: FormData): Prom
     ]);
 
     const clubs = Array.from(new Set(players.map((p) => p.club).filter((c): c is string => !!c)));
-    const { counts, unmatched } = extractTeamCounts(clubs, mainText, topTierText);
+    const { counts, adjacentOnlyCounts, unmatched } = extractTeamCounts(
+      clubs,
+      mainText,
+      topTierText,
+    );
 
     if (counts.size > 0) {
       const rows = Array.from(counts, ([club, team_count]) => ({
@@ -82,6 +86,7 @@ export async function importTeamCounts(_: ActionState, formData: FormData): Prom
         club,
         season,
         team_count,
+        adjacent_only_team_count: adjacentOnlyCounts.get(club) ?? 0,
       }));
       const { error } = await supabase
         .from("competition_club_team_counts")
@@ -92,7 +97,10 @@ export async function importTeamCounts(_: ActionState, formData: FormData): Prom
     revalidatePath("/admin/competitions/team-counts");
     revalidatePath("/ranking");
 
-    const found = Array.from(counts, ([club, count]) => `${club}: ${count}`).join(", ");
+    const found = Array.from(counts, ([club, count]) => {
+      const adjacentOnly = adjacentOnlyCounts.get(club) ?? 0;
+      return `${club}: ${count}${adjacentOnly > 0 ? ` (${adjacentOnly} in NL1–NL3)` : ""}`;
+    }).join(", ");
     const message =
       `Updated ${counts.size} club${counts.size === 1 ? "" : "s"}. ` +
       (counts.size > 0 ? `Found — ${found}. ` : "") +

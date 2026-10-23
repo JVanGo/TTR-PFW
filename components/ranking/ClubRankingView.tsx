@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { RankingRow } from "@/lib/ranking";
 import type { Competition } from "@/lib/competitions";
+import type { ClubTeamCount } from "@/lib/competitionTeamCounts";
 import { RankingTable } from "@/components/ranking/RankingTable";
 import { LineupBuilder } from "@/components/ranking/LineupBuilder";
 
@@ -11,7 +12,7 @@ interface Props {
   clubs: string[];
   initialClub: string;
   competitions: Competition[];
-  teamCountsByCompetition: Record<string, Record<string, number>>;
+  teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>;
 }
 
 /**

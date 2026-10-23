@@ -57,4 +57,47 @@ describe("extractTeamCounts", () => {
     const result = extractTeamCounts(["Hueschtert-Folscht"], main, topTier);
     expect(result.counts.get("Hueschtert-Folscht")).toBe(1);
   });
+
+  describe("adjacentOnlyCounts (teams in NL1–NL3)", () => {
+    // Real 2026-2027 shape: headings repeat per match day, and a page header
+    // can sit in the middle of a section without ending it.
+    const main = [
+      "S-1.1 19.09.2026",
+      "NL 2",
+      "Recken 2 - Ettelbréck 1",
+      "NL 3",
+      "Scheierbierg 1 - Scheierbierg 2",
+      "Houwald 2 - Houwald 3",
+      "F L T T : Mannschaftsmeisterschaft 'SENIORS' 2026 - 2027 : SPIELPLAN (Teilrunde 1)",
+      "Lënster 2 - Union 2",
+      "PROM - DIS 1",
+      "Recken 3 - Briddel 1",
+      "DIV 1 - DIS 1",
+      "Houwald 5 - Ell 2",
+      "S-1.2 26.09.2026",
+      "NL 3",
+      "Lënster 1 - Féngeg 1",
+    ].join("\n");
+    const topTier = "Recken Union Lëtzebuerg\nHouwald Lénger";
+    const clubs = ["Recken", "Houwald", "Scheierbierg", "Lënster", "Ettelbréck", "Briddel", "Ell"];
+    const result = extractTeamCounts(clubs, main, topTier);
+
+    it("counts the top-tier team plus every NL 2 / NL 3 team", () => {
+      expect(result.adjacentOnlyCounts.get("Recken")).toBe(2);
+      expect(result.adjacentOnlyCounts.get("Houwald")).toBe(3);
+      expect(result.adjacentOnlyCounts.get("Scheierbierg")).toBe(2);
+      expect(result.adjacentOnlyCounts.get("Lënster")).toBe(2);
+      expect(result.adjacentOnlyCounts.get("Ettelbréck")).toBe(1);
+    });
+
+    it("is 0 for a club whose teams all play below NL 3", () => {
+      expect(result.adjacentOnlyCounts.get("Briddel")).toBe(0);
+      expect(result.adjacentOnlyCounts.get("Ell")).toBe(0);
+    });
+
+    it("doesn't change the total team count", () => {
+      expect(result.counts.get("Recken")).toBe(3);
+      expect(result.counts.get("Houwald")).toBe(5);
+    });
+  });
 });

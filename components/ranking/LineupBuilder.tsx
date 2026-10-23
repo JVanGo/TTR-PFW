@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { buildTeams, legalTargetIndices, movePlayer, type LineupPlayer } from "@/lib/lineup";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/age-categories";
 import type { Competition } from "@/lib/competitions";
+import type { ClubTeamCount } from "@/lib/competitionTeamCounts";
 import { Button } from "@/components/ui/button";
 
 export interface LineupRosterPlayer extends LineupPlayer {
@@ -16,7 +17,7 @@ interface Props {
   club: string;
   roster: LineupRosterPlayer[];
   competitions: Competition[];
-  teamCountsByCompetition: Record<string, Record<string, number>>;
+  teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>;
 }
 
 const MAX_TEAMS = 10;
@@ -51,12 +52,12 @@ function isEligibleForMaxAge(player: LineupRosterPlayer, maxAgeCategory: AgeCate
 function resolveTeamCount(
   activeCompetition: Competition | null,
   club: string,
-  teamCountsByCompetition: Record<string, Record<string, number>>,
+  teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>,
   fallback: number,
 ): number {
   if (activeCompetition?.fixedTeamCount != null) return activeCompetition.fixedTeamCount;
   const known = activeCompetition
-    ? teamCountsByCompetition[activeCompetition.id]?.[club]
+    ? teamCountsByCompetition[activeCompetition.id]?.[club]?.teamCount
     : undefined;
   return known ?? fallback;
 }
@@ -103,6 +104,13 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
     smallTrailingCount,
   );
   const needed = teamSizes.reduce((a, b) => a + b, 0);
+  // Never more than the teams actually being built (the count is editable).
+  const adjacentOnlyTeams = Math.min(
+    activeCompetition
+      ? (teamCountsByCompetition[activeCompetition.id]?.[club]?.adjacentOnlyTeamCount ?? 0)
+      : 0,
+    teamSizes.length,
+  );
 
   const eligibleRoster = activeCompetition?.maxAgeCategory
     ? sortedRoster.filter((p) => isEligibleForMaxAge(p, activeCompetition.maxAgeCategory!))
@@ -171,7 +179,9 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
   }
 
   const legalTargets =
-    movingIndex !== null ? new Set(legalTargetIndices(arrangement, movingIndex, teamSizes)) : null;
+    movingIndex !== null
+      ? new Set(legalTargetIndices(arrangement, movingIndex, teamSizes, adjacentOnlyTeams))
+      : null;
 
   function toggle(id: string) {
     setSelectedIds((prev) => {
@@ -301,6 +311,11 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
           <p className="text-muted-foreground mb-2 text-xs">
             {movingIndex === null ? t("clickToMove") : t("clickHighlighted")}
           </p>
+          {adjacentOnlyTeams > 0 && (
+            <p className="text-muted-foreground mb-2 text-xs">
+              {t("adjacentOnlyHint", { count: adjacentOnlyTeams })}
+            </p>
+          )}
           <div className="flex flex-col">
             {teamSizes.map((size, teamIndex) => {
               const start = teamSizes.slice(0, teamIndex).reduce((a, b) => a + b, 0);
@@ -308,6 +323,7 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
                 <div key={teamIndex} className={teamIndex > 0 ? "mt-3 border-t-2 pt-3" : ""}>
                   <p className="text-muted-foreground mb-1 text-xs font-medium uppercase">
                     {t("team", { number: teamIndex + 1 })}
+                    {teamIndex < adjacentOnlyTeams && ` · ${t("adjacentOnlyBadge")}`}
                   </p>
                   {arrangement.slice(start, start + size).map((p, slotIndex) => {
                     const i = start + slotIndex;

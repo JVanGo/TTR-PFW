@@ -79,6 +79,7 @@ export default async function AboutPage() {
         </table>
       </div>
       <p className="text-muted-foreground mt-2 text-sm leading-6">{t("lineupRulesFootnote")}</p>
+      <p className="text-muted-foreground mt-2 text-sm leading-6">{t("lineupRulesAdjacentOnly")}</p>
 
       <h2 className="mt-8 text-lg font-semibold">{t("furtherReadingHeading")}</h2>
       <ul className="text-muted-foreground mt-2 list-disc pl-6 text-sm leading-6">

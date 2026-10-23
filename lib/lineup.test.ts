@@ -143,6 +143,49 @@ describe("legalTargetIndices", () => {
     const janFirst = movePlayer(sorted, 5, 0);
     expect(legalTargetIndices(janFirst, 1, [4, 4])).toEqual([0]);
   });
+
+  describe("with adjacent-only (NL1–NL3) teams", () => {
+    // Gaps far beyond any tolerance, so only the adjacency rule can allow a move.
+    const lineup = [
+      player("a", 2000),
+      player("b", 1900),
+      player("c", 1800),
+      player("d", 1700),
+      player("e", 1600),
+      player("f", 1500),
+      player("g", 1490),
+      player("h", 1480),
+      player("i", 1470),
+      player("j", 1460),
+      player("k", 1450),
+      player("l", 1440),
+    ];
+
+    it("lets #1 swap only with #2, and a middle spot only with its neighbors, ignoring DTR gaps", () => {
+      expect(legalTargetIndices(lineup, 0, [4, 4, 4], 1)).toEqual([1]);
+      expect(legalTargetIndices(lineup, 1, [4, 4, 4], 1)).toEqual([0, 2]);
+    });
+
+    it("swaps across a boundary between two adjacent-only teams", () => {
+      expect(legalTargetIndices(lineup, 3, [4, 4, 4], 2)).toEqual([2, 4]);
+      expect(legalTargetIndices(lineup, 4, [4, 4, 4], 2)).toEqual([3, 5]);
+    });
+
+    it("never lets anyone drift more than one spot from their DTR-sorted position", () => {
+      const swapped = movePlayer(lineup, 0, 1); // b, a, c, ...
+      // a (now 2nd) can only go back up; c can't jump above a.
+      expect(legalTargetIndices(swapped, 1, [4, 4, 4], 1)).toEqual([0]);
+      expect(legalTargetIndices(swapped, 2, [4, 4, 4], 1)).toEqual([3]);
+    });
+
+    it("keeps the tolerance rule for the teams below, but no jumps into the adjacent-only teams", () => {
+      // f (1500) still moves within tolerance among the lower teams (not
+      // above e, 100 stronger), and has no route up into Team 1 at all.
+      expect(legalTargetIndices(lineup, 5, [4, 4, 4], 1)).toEqual([6, 7, 8]);
+      // e, right below Team 1, only gets the single adjacent swap upward.
+      expect(legalTargetIndices(lineup, 4, [4, 4, 4], 1)).toEqual([3]);
+    });
+  });
 });
 
 describe("buildTeams", () => {
