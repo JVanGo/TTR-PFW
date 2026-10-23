@@ -156,16 +156,41 @@ async function streamToString(body: unknown): Promise<string> {
   return Buffer.concat(chunks).toString("utf-8");
 }
 
+/** Longest a single R2 request (including reading its body) may take before
+ * it's treated as failed. A normal player file arrives in well under a
+ * second; 60s leaves plenty of room for a slow-but-alive connection. */
+const R2_ATTEMPT_TIMEOUT_MS = 60_000;
+
+/** Rejects (and aborts the request) if `fn` hasn't settled within `ms` — a
+ * connection that goes silent instead of erroring never rejects on its own. */
+async function withTimeout<T>(fn: (signal: AbortSignal) => Promise<T>, ms: number): Promise<T> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error(`R2 request timed out after ${ms / 1000}s`));
+    }, ms);
+  });
+  try {
+    return await Promise.race([fn(controller.signal), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Retries a single transient socket drop (e.g. ECONNRESET) talking to R2 —
  * confirmed in prod 2026-10-08, where one dropped connection ~5000 files into
  * an 8-minute, 5,116-file catalog fetch killed the whole weekly sync. Waits
  * 1s/2s between the 3 attempts; a non-transient failure (e.g. bad creds)
- * still surfaces immediately on the final attempt. */
-async function withR2Retry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+ * still surfaces immediately on the final attempt. Each attempt is also
+ * capped at R2_ATTEMPT_TIMEOUT_MS — on 2026-10-23 a connection hung silently
+ * and stalled the weekly sync for 20+ minutes with no error to retry on. */
+async function withR2Retry<T>(fn: (signal: AbortSignal) => Promise<T>, attempts = 3): Promise<T> {
   let lastErr: unknown;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      return await fn();
+      return await withTimeout(fn, R2_ATTEMPT_TIMEOUT_MS);
     } catch (err) {
       lastErr = err;
       if (attempt < attempts) {
@@ -187,9 +212,10 @@ export async function fetchPlayerHistoryFromR2(flttPlayerId: string): Promise<Pl
     return sanitizeHistoryNames(JSON.parse(readFileSync(cachePath, "utf-8")) as PlayerHistory);
   }
 
-  const text = await withR2Retry(async () => {
+  const text = await withR2Retry(async (abortSignal) => {
     const response = await r2Client().send(
       new GetObjectCommand({ Bucket: r2Bucket(), Key: `player-histories/${flttPlayerId}.json` }),
+      { abortSignal },
     );
     return streamToString(response.Body);
   });
@@ -238,12 +264,16 @@ export async function listAllPlayerHistoryKeys(): Promise<string[]> {
   const keys: string[] = [];
   let continuationToken: string | undefined;
   do {
-    const page = await client.send(
-      new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: "player-histories/",
-        ContinuationToken: continuationToken,
-      }),
+    const token = continuationToken;
+    const page = await withR2Retry((abortSignal) =>
+      client.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: "player-histories/",
+          ContinuationToken: token,
+        }),
+        { abortSignal },
+      ),
     );
     for (const obj of page.Contents ?? []) {
       if (obj.Key?.endsWith(".json")) keys.push(obj.Key);
