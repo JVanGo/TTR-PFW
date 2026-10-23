@@ -35,6 +35,8 @@ import {
   RETURNING_PLAYER_PFW_OVERRIDES,
 } from "@/lib/import/season-start-overrides";
 import { FLTT_ID_OVERRIDES } from "@/lib/import/flttid-overrides";
+import { resolveClubAlias } from "@/lib/import/club-aliases";
+import { PLAYER_NAME_ALIASES } from "@/lib/import/player-name-aliases";
 import {
   simulateSeason,
   ersteinstufungFor,
@@ -273,7 +275,12 @@ function resolvePlayer(
   const candidates = playersByNameKey.get(candidateNameKey) ?? [];
   if (candidates.length <= 1) return candidates[0] ?? null;
   if (knownClub == null) return null;
-  return candidates.find((c) => clubKey(c.club) === clubKey(knownClub)) ?? null;
+  // A prior-season row can still name a since-merged club (e.g. "Bech" for
+  // today's Mëllerdall), which would otherwise match neither same-name player.
+  const known = clubKey(resolveClubAlias(knownClub));
+  return (
+    candidates.find((c) => c.club != null && clubKey(resolveClubAlias(c.club)) === known) ?? null
+  );
 }
 
 export interface RunSeasonSimulationResult {
@@ -474,6 +481,14 @@ export async function computeSeasonSimulation(
     const list = playersByNameKey.get(p.name_key);
     if (list) list.push(p);
     else playersByNameKey.set(p.name_key, [p]);
+  }
+  // A renamed player's old name (still on opponents' rows) resolves to their
+  // renamed row — unless someone else genuinely still has that name.
+  for (const [oldName, newName] of Object.entries(PLAYER_NAME_ALIASES)) {
+    const renamed = playersByNameKey.get(nameKey(newName));
+    if (renamed && !playersByNameKey.has(nameKey(oldName))) {
+      playersByNameKey.set(nameKey(oldName), renamed);
+    }
   }
 
   // flttPlayerId -> {nameKey, club}, via the Mongo catalog (our own players
