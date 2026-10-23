@@ -10,6 +10,8 @@ import {
   findPerformanceGapForfeits,
   FORFEIT_EXCLUSIONS,
   matchForfeits,
+  PERFORMANCE_GAP_EXEMPT_PLAYERS,
+  performanceGapMatchKey,
   readForfeitsFile,
   type MatchCandidateRow,
   type PerformanceGapRow,
@@ -290,6 +292,39 @@ export interface SeasonSimulationResult {
 }
 
 /**
+ * The forfeits currently stored for SEASON_LABEL, as performanceGapMatchKey()s
+ * — read before the season is replaced, so a re-run keeps forfeits whose
+ * matches have since aged past the Performance-window cutoff (see
+ * findPerformanceGapForfeits).
+ */
+async function fetchStoredForfeitKeys(supabase: SupabaseClient): Promise<Set<string>> {
+  const rows: { player_id: string; match_date: string; opponent_name: string }[] = [];
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("matches")
+      .select("player_id, match_date, opponent_name")
+      .eq("season", SEASON_LABEL)
+      .eq("result", "FF")
+      .order("id")
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(`fetchStoredForfeitKeys: ${error.message}`);
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) break;
+  }
+  if (rows.length === 0) return new Set();
+
+  const players = await fetchAllRows<{ id: string; name: string }>(supabase, "players", "id, name");
+  const nameById = new Map(players.map((p) => [p.id, p.name]));
+  const keys = new Set<string>();
+  for (const r of rows) {
+    const name = nameById.get(r.player_id);
+    if (name) keys.add(performanceGapMatchKey(r.match_date, name, r.opponent_name));
+  }
+  return keys;
+}
+
+/**
  * Fetches R2/Supabase inputs and runs the season simulation — everything
  * `runSeasonSimulation` does except the destructive delete+insert into
  * `matches`. Split out so an audit script can recompute the season and diff
@@ -358,10 +393,14 @@ export async function computeSeasonSimulation(
     playerName: seasonMatches[i].playerName,
     hasPerformance: seasonMatches[i].hasPerformance,
   }));
+  const storedForfeitKeys = await fetchStoredForfeitKeys(supabase);
+  log(`  ${storedForfeitKeys.size} forfeits already stored for ${SEASON_LABEL} kept eligible.`);
   const { forfeitedRowIds: performanceGapRowIds } = findPerformanceGapForfeits(
     performanceGapRows,
     xlsxAndMarkerForfeitedRowIds,
     new Date().toISOString().slice(0, 10),
+    PERFORMANCE_GAP_EXEMPT_PLAYERS,
+    storedForfeitKeys,
   );
   if (performanceGapRowIds.size > 0) {
     log(

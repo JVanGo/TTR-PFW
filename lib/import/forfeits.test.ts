@@ -11,6 +11,8 @@ import {
   matchForfeits,
   parseForfeits,
   parseSpT,
+  PERFORMANCE_GAP_EXEMPT_PLAYERS,
+  performanceGapMatchKey,
 } from "./forfeits";
 import type { ForfeitOverride } from "./forfeit-overrides";
 
@@ -556,6 +558,37 @@ describe("findPerformanceGapForfeits", () => {
     ];
     const result = findPerformanceGapForfeits(rows, new Set(), NOW);
     expect(result.forfeitedRowIds.size).toBe(0);
+  });
+
+  // Decided with Jeff 2026-10-23: the age cutoff counts from today, so a
+  // later re-run of a season must not lose forfeits it already found, and
+  // a 0-0 result is still caught however old — but no other old score is
+  // newly flagged.
+  it("still checks an old match if it's already a stored forfeit or a 0-0 result", () => {
+    const recentPresent = row({
+      id: "recent-present",
+      opponentName: "SOMEONE ELSE",
+      isoDate: "2026-05-01",
+      hasPerformance: true,
+    });
+    const rows = [
+      row({ id: "old-stored", isoDate: "2025-01-01", opponentName: "STORED Opponent" }),
+      row({ id: "old-zero", isoDate: "2025-01-02", score: "0-0" }),
+      row({ id: "old-other", isoDate: "2025-01-03" }),
+      recentPresent,
+    ];
+    // Stored from the opponent's side — the key doesn't depend on which side.
+    const stored = new Set([
+      performanceGapMatchKey("2025-01-01", "STORED Opponent", "HANSEN Finja"),
+    ]);
+    const result = findPerformanceGapForfeits(
+      rows,
+      new Set(),
+      NOW,
+      PERFORMANCE_GAP_EXEMPT_PLAYERS,
+      stored,
+    );
+    expect(result.forfeitedRowIds).toEqual(new Set(["old-stored", "old-zero"]));
   });
 
   // Confirmed for real against fltt.lu (2026-10-02): MINDEN Christophe's

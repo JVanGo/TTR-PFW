@@ -441,6 +441,21 @@ export const PERFORMANCE_GAP_EXEMPT_PLAYERS: PerformanceGapExemptPlayer[] = [
 // than risk flagging a real, already-rated match as a forfeit candidate.
 const PERFORMANCE_WINDOW_SAFETY_DAYS = 335;
 
+/**
+ * Identifies one match between two players regardless of which side's row
+ * it comes from — date plus both names, order-independent. Used to recognise
+ * a forfeit already stored for this season (see `storedForfeitKeys` in
+ * `findPerformanceGapForfeits`).
+ */
+export function performanceGapMatchKey(
+  isoDate: string,
+  playerName: string,
+  opponentName: string,
+): string {
+  const [a, b] = [nameKey(playerName), nameKey(opponentName)].sort();
+  return `${isoDate}|${a}|${b}`;
+}
+
 // The opposite edge: FLTT's own Performance-table crawl trails its
 // Rencontres (games) table by some number of days, independent of the
 // 12-month window above — confirmed for real 2026-10-02 via MINDEN
@@ -550,7 +565,13 @@ export interface PerformanceGapResult {
  * one row: the match has simply aged out of FLTT's trailing-12-months
  * Performance window (see `PERFORMANCE_WINDOW_SAFETY_DAYS` above) — filtered
  * by `nowIsoDate`, dropping anything old enough that it could plausibly have
- * rolled off already.
+ * rolled off already. Because that age is measured from today, every later
+ * re-run of a season (e.g. 25/26 redone in Oct 2026) would otherwise silently
+ * lose forfeits it found earlier — so two kinds of old row still get the
+ * check (decided with Jeff 2026-10-23): a match already stored as a forfeit
+ * for this season (`storedForfeitKeys`, read from `matches` before the
+ * season is replaced), and a 0-0 result, which can't be a played game. An
+ * old row with any other score is never newly flagged.
  *
  * A fifth cause, the opposite edge of the fourth: the match is too NEW —
  * FLTT's own Performance-table crawl trails its Rencontres table by some
@@ -577,7 +598,11 @@ export function findPerformanceGapForfeits(
   alreadyForfeited: Set<string>,
   nowIsoDate: string,
   exemptPlayers: PerformanceGapExemptPlayer[] = PERFORMANCE_GAP_EXEMPT_PLAYERS,
+  storedForfeitKeys: ReadonlySet<string> = new Set(),
 ): PerformanceGapResult {
+  const oldButStillChecked = (r: PerformanceGapRow) =>
+    r.score?.trim() === "0-0" ||
+    storedForfeitKeys.has(performanceGapMatchKey(r.isoDate, r.playerName, r.opponentName));
   const isExempt = (r: PerformanceGapRow) =>
     exemptPlayers.some(
       (p) =>
@@ -591,7 +616,7 @@ export function findPerformanceGapForfeits(
       !isTournamentCompetition(r.competition) &&
       !isNonRatedCompetition(r.competition) &&
       age >= PERFORMANCE_CRAWL_LAG_SAFETY_DAYS &&
-      age < PERFORMANCE_WINDOW_SAFETY_DAYS
+      (age < PERFORMANCE_WINDOW_SAFETY_DAYS || oldButStillChecked(r))
     );
   });
 
