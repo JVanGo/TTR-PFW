@@ -138,7 +138,7 @@
     "tableEveryone": "Everyone",
     "tableYouth": "Either player is a youth player",
     "lineupRulesFootnote": "The rule is checked between every pair of players in the lineup, not just neighbors: a chain of small swaps can otherwise add up to two players ending up further apart than the limit allows, even though each individual swap looked fine.",
-    "lineupRulesAdjacentOnly": "In Championnat Seniors, teams playing in NL1–NL3 follow a stricter rule instead: a player there can only swap with the spot directly above or below them — including across two of the club's NL teams — no matter how close their DTRs are, and nobody can end up more than one spot away from their DTR-ranked position. The club's teams below NL3 keep the limits in the table above.",
+    "lineupRulesAdjacentOnly": "In Championnat Seniors, teams playing in NL1–NL3 follow a stricter rule instead: a player there can only swap with the spot directly above or below them — including across two of the club's NL teams — no matter how far apart their DTRs are. NL teams line up by the Verbandsrangliste — every player's DTR frozen on 1 August and again on 1 January — rather than by today's DTR, and nobody can end up more than one spot away from their place on it. The club's teams below NL3 keep the limits in the table above.",
     "furtherReadingHeading": "Further reading",
     "furtherReadingFlttTitle": "FLTT IR-22 Performance System (PDF)",
     "furtherReadingFlttBody": " — the official PFW computation.",

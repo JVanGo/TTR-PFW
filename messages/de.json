@@ -138,7 +138,7 @@
     "tableEveryone": "Alle",
     "tableYouth": "Einer der Spieler ist Jugendspieler",
     "lineupRulesFootnote": "Die Regel wird zwischen jedem Spielerpaar der Aufstellung geprüft, nicht nur zwischen Nachbarn: Eine Kette kleiner Tausche kann sonst dazu führen, dass zwei Spieler am Ende weiter auseinanderliegen, als die Grenze erlaubt, obwohl jeder einzelne Tausch für sich genommen in Ordnung schien.",
-    "lineupRulesAdjacentOnly": "In der Championnat Seniors gilt für Mannschaften in NL1–NL3 stattdessen eine strengere Regel: Ein Spieler dort kann nur mit dem Platz direkt über oder unter ihm tauschen — auch über zwei NL-Mannschaften des Vereins hinweg —, egal wie nah die DTR-Werte beieinanderliegen, und niemand darf mehr als einen Platz von seiner DTR-Reihenfolge abweichen. Die Mannschaften des Vereins unterhalb von NL3 behalten die Grenzen aus der Tabelle oben.",
+    "lineupRulesAdjacentOnly": "In der Championnat Seniors gilt für Mannschaften in NL1–NL3 stattdessen eine strengere Regel: Ein Spieler dort kann nur mit dem Platz direkt über oder unter ihm tauschen — auch über zwei NL-Mannschaften des Vereins hinweg —, egal wie weit die DTR-Werte auseinanderliegen. Die NL-Mannschaften werden nach der Verbandsrangliste aufgestellt — dem DTR aller Spieler, eingefroren am 1. August und erneut am 1. Januar — statt nach dem aktuellen DTR, und niemand darf mehr als einen Platz von seinem Platz darauf abweichen. Die Mannschaften des Vereins unterhalb von NL3 behalten die Grenzen aus der Tabelle oben.",
     "furtherReadingHeading": "Weiterführende Informationen",
     "furtherReadingFlttTitle": "FLTT IR-22 Performance System (PDF)",
     "furtherReadingFlttBody": " — die offizielle PFW-Berechnung.",
