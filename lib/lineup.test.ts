@@ -4,6 +4,7 @@ import {
   isValidArrangement,
   legalTargetIndices,
   movePlayer,
+  startingOrder,
   toleranceTierFor,
   type LineupPlayer,
 } from "./lineup";
@@ -184,6 +185,76 @@ describe("legalTargetIndices", () => {
       expect(legalTargetIndices(lineup, 5, [4, 4, 4], 1)).toEqual([6, 7, 8]);
       // e, right below Team 1, only gets the single adjacent swap upward.
       expect(legalTargetIndices(lineup, 4, [4, 4, 4], 1)).toEqual([3]);
+    });
+
+    describe("ordered by the frozen Verbandsrangliste", () => {
+      // x was strongest on the snapshot but has dropped below y since.
+      const roster = [
+        player("w", 1900, { snapshotDtr: 1900 }),
+        player("x", 1550, { snapshotDtr: 1850 }),
+        player("u", 1800, { snapshotDtr: 1800 }),
+        player("v", 1750, { snapshotDtr: 1700 }),
+        player("y", 1700, { snapshotDtr: 1600 }),
+        player("z", 1650, { snapshotDtr: 1500 }),
+      ];
+
+      it("fills and orders the NL spots by snapshot, the teams below by current DTR", () => {
+        const order = startingOrder(roster, [4, 2], 1).map((p) => p.id);
+        expect(order).toEqual(["w", "x", "u", "v", "y", "z"]);
+        expect(buildTeams(roster, [4, 2], 1).map((t) => t.players.map((p) => p.id))).toEqual([
+          ["w", "x", "u", "v"],
+          ["y", "z"],
+        ]);
+      });
+
+      it("ignores the snapshot without NL teams", () => {
+        expect(startingOrder(roster, [4, 2]).map((p) => p.id)).toEqual([
+          "w",
+          "u",
+          "v",
+          "y",
+          "z",
+          "x",
+        ]);
+      });
+
+      it("uses current DTR for a player not on the snapshot", () => {
+        const newcomer = player("n", 1820, { snapshotDtr: null });
+        expect(startingOrder([...roster, newcomer], [4, 3], 1).map((p) => p.id)).toEqual([
+          "w",
+          "x",
+          "n",
+          "u",
+          "v",
+          "y",
+          "z",
+        ]);
+      });
+
+      it("measures the one-spot limit against the snapshot order", () => {
+        const order = startingOrder(roster, [4, 2], 1);
+        expect(legalTargetIndices(order, 1, [4, 2], 1)).toEqual([0, 2]);
+      });
+
+      it("blocks the last NL player from swapping down if the team below would break tolerance", () => {
+        // x's snapshot puts it last in the NL; swapped below y, its current
+        // DTR 1550 in front of z (1650) breaks the 35-point team limit.
+        const withX = (dtr: number) => [
+          player("w", 1900, { snapshotDtr: 1900 }),
+          player("u", 1850, { snapshotDtr: 1850 }),
+          player("v", 1800, { snapshotDtr: 1800 }),
+          player("x", dtr, { snapshotDtr: 1750 }),
+          player("y", 1700, { snapshotDtr: 1600 }),
+          player("z", 1650, { snapshotDtr: 1500 }),
+        ];
+        const dropped = startingOrder(withX(1550), [4, 2], 1);
+        expect(dropped.map((p) => p.id)).toEqual(["w", "u", "v", "x", "y", "z"]);
+        expect(legalTargetIndices(dropped, 3, [4, 2], 1)).toEqual([2]);
+        // With a small enough drop, the same swap is allowed.
+        expect(legalTargetIndices(startingOrder(withX(1680), [4, 2], 1), 3, [4, 2], 1)).toEqual([
+          2, 4,
+        ]);
+      });
     });
   });
 });

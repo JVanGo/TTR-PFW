@@ -1,7 +1,9 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { getRankingRows, CURRENT_SEASON, type RankingRow } from "@/lib/ranking";
 import { getCompetitions, type Competition } from "@/lib/competitions";
 import { getCompetitionTeamCounts, type ClubTeamCount } from "@/lib/competitionTeamCounts";
+import { createPublicClient } from "@/lib/supabase/public";
+import { fetchLatestSnapshotTeilrunde, snapshotDateFor } from "@/lib/verbandsrangliste";
 import { ClubRankingView } from "@/components/ranking/ClubRankingView";
 import { RankingBrowser } from "@/components/ranking/RankingBrowser";
 import { PAGE_SIZE } from "@/components/ranking/RankingTableRows";
@@ -13,14 +15,18 @@ interface PageProps {
 
 export default async function RankingPage({ searchParams }: PageProps) {
   const t = await getTranslations("RankingPage");
+  const locale = await getLocale();
   const sp = await searchParams;
   const initialClub = sp.club ?? "";
 
-  const [all, competitions, teamCountsByCompetition] = await Promise.all([
+  const [all, competitions, teamCountsByCompetition, snapshotTeilrunde] = await Promise.all([
     getRankingRows(),
     getCompetitions(),
     getCompetitionTeamCounts(CURRENT_SEASON),
+    fetchLatestSnapshotTeilrunde(createPublicClient(), CURRENT_SEASON),
   ]);
+  const snapshotDate =
+    snapshotTeilrunde != null ? snapshotDateFor(CURRENT_SEASON, snapshotTeilrunde) : null;
 
   return (
     <>
@@ -28,6 +34,22 @@ export default async function RankingPage({ searchParams }: PageProps) {
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("title")}</h1>
           <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
+          {snapshotDate && (
+            // A plain link, not next-intl's Link: the PDF lives outside the localized routes.
+            <a
+              href="/verbandsrangliste.pdf"
+              target="_blank"
+              rel="noopener"
+              className="text-sm font-medium underline underline-offset-4"
+            >
+              {t("downloadSnapshot", {
+                date: new Date(`${snapshotDate}T00:00:00Z`).toLocaleDateString(
+                  locale === "de" ? "de-DE" : "en-GB",
+                  { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" },
+                ),
+              })}
+            </a>
+          )}
         </div>
 
         <div className="mt-5 flex flex-col gap-4">
@@ -37,6 +59,7 @@ export default async function RankingPage({ searchParams }: PageProps) {
               initialClub={initialClub}
               competitions={competitions}
               teamCountsByCompetition={teamCountsByCompetition}
+              snapshotDate={snapshotDate}
             />
           ) : (
             <RankingBrowserSection all={all} search={sp.search ?? ""} pageParam={sp.page} />
@@ -57,11 +80,13 @@ function RankingFiltered({
   initialClub,
   competitions,
   teamCountsByCompetition,
+  snapshotDate,
 }: {
   all: RankingRow[];
   initialClub: string;
   competitions: Competition[];
   teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>;
+  snapshotDate: string | null;
 }) {
   const clubSet = new Set<string>();
   for (const p of all) {
@@ -76,6 +101,7 @@ function RankingFiltered({
       initialClub={initialClub}
       competitions={competitions}
       teamCountsByCompetition={teamCountsByCompetition}
+      snapshotDate={snapshotDate}
     />
   );
 }

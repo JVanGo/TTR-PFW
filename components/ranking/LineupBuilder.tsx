@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { buildTeams, legalTargetIndices, movePlayer, type LineupPlayer } from "@/lib/lineup";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/age-categories";
 import type { Competition } from "@/lib/competitions";
@@ -18,6 +18,8 @@ interface Props {
   roster: LineupRosterPlayer[];
   competitions: Competition[];
   teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>;
+  /** ISO date of the Verbandsrangliste the NL teams line up by, or null if none has been taken yet. */
+  snapshotDate: string | null;
 }
 
 const MAX_TEAMS = 10;
@@ -80,8 +82,15 @@ function computeTeamSizes(
   return [...bigTeams, ...smallTeams];
 }
 
-export function LineupBuilder({ club, roster, competitions, teamCountsByCompetition }: Props) {
+export function LineupBuilder({
+  club,
+  roster,
+  competitions,
+  teamCountsByCompetition,
+  snapshotDate,
+}: Props) {
   const t = useTranslations("LineupBuilder");
+  const locale = useLocale();
   const sortedRoster = [...roster].sort((a, b) => b.dtr - a.dtr || a.name.localeCompare(b.name));
 
   const defaultCompetition = competitions.find((c) => c.name === DEFAULT_COMPETITION_NAME) ?? null;
@@ -175,6 +184,7 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
       buildTeams(
         eligibleRoster.filter((p) => selectedIds.has(p.id)),
         teamSizes,
+        adjacentOnlyTeams,
       ).flatMap((team) => team.players),
     );
     setMovingIndex(null);
@@ -315,7 +325,15 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
           </p>
           {adjacentOnlyTeams > 0 && (
             <p className="text-muted-foreground mb-2 text-xs">
-              {t("adjacentOnlyHint", { count: adjacentOnlyTeams })}
+              {t("adjacentOnlyHint", { count: adjacentOnlyTeams })}{" "}
+              {snapshotDate
+                ? t("snapshotHint", {
+                    date: new Date(`${snapshotDate}T00:00:00Z`).toLocaleDateString(
+                      locale === "de" ? "de-DE" : "en-GB",
+                      { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" },
+                    ),
+                  })
+                : t("noSnapshotHint")}
             </p>
           )}
           <div className="flex flex-col">
@@ -353,7 +371,14 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
                             </span>
                           )}
                         </span>
-                        <span className="ml-2 shrink-0 tabular-nums opacity-70">{p.dtr}</span>
+                        <span className="ml-2 shrink-0 tabular-nums opacity-70">
+                          {teamIndex < adjacentOnlyTeams && p.snapshotDtr != null && (
+                            <span className="mr-2">
+                              {t("snapshotLabel", { dtr: p.snapshotDtr })}
+                            </span>
+                          )}
+                          {p.dtr}
+                        </span>
                       </button>
                     );
                   })}

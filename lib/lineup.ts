@@ -24,6 +24,12 @@ export interface LineupPlayer {
   isYouth: boolean;
   /** The player's raw age category, or null for an adult. Used for competition age-eligibility, not for tolerance tiers. */
   ageCategory: AgeCategory | null;
+  /**
+   * The player's DTR on the Verbandsrangliste frozen at the start of the
+   * current Teilrunde (1 Aug / 1 Jan), or null if they weren't on it. Only
+   * the adjacent-only (NL) teams use it — see startingOrder.
+   */
+  snapshotDtr?: number | null;
 }
 
 export interface Team<T extends LineupPlayer = LineupPlayer> {
@@ -97,6 +103,31 @@ function sortByDtr<T extends LineupPlayer>(players: T[]): T[] {
   return [...players].sort((x, y) => y.dtr - x.dtr || x.name.localeCompare(y.name));
 }
 
+function adjacentOnlySlotCount(teamSizes: number[], adjacentOnlyTeams: number): number {
+  return teamSizes.slice(0, adjacentOnlyTeams).reduce((a, b) => a + b, 0);
+}
+
+/**
+ * The lineup before any manual move. Without adjacent-only teams that's
+ * simply DTR order. With them, the adjacent-only (NL) spots go to the
+ * players highest on the frozen Verbandsrangliste, in that order (a player
+ * not on it counts with their current DTR); everyone else follows by
+ * current DTR.
+ */
+export function startingOrder<T extends LineupPlayer>(
+  players: T[],
+  teamSizes: number[],
+  adjacentOnlyTeams = 0,
+): T[] {
+  const slots = adjacentOnlySlotCount(teamSizes, adjacentOnlyTeams);
+  if (slots === 0) return sortByDtr(players);
+  const listed = (p: LineupPlayer) => p.snapshotDtr ?? p.dtr;
+  const bySnapshot = [...players].sort(
+    (x, y) => listed(y) - listed(x) || x.name.localeCompare(y.name),
+  );
+  return [...bySnapshot.slice(0, slots), ...sortByDtr(bySnapshot.slice(slots))];
+}
+
 /** Every index the player at `fromIndex` could move to with the pairwise rule alone still holding. */
 function pairwiseTargets(
   players: LineupPlayer[],
@@ -131,13 +162,18 @@ function allowedSlotsById(players: LineupPlayer[], teamSizes: number[]): Map<str
   return allowed;
 }
 
-/** Every legal target under the DTR tolerance rule alone — see legalTargetIndices. */
+/**
+ * Every legal target under the DTR tolerance rule alone — see
+ * legalTargetIndices. Allowed ranges come from `reference`'s own sorted
+ * lineup; a player missing from it isn't range-checked.
+ */
 function toleranceTargets(
   players: LineupPlayer[],
   fromIndex: number,
   teamSizes: number[],
+  reference: LineupPlayer[] = players,
 ): number[] {
-  const allowed = allowedSlotsById(players, teamSizes);
+  const allowed = allowedSlotsById(reference, teamSizes);
   return pairwiseTargets(players, fromIndex, teamSizes).filter((to) =>
     movePlayer(players, fromIndex, to).every((p, i) => allowed.get(p.id)?.has(i) ?? true),
   );
@@ -152,13 +188,14 @@ function toleranceTargets(
  * produces: buildTeams's sorted output is always valid, and every accepted
  * move keeps it that way).
  *
- * The first `adjacentOnlyTeams` teams (a club's NL1–NL3 teams in
- * Championnat Seniors) follow a stricter rule instead, with no DTR
- * tolerance at all: a player there may only swap with the spot directly
- * above or below — across team boundaries too — and nobody may end up more
- * than one spot away from their DTR-sorted position, so after #1 and #2
- * swap, the original #1 can't carry on down to #3. The remaining teams keep
- * the tolerance rule among themselves.
+ * The first `adjacentOnlyTeams` teams (a club's NL teams in Championnat
+ * Seniors) follow a stricter rule instead, with no DTR tolerance at all: a
+ * player there may only swap with the spot directly above or below — across
+ * team boundaries too — and nobody may end up more than one spot away from
+ * their place in startingOrder (the frozen Verbandsrangliste order), so
+ * after #1 and #2 swap, the original #1 can't carry on down to #3. The
+ * remaining teams keep the tolerance rule among themselves, on current DTR —
+ * including after the last NL player swaps down into them.
  */
 export function legalTargetIndices(
   players: LineupPlayer[],
@@ -166,44 +203,55 @@ export function legalTargetIndices(
   teamSizes: number[],
   adjacentOnlyTeams = 0,
 ): number[] {
-  const adjacentOnlySlots = teamSizes.slice(0, adjacentOnlyTeams).reduce((a, b) => a + b, 0);
+  const adjacentOnlySlots = adjacentOnlySlotCount(teamSizes, adjacentOnlyTeams);
   if (adjacentOnlySlots === 0) return toleranceTargets(players, fromIndex, teamSizes);
 
-  const sortedSlot = new Map(sortByDtr(players).map((p, i) => [p.id, i]));
-  const staysNearSortedSlot = (to: number) =>
+  const lowerTeamSizes = teamSizes.slice(adjacentOnlyTeams);
+  const starting = startingOrder(players, teamSizes, adjacentOnlyTeams);
+  const startingSlot = new Map(starting.map((p, i) => [p.id, i]));
+  const staysNearStartingSlot = (to: number) =>
     movePlayer(players, fromIndex, to).every((p, i) => {
-      const sorted = sortedSlot.get(p.id) ?? i;
-      return (i >= adjacentOnlySlots && sorted >= adjacentOnlySlots) || Math.abs(i - sorted) <= 1;
+      const start = startingSlot.get(p.id) ?? i;
+      return (i >= adjacentOnlySlots && start >= adjacentOnlySlots) || Math.abs(i - start) <= 1;
     });
+  const lowerTeamsStayValid = (to: number) =>
+    isValidArrangement(movePlayer(players, fromIndex, to).slice(adjacentOnlySlots), lowerTeamSizes);
 
   const neighbors = [fromIndex - 1, fromIndex + 1].filter(
     (to) =>
       to >= 0 &&
       to < players.length &&
       Math.min(fromIndex, to) < adjacentOnlySlots &&
-      staysNearSortedSlot(to),
+      staysNearStartingSlot(to) &&
+      (Math.max(fromIndex, to) < adjacentOnlySlots || lowerTeamsStayValid(to)),
   );
   if (fromIndex < adjacentOnlySlots) return neighbors;
 
   const rest = toleranceTargets(
     players.slice(adjacentOnlySlots),
     fromIndex - adjacentOnlySlots,
-    teamSizes.slice(adjacentOnlyTeams),
+    lowerTeamSizes,
+    starting.slice(adjacentOnlySlots),
   )
     .map((to) => to + adjacentOnlySlots)
-    .filter(staysNearSortedSlot);
+    .filter(staysNearStartingSlot);
   return [...neighbors, ...rest].sort((a, b) => a - b);
 }
 
 /**
- * Sorts by DTR descending (ties broken by name for determinism) and chunks
+ * Puts the players in startingOrder (plain DTR order, ties broken by name
+ * for determinism, unless there are adjacent-only teams) and chunks them
  * into teams sized per `teamSizes`, in order — Team 1 gets the top
  * `teamSizes[0]`, Team 2 the next `teamSizes[1]`, etc. Callers are expected
  * to pass exactly `sum(teamSizes)` players; a short final chunk is still
  * returned as-is rather than dropped.
  */
-export function buildTeams<T extends LineupPlayer>(players: T[], teamSizes: number[]): Team<T>[] {
-  const sorted = sortByDtr(players);
+export function buildTeams<T extends LineupPlayer>(
+  players: T[],
+  teamSizes: number[],
+  adjacentOnlyTeams = 0,
+): Team<T>[] {
+  const sorted = startingOrder(players, teamSizes, adjacentOnlyTeams);
   const teams: Team<T>[] = [];
   let start = 0;
   for (const size of teamSizes) {

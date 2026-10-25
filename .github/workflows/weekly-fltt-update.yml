@@ -47,3 +47,9 @@ jobs:
       # recomputes from scratch rather than layering on top of last time.
       - name: Recalculate season ratings
         run: npx tsx scripts/simulate-season-ttr-prod.ts
+
+      # Freezes the Verbandsrangliste (everyone's DTR on 1 Aug / 1 Jan) the
+      # first time this runs on or after each date, from the ratings just
+      # recalculated above. Does nothing once that Teilrunde's snapshot exists.
+      - name: Take Verbandsrangliste snapshot
+        run: npx tsx scripts/take-verbandsrangliste-snapshot-prod.ts

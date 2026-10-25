@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickLatestTtr, type LatestTtrRow } from "./latestTtr";
+import { pickLatestTtr, pickTtrAsOf, type LatestTtrRow } from "./latestTtr";
 
 const row = (
   player_id: string,
@@ -39,5 +39,41 @@ describe("pickLatestTtr", () => {
     const latest = pickLatestTtr(rows);
     expect(latest.get("a")).toBe(1200);
     expect(latest.get("b")).toBe(900);
+  });
+});
+
+describe("pickTtrAsOf", () => {
+  const match = (
+    player_id: string,
+    match_date: string,
+    ttr_delta: number,
+    new_ttr: number,
+    competition = "CH",
+  ) => ({
+    ...row(player_id, match_date, ttr_delta, new_ttr),
+    competition,
+  });
+
+  it("counts rows on the date itself, not after it", () => {
+    const rows = [
+      match("a", "2026-12-20", 10, 1510),
+      match("a", "2027-01-01", 12, 1522, "Nachwuchs-Spielstärkezuwachs"),
+      match("a", "2027-01-10", -8, 1514),
+    ];
+    expect(pickTtrAsOf(rows, "2027-01-01").get("a")).toBe(1522);
+  });
+
+  it("uses the season-starting rating when every row comes after the date", () => {
+    // First day: two matches settle 1500 -> 1515.
+    const rows = [
+      match("b", "2026-09-20", 10, 1515),
+      match("b", "2026-09-20", 5, 1515),
+      match("b", "2026-10-01", -5, 1510),
+    ];
+    expect(pickTtrAsOf(rows, "2026-08-01").get("b")).toBe(1500);
+  });
+
+  it("leaves out players with no rows", () => {
+    expect(pickTtrAsOf([], "2026-08-01").size).toBe(0);
   });
 });

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { computeStartingDtr, type MatchForStartingDtr } from "@/lib/starting-dtr";
 
 export interface LatestTtrRow {
   player_id: string;
@@ -50,12 +51,71 @@ export async function fetchLatestTtrByPlayer(
   supabase: SupabaseClient,
   season: string,
 ): Promise<Map<string, number>> {
+  return pickLatestTtr(
+    await fetchSeasonRows<LatestTtrRow>(
+      supabase,
+      season,
+      "player_id, match_date, ttr_delta, new_ttr",
+    ),
+  );
+}
+
+/**
+ * Each player's rating as it stood at the end of `asOfIso`, for the
+ * Verbandsrangliste snapshot: their latest rating from rows on or before
+ * that day (so the youth adjustments dated on the day itself count), or, if
+ * their first row this season comes later, the rating they started the
+ * season with. Players with no row this season at all are left out.
+ */
+export async function fetchTtrAsOfByPlayer(
+  supabase: SupabaseClient,
+  season: string,
+  asOfIso: string,
+): Promise<Map<string, number>> {
+  return pickTtrAsOf(
+    await fetchSeasonRows<LatestTtrRow & MatchForStartingDtr>(
+      supabase,
+      season,
+      "player_id, match_date, competition, ttr_delta, new_ttr",
+    ),
+    asOfIso,
+  );
+}
+
+/** The pure part of fetchTtrAsOfByPlayer: rows in any order. */
+export function pickTtrAsOf(
+  rows: (LatestTtrRow & MatchForStartingDtr)[],
+  asOfIso: string,
+): Map<string, number> {
+  const asOf = pickLatestTtr(rows.filter((r) => r.match_date <= asOfIso));
+
+  const laterRowsByPlayer = new Map<string, MatchForStartingDtr[]>();
+  for (const row of rows) {
+    if (asOf.has(row.player_id)) continue;
+    const list = laterRowsByPlayer.get(row.player_id) ?? [];
+    list.push(row);
+    laterRowsByPlayer.set(row.player_id, list);
+  }
+  for (const [playerId, list] of laterRowsByPlayer) {
+    list.sort((a, b) => a.match_date.localeCompare(b.match_date));
+    const start = computeStartingDtr(list);
+    if (start != null) asOf.set(playerId, start);
+  }
+  return asOf;
+}
+
+/** Every `matches` row of one season, selecting `columns` — see fetchLatestTtrByPlayer. */
+async function fetchSeasonRows<Row>(
+  supabase: SupabaseClient,
+  season: string,
+  columns: string,
+): Promise<Row[]> {
   const pageSize = 1000;
   const { count, error: countError } = await supabase
     .from("matches")
     .select("id", { count: "exact", head: true })
     .eq("season", season);
-  if (countError) throw new Error(`fetchLatestTtrByPlayer: ${countError.message}`);
+  if (countError) throw new Error(`fetchSeasonRows: ${countError.message}`);
 
   const pageCount = Math.ceil((count ?? 0) / pageSize);
   // Paged by `id` alone: the ordering has to be unique, or Postgres is free
@@ -66,7 +126,7 @@ export async function fetchLatestTtrByPlayer(
   const query = (page: number) =>
     supabase
       .from("matches")
-      .select("player_id, match_date, ttr_delta, new_ttr")
+      .select(columns)
       .eq("season", season)
       .order("id")
       .range(page * pageSize, page * pageSize + pageSize - 1);
@@ -76,15 +136,15 @@ export async function fetchLatestTtrByPlayer(
   // connection pool (both locally and, likely, on Supabase's pooler under
   // load).
   const CONCURRENCY = 8;
-  const rows: LatestTtrRow[] = [];
+  const rows: Row[] = [];
   for (let start = 0; start < pageCount; start += CONCURRENCY) {
     const batch = await Promise.all(
       Array.from({ length: Math.min(CONCURRENCY, pageCount - start) }, (_, i) => query(start + i)),
     );
     for (const { data, error } of batch) {
-      if (error) throw new Error(`fetchLatestTtrByPlayer: ${error.message}`);
-      rows.push(...((data ?? []) as LatestTtrRow[]));
+      if (error) throw new Error(`fetchSeasonRows: ${error.message}`);
+      rows.push(...((data ?? []) as Row[]));
     }
   }
-  return pickLatestTtr(rows);
+  return rows;
 }

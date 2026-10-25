@@ -34,7 +34,8 @@
   },
   "RankingPage": {
     "title": "FLTT DTR-Rangliste",
-    "subtitle": "Alle Spieler, sortiert nach aktuellem DTR — vom höchsten zum niedrigsten."
+    "subtitle": "Alle Spieler, sortiert nach aktuellem DTR — vom höchsten zum niedrigsten.",
+    "downloadSnapshot": "Verbandsrangliste vom {date} herunterladen (PDF)"
   },
   "RankingTable": {
     "searchPlaceholder": "Nach Namen suchen…",
@@ -70,7 +71,10 @@
     "team": "Mannschaft {number}",
     "checkPlayers": "Wähle unten Spieler aus, um mit der Mannschaftsaufstellung zu beginnen.",
     "adjacentOnlyHint": "{count, plural, one {Mannschaft 1 spielt in NL1–NL3: Ihre Spieler können nur mit dem Platz direkt darüber oder darunter tauschen, unabhängig vom DTR.} other {Mannschaften 1–# spielen in NL1–NL3: Ihre Spieler können nur mit dem Platz direkt darüber oder darunter tauschen (auch über diese Mannschaften hinweg), unabhängig vom DTR.}}",
-    "adjacentOnlyBadge": "NL1–NL3"
+    "adjacentOnlyBadge": "NL1–NL3",
+    "snapshotHint": "Die NL-Mannschaften werden nach der Verbandsrangliste vom {date} aufgestellt (VRL).",
+    "noSnapshotHint": "Für diese Teilrunde gibt es noch keine Verbandsrangliste – die NL-Mannschaften werden vorerst nach dem aktuellen DTR aufgestellt.",
+    "snapshotLabel": "VRL {dtr}"
   },
   "PlayerPage": {
     "backToRanking": "← Zurück zur Rangliste",

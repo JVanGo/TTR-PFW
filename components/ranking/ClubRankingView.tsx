@@ -13,6 +13,8 @@ interface Props {
   initialClub: string;
   competitions: Competition[];
   teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>;
+  /** ISO date of the newest Verbandsrangliste snapshot this season, or null if none yet. */
+  snapshotDate: string | null;
 }
 
 /**
@@ -26,6 +28,7 @@ export function ClubRankingView({
   initialClub,
   competitions,
   teamCountsByCompetition,
+  snapshotDate,
 }: Props) {
   const [club, setClub] = useState(initialClub);
 
@@ -42,6 +45,7 @@ export function ClubRankingView({
           roster={roster}
           competitions={competitions}
           teamCountsByCompetition={teamCountsByCompetition}
+          snapshotDate={snapshotDate}
         />
       )}
     </div>

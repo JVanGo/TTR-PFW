@@ -34,7 +34,8 @@
   },
   "RankingPage": {
     "title": "FLTT DTR Ranking",
-    "subtitle": "Every player, ranked by current DTR — highest to lowest."
+    "subtitle": "Every player, ranked by current DTR — highest to lowest.",
+    "downloadSnapshot": "Download the Verbandsrangliste of {date} (PDF)"
   },
   "RankingTable": {
     "searchPlaceholder": "Search by name…",
@@ -70,7 +71,10 @@
     "team": "Team {number}",
     "checkPlayers": "Check players below to start building teams.",
     "adjacentOnlyHint": "{count, plural, one {Team 1 plays in NL1–NL3: its players can only swap with the spot directly above or below, regardless of DTR.} other {Teams 1–# play in NL1–NL3: their players can only swap with the spot directly above or below (across those teams too), regardless of DTR.}}",
-    "adjacentOnlyBadge": "NL1–NL3"
+    "adjacentOnlyBadge": "NL1–NL3",
+    "snapshotHint": "NL teams line up by the Verbandsrangliste of {date} (VRL).",
+    "noSnapshotHint": "No Verbandsrangliste for this Teilrunde yet — NL teams line up by today's DTR for now.",
+    "snapshotLabel": "VRL {dtr}"
   },
   "PlayerPage": {
     "backToRanking": "← Back to ranking",
