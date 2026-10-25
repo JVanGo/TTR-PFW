@@ -161,11 +161,13 @@ export function LineupBuilder({ club, roster, competitions, teamCountsByCompetit
     }
   }
 
-  // Whenever the actual set of selected players (or the team sizes)
-  // changes, rebuild the arrangement fresh — manual swaps only persist until
-  // then. Partial selections still render: teams fill in one player at a
-  // time rather than waiting for a full quota.
-  const selectionKey = `${Array.from(selectedIds).sort().join(",")}|${capacityKey}`;
+  // Whenever the actual set of selected players, the team sizes or the
+  // competition changes, rebuild the arrangement fresh — manual swaps only
+  // persist until then (a swap legal under one competition's rules, e.g. the
+  // NL adjacent-only rule, can break another's). Partial selections still
+  // render: teams fill in one player at a time rather than waiting for a
+  // full quota.
+  const selectionKey = `${Array.from(selectedIds).sort().join(",")}|${capacityKey}|${selectedCompetitionId}`;
   const [prevSelectionKey, setPrevSelectionKey] = useState(selectionKey);
   if (selectionKey !== prevSelectionKey) {
     setPrevSelectionKey(selectionKey);
