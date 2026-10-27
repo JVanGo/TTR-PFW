@@ -120,6 +120,7 @@ export function DtrCalculator({ players }: { players: CalculatorPlayer[] }) {
               side={o}
               players={players}
               onChange={(side) => updateOpponent(o.key, side)}
+              resetOnClear
               onRemove={
                 mode === "matchday" && opponents.length > 1
                   ? () => setOpponents((prev) => prev.filter((x) => x.key !== o.key))
@@ -166,6 +167,7 @@ function SideCard({
   side,
   players,
   onChange,
+  resetOnClear = false,
   onRemove,
   children,
 }: {
@@ -173,6 +175,8 @@ function SideCard({
   side: Side;
   players: CalculatorPlayer[];
   onChange: (side: Side) => void;
+  /** Clearing the picked player also empties the DTR and K, so the calculation clears too. */
+  resetOnClear?: boolean;
   onRemove?: () => void;
   children?: React.ReactNode;
 }) {
@@ -200,7 +204,9 @@ function SideCard({
       <PlayerPicker
         players={players}
         picked={side.player}
-        onPick={(p) => onChange(p ? sideFromPlayer(p) : { ...side, player: null })}
+        onPick={(p) =>
+          onChange(p ? sideFromPlayer(p) : resetOnClear ? EMPTY_SIDE : { ...side, player: null })
+        }
       />
 
       <label className="flex items-center gap-2 text-sm">
