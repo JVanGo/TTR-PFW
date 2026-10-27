@@ -37,13 +37,16 @@ export default async function LocaleLayout({
   return (
     <NextIntlClientProvider>
       <header className="border-b">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4 sm:px-6">
           <Link href="/" className="text-base font-semibold tracking-tight sm:text-lg">
             {t("brand")}
           </Link>
-          <nav className="flex items-center gap-4 text-sm font-medium">
+          <nav className="flex items-center gap-3 text-sm font-medium sm:gap-4">
             <Link href="/ranking" className="hover:underline">
               {t("rankings")}
+            </Link>
+            <Link href="/rechner" className="hover:underline">
+              {t("calculator")}
             </Link>
             <Link href="/about" className="hover:underline">
               {t("about")}

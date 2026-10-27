@@ -44,6 +44,7 @@ import {
   isMatchInactive,
   INACTIVITY_DEDUCTION_STAGE_3_TOTAL,
   type OutputMatchRow,
+  type PlayerEndState,
   type RawSeasonMatch,
   type RawSeasonPlacement,
   type SimPlayer,
@@ -291,11 +292,7 @@ export interface RunSeasonSimulationResult {
 export interface SeasonSimulationResult {
   matchRows: OutputMatchRow[];
   summary: SimulationSummary;
-  playerLastMatchDates: {
-    playerId: string;
-    lastMatchIsoDate: string | null;
-    ageCategory: AgeCategory | null;
-  }[];
+  playerLastMatchDates: PlayerEndState[];
 }
 
 /**
@@ -853,16 +850,14 @@ export async function computeSeasonSimulation(
  * youth player (any age category) is always active regardless of match
  * recency, since the deduction itself never applies to them. Evaluated
  * fresh against today's date every run, so a player can cross the 24-month
- * threshold purely from time passing, without any new match data. Chunked,
- * same pattern as other bulk players-table updates in this codebase.
+ * threshold purely from time passing, without any new match data. Also
+ * saves career_matches / returning_bonus_games_left, so the DTR-Rechner can
+ * show the exact K of each player's next game. Chunked, same pattern as
+ * other bulk players-table updates in this codebase.
  */
 async function applyLastMatchDatesToSupabase(
   supabase: SupabaseClient,
-  playerLastMatchDates: {
-    playerId: string;
-    lastMatchIsoDate: string | null;
-    ageCategory: AgeCategory | null;
-  }[],
+  playerLastMatchDates: PlayerEndState[],
   log: (message: string) => void,
 ): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
@@ -870,14 +865,21 @@ async function applyLastMatchDatesToSupabase(
   for (let i = 0; i < playerLastMatchDates.length; i += 200) {
     const chunk = playerLastMatchDates.slice(i, i + 200);
     const results = await Promise.all(
-      chunk.map(({ playerId, lastMatchIsoDate, ageCategory }) => {
-        const isActive = ageCategory != null || !isMatchInactive(lastMatchIsoDate, today);
-        if (!isActive) deactivated++;
-        return supabase
-          .from("players")
-          .update({ last_match_date: lastMatchIsoDate, is_active: isActive })
-          .eq("id", playerId);
-      }),
+      chunk.map(
+        ({ playerId, lastMatchIsoDate, ageCategory, careerMatches, returningGamesLeft }) => {
+          const isActive = ageCategory != null || !isMatchInactive(lastMatchIsoDate, today);
+          if (!isActive) deactivated++;
+          return supabase
+            .from("players")
+            .update({
+              last_match_date: lastMatchIsoDate,
+              is_active: isActive,
+              career_matches: careerMatches,
+              returning_bonus_games_left: returningGamesLeft,
+            })
+            .eq("id", playerId);
+        },
+      ),
     );
     const failed = results.find((r) => r.error);
     if (failed?.error) throw new Error(failed.error.message);

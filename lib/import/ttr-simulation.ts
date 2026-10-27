@@ -1,5 +1,16 @@
 import type { AgeCategory } from "@/lib/import/age-categories";
 import { nameKey } from "@/lib/name-key";
+import {
+  CAREER_MATCH_THRESHOLD,
+  INACTIVITY_BONUS_MATCHES,
+  kFactorFor,
+  ratingDelta,
+  winProbability,
+  type KFactorBreakdown,
+} from "@/lib/dtr-formula";
+
+// Re-exported for existing importers; the formula itself lives in lib/dtr-formula.ts.
+export { CAREER_MATCH_THRESHOLD, ratingDelta, winProbability };
 
 /**
  * Simulates the DTR (Dëschtennis-Rating) formula from DëschTennisRating.pdf
@@ -8,12 +19,7 @@ import { nameKey } from "@/lib/name-key";
  * so it can be unit tested against the PDF's own worked examples.
  */
 
-const BASE_K = 16;
-export const CAREER_MATCH_THRESHOLD = 30;
-const CAREER_MATCH_BONUS = 4;
 const INACTIVITY_MONTHS_THRESHOLD = 12;
-const INACTIVITY_BONUS = 4;
-const INACTIVITY_BONUS_MATCHES = 15;
 const YOUTH_GROWTH_BONUS = 12;
 const ERSTEINSTUFUNG_FLOOR_COMPETITION = "Ersteinstufung-Mindestwert";
 const ERSTEINSTUFUNG_FLOOR_OPPONENT_LABEL = "Starting ranking floor";
@@ -70,17 +76,11 @@ export function isRealMatchRow(competition: string): boolean {
 }
 
 interface AgeRule {
-  kBonus: number;
   ersteinstufung: number;
   youthGrowth: boolean;
 }
 
-// The PDF's own bonus labels give the resulting K directly: "+4 (20) Spieler
-// unter 21 Jahre (Espoirs)" and "+8 (24) Spieler unter 15 Jahre (Cadets)" —
-// these are NOT cumulative between brackets. A player in the u15 bracket
-// gets +8 (K=24) on its own, not +4 stacked with +8 (K=28) — confirmed with
-// the site owner. Poussin/Benjamin/Minime/Cadet fall under the u15 bracket;
-// Junior/Espoirs fall under the (non-stacking) u21-only bracket.
+// (The age K-bonus lives in lib/dtr-formula.ts's ageKBonus.)
 //
 // Junior's Ersteinstufung (950) is a site-specific addition beyond the PDF's
 // own table, which only names CAD/MIN (900) and BJM/POU (850) — everyone
@@ -88,14 +88,14 @@ interface AgeRule {
 // (2026-08-19): Junior beginners now start at 950 instead of the adult
 // default; Espoirs still shares the adult value, matching the PDF as-is.
 const AGE_RULES: Record<AgeCategory, AgeRule> = {
-  Poussin: { kBonus: 8, ersteinstufung: 850, youthGrowth: true },
-  Benjamin: { kBonus: 8, ersteinstufung: 850, youthGrowth: true },
-  Minime: { kBonus: 8, ersteinstufung: 900, youthGrowth: true },
-  Cadet: { kBonus: 8, ersteinstufung: 900, youthGrowth: true },
-  Junior: { kBonus: 4, ersteinstufung: 950, youthGrowth: true },
-  Espoirs: { kBonus: 4, ersteinstufung: 1025, youthGrowth: false },
+  Poussin: { ersteinstufung: 850, youthGrowth: true },
+  Benjamin: { ersteinstufung: 850, youthGrowth: true },
+  Minime: { ersteinstufung: 900, youthGrowth: true },
+  Cadet: { ersteinstufung: 900, youthGrowth: true },
+  Junior: { ersteinstufung: 950, youthGrowth: true },
+  Espoirs: { ersteinstufung: 1025, youthGrowth: false },
 };
-const ADULT_RULE: AgeRule = { kBonus: 0, ersteinstufung: 1025, youthGrowth: false };
+const ADULT_RULE: AgeRule = { ersteinstufung: 1025, youthGrowth: false };
 
 function ageRule(category: AgeCategory | null): AgeRule {
   return category ? AGE_RULES[category] : ADULT_RULE;
@@ -110,16 +110,6 @@ function ageRule(category: AgeCategory | null): AgeRule {
  */
 export function ersteinstufungFor(category: AgeCategory | null): number {
   return ageRule(category).ersteinstufung;
-}
-
-/** Win probability for a player rated `ttrSelf` against `ttrOpponent`. */
-export function winProbability(ttrSelf: number, ttrOpponent: number): number {
-  return 1 / (1 + Math.pow(10, (ttrOpponent - ttrSelf) / 150));
-}
-
-/** TTR change for a single player: (result - expected) * K. */
-export function ratingDelta(result: 0 | 1, winProb: number, k: number): number {
-  return (result - winProb) * k;
 }
 
 function monthsBetween(fromIso: string, toIso: string): number {
@@ -268,11 +258,21 @@ export interface SimulationResult {
    * deriving `players.is_active` (see isMatchInactive: youth are exempt
    * from Inaktivitätsabzug entirely, regardless of match recency).
    */
-  playerLastMatchDates: {
-    playerId: string;
-    lastMatchIsoDate: string | null;
-    ageCategory: AgeCategory | null;
-  }[];
+  playerLastMatchDates: PlayerEndState[];
+}
+
+/**
+ * Where each player ends the run: their most recent real (non-forfeit)
+ * match date, age category, and the two counters that decide the K of their
+ * next game (career games so far, returning-bonus games left) — saved on
+ * `players` so the DTR-Rechner can show the exact K.
+ */
+export interface PlayerEndState {
+  playerId: string;
+  lastMatchIsoDate: string | null;
+  ageCategory: AgeCategory | null;
+  careerMatches: number;
+  returningGamesLeft: number;
 }
 
 interface RuntimeState {
@@ -287,21 +287,12 @@ interface RuntimeState {
   inactivityDeductionApplied: number;
 }
 
-interface KFactorBreakdown {
-  k: number;
-  ageBonus: number;
-  isNewcomerBonus: boolean;
-  isReturningBonus: boolean;
-}
-
 function kFactorBreakdown(state: RuntimeState): KFactorBreakdown {
-  const ageBonus = ageRule(state.ageCategory).kBonus;
-  const isNewcomerBonus = state.careerMatches < CAREER_MATCH_THRESHOLD;
-  const isReturningBonus = state.inactivityBonusRemaining > 0;
-  let k = BASE_K + ageBonus;
-  if (isNewcomerBonus) k += CAREER_MATCH_BONUS;
-  if (isReturningBonus) k += INACTIVITY_BONUS;
-  return { k, ageBonus, isNewcomerBonus, isReturningBonus };
+  return kFactorFor({
+    ageCategory: state.ageCategory,
+    careerMatches: state.careerMatches,
+    returningGamesLeft: state.inactivityBonusRemaining,
+  });
 }
 
 type CanonicalSide =
@@ -879,6 +870,8 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     playerId: s.id,
     lastMatchIsoDate: s.lastMatchIsoDate,
     ageCategory: s.ageCategory,
+    careerMatches: s.careerMatches,
+    returningGamesLeft: s.inactivityBonusRemaining,
   }));
 
   return { matchRows, summary, playerLastMatchDates };
