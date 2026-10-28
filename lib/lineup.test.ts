@@ -26,74 +26,35 @@ describe("toleranceTierFor", () => {
 
 describe("isValidArrangement", () => {
   it("allows a later player up to the tolerance stronger than an earlier one, blocks one point over", () => {
-    const weaker = player("weak", 1465);
-    expect(isValidArrangement([weaker, player("strong", 1500)], [4])).toBe(true); // gap 35, team
-    expect(isValidArrangement([weaker, player("strong", 1501)], [4])).toBe(false); // gap 36, team
+    const weaker = player("weak", 1460);
+    expect(isValidArrangement([weaker, player("strong", 1500)])).toBe(true); // gap 40
+    expect(isValidArrangement([weaker, player("strong", 1501)])).toBe(false); // gap 41
   });
 
   it("never violates when the later player is weaker or equal, regardless of gap size", () => {
-    expect(isValidArrangement([player("strong", 5000), player("weak", 1)], [4])).toBe(true);
+    expect(isValidArrangement([player("strong", 5000), player("weak", 1)])).toBe(true);
   });
 
-  it("uses the club-wide tolerance across a team boundary", () => {
-    const team0 = [player("a1", 1500), player("a2", 1490), player("a3", 1480), player("a4", 1470)];
-    // a4 (weakest in team0) vs a newcomer in team1 is the tightest constraint.
-    expect(isValidArrangement([...team0, player("b1", 1520)], [4, 1])).toBe(true); // gap to a4 = 50
-    expect(isValidArrangement([...team0, player("b1", 1521)], [4, 1])).toBe(false); // gap to a4 = 51
-  });
-
-  it("widens tolerance to 70/85 when either player is youth", () => {
+  it("widens tolerance to 75 when either player is youth", () => {
     expect(
-      isValidArrangement([player("weak", 1430, { isYouth: true }), player("strong", 1500)], [4]),
-    ).toBe(true); // gap 70
+      isValidArrangement([player("weak", 1425, { isYouth: true }), player("strong", 1500)]),
+    ).toBe(true); // gap 75
     expect(
-      isValidArrangement([player("weak", 1429, { isYouth: true }), player("strong", 1500)], [4]),
-    ).toBe(false); // gap 71
+      isValidArrangement([player("weak", 1424, { isYouth: true }), player("strong", 1500)]),
+    ).toBe(false); // gap 76
   });
 
   it("catches a violation between non-adjacent players even when every adjacent gap is within tolerance", () => {
     // 1500 -> 1470 (adjacent gap -30, fine) -> 1500 (adjacent gap 30, fine)
-    // -> 1525 (adjacent gap 25, fine) but position 2 (1470) vs position 4
-    // (1525) is a 55-point gap, over the 35-point team tolerance.
+    // -> 1530 (adjacent gap 30, fine) but position 2 (1470) vs position 4
+    // (1530) is a 60-point gap, over the 40-point tolerance.
     const arrangement = [
       player("a", 1500),
       player("b", 1470),
       player("c", 1500),
-      player("d", 1525),
+      player("d", 1530),
     ];
-    expect(isValidArrangement(arrangement, [4])).toBe(false);
-  });
-
-  it("groups by teams of 3 when teamSizes says so, instead of 4", () => {
-    // a, b, c gaps to each other are all small (fine under either tolerance).
-    // d is 40 points above c: over the 35-point *team* tolerance, but within
-    // the 50-point *club* tolerance.
-    const players = [player("a", 1500), player("b", 1490), player("c", 1480), player("d", 1520)];
-    // [4]: all one team, so c-d's 40-point gap violates the team tolerance.
-    expect(isValidArrangement(players, [4])).toBe(false);
-    // [3, 1]: d is alone in its own team, so c-d is judged by the wider club tolerance instead.
-    expect(isValidArrangement(players, [3, 1])).toBe(true);
-  });
-
-  it("supports mixed team sizes in one arrangement (a smaller trailing team)", () => {
-    // Two 4-man teams, then a 3-man team. The 3-man team's weakest (g) vs the
-    // 4-man team before it (team1, ending at d) is a club-boundary gap.
-    const team0 = [player("a", 1600), player("b", 1590), player("c", 1580), player("d", 1570)];
-    const team1 = [player("e", 1560), player("f", 1550), player("g", 1540), player("h", 1530)];
-    const team2 = [player("i", 1520), player("j", 1510), player("k", 1500)];
-    const teamSizes = [4, 4, 3];
-    expect(isValidArrangement([...team0, ...team1, ...team2], teamSizes)).toBe(true);
-    // Move k (weakest overall) to be much stronger: within its own 3-man
-    // team it's now 90 points above i (over the 35-point team tolerance),
-    // and 80 points above h (last of team1, over the 50-point club tolerance).
-    const withStrongK = [
-      ...team0,
-      ...team1,
-      player("i", 1520),
-      player("j", 1510),
-      player("k", 1610),
-    ];
-    expect(isValidArrangement(withStrongK, teamSizes)).toBe(false);
+    expect(isValidArrangement(arrangement)).toBe(false);
   });
 });
 
@@ -114,19 +75,19 @@ describe("legalTargetIndices", () => {
   const players = [player("a", 1500), player("b", 1470), player("c", 1440), player("d", 1410)];
 
   it("finds the only legal slot for the weakest player to move up to", () => {
-    // Moving d (1410) to index 0 or 1 creates a >35 gap; index 2 (ahead of
+    // Moving d (1410) to index 0 or 1 creates a >40 gap; index 2 (ahead of
     // the near-equal 1440) stays within tolerance.
     expect(legalTargetIndices(players, 3, [4])).toEqual([2]);
   });
 
   it("finds the only legal slot for the strongest player to move down to", () => {
     // Moving a (1500) past b (1470, gap 30) is fine; past c or d creates a
-    // >35 gap against whoever it lands next to.
+    // >40 gap against whoever it lands behind.
     expect(legalTargetIndices(players, 0, [4])).toEqual([1]);
   });
 
   it("doesn't let a youth player's tolerance stretch an adult's own range after a move", () => {
-    // Beetebuerg-P, 2026-10-20: Radoslaw may only drop to 2nd in Team 1.
+    // Beetebuerg-P, 2026-10-20: Radoslaw may only drop to 3rd in Team 1.
     const sorted = [
       player("REKAWEK Radoslaw", 1736),
       player("CLOOS Steve", 1705),
@@ -137,12 +98,13 @@ describe("legalTargetIndices", () => {
       player("ZUANG Max", 1674),
       player("VAN GOIDSENOVEN Jeff", 1655),
     ];
-    expect(legalTargetIndices(sorted, 0, [4, 4])).toEqual([1]);
+    expect(legalTargetIndices(sorted, 0, [4, 4])).toEqual([1, 2]);
     // Jan may still move to the top, pushing Radoslaw to 2nd...
     expect(legalTargetIndices(sorted, 5, [4, 4])).toContain(0);
-    // ...but from there Radoslaw can only go back up, not further down.
+    // ...but from there Radoslaw still can't go below 3rd, although 4th
+    // would pass pairwise (61 above Jan is within the youth limit).
     const janFirst = movePlayer(sorted, 5, 0);
-    expect(legalTargetIndices(janFirst, 1, [4, 4])).toEqual([0]);
+    expect(legalTargetIndices(janFirst, 1, [4, 4])).toEqual([0, 2]);
   });
 
   describe("with adjacent-only (NL1–NL3) teams", () => {
@@ -180,9 +142,10 @@ describe("legalTargetIndices", () => {
     });
 
     it("keeps the tolerance rule for the teams below, but no jumps into the adjacent-only teams", () => {
-      // f (1500) still moves within tolerance among the lower teams (not
-      // above e, 100 stronger), and has no route up into Team 1 at all.
-      expect(legalTargetIndices(lineup, 5, [4, 4, 4], 1)).toEqual([6, 7, 8]);
+      // f (1500) still moves within tolerance among the lower teams (down
+      // to behind j, 40 weaker; not above e, 100 stronger), and has no
+      // route up into Team 1 at all.
+      expect(legalTargetIndices(lineup, 5, [4, 4, 4], 1)).toEqual([6, 7, 8, 9]);
       // e, right below Team 1, only gets the single adjacent swap upward.
       expect(legalTargetIndices(lineup, 4, [4, 4, 4], 1)).toEqual([3]);
     });
@@ -238,7 +201,7 @@ describe("legalTargetIndices", () => {
 
       it("blocks the last NL player from swapping down if the team below would break tolerance", () => {
         // x's snapshot puts it last in the NL; swapped below y, its current
-        // DTR 1550 in front of z (1650) breaks the 35-point team limit.
+        // DTR 1550 in front of z (1650) breaks the 40-point limit.
         const withX = (dtr: number) => [
           player("w", 1900, { snapshotDtr: 1900 }),
           player("u", 1850, { snapshotDtr: 1850 }),
@@ -316,5 +279,23 @@ describe("buildTeams", () => {
     expect(teams[0].players.map((p) => p.id)).toEqual(["a", "b", "c", "d"]);
     expect(teams[1].players.map((p) => p.id)).toEqual(["e", "f", "g", "h"]);
     expect(teams[2].players.map((p) => p.id)).toEqual(["i", "j", "k"]);
+  });
+});
+
+describe("one limit within and across teams", () => {
+  it("never lets a player skip spots they're blocked from into the next team (Zéisseng, 2026-10-28)", () => {
+    const sorted = [
+      player("BERNARDIN Luc", 1813),
+      player("ALLAR Joël", 1786),
+      player("PORNET David", 1770),
+      player("TRIBOI Catalina", 1765),
+      player("POOS Christian", 1763),
+      player("FRIDRICI Jean Gilles", 1746),
+      player("HEIN Philippe", 1707),
+      player("ENGEL Laurent", 1618),
+    ];
+    // 27 above Joël, 43 above David: 2nd only. Team 2's top spot used to be
+    // open too, under the old 50-point across-teams limit.
+    expect(legalTargetIndices(sorted, 0, [4, 4])).toEqual([1]);
   });
 });

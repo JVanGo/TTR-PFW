@@ -56,24 +56,21 @@ export default async function AboutPage() {
         {t("lineupRulesIntro2")}
       </p>
       <div className="mt-4 overflow-x-auto rounded-md border">
-        <table className="w-full min-w-[480px] text-sm">
+        <table className="w-full text-sm">
           <thead className="bg-muted/80 text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 text-left font-medium">{t("tableGapHeader")}</th>
-              <th className="px-3 py-2 text-right font-medium">{t("tableTeamHeader")}</th>
-              <th className="px-3 py-2 text-right font-medium">{t("tableClubHeader")}</th>
+              <th className="px-3 py-2 text-left font-medium">{t("tableWhoHeader")}</th>
+              <th className="px-3 py-2 text-right font-medium">{t("tableGapHeader")}</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border-t">
               <td className="px-3 py-2">{t("tableEveryone")}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.base.team}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.base.club}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.base}</td>
             </tr>
             <tr className="border-t">
               <td className="px-3 py-2">{t("tableYouth")}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.youth.team}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.youth.club}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{TOLERANCE.youth}</td>
             </tr>
           </tbody>
         </table>

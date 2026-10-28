@@ -8,7 +8,7 @@
  * not just neighbors. A single adjacent swap starting from a fully
  * DTR-sorted list can only ever create a new violation between the swapped
  * pair itself, but that stops being true once several swaps compound: e.g.
- * DTR 100, 70, 100, 125 has every adjacent gap within a 35-point tolerance,
+ * DTR 100, 70, 100, 125 has every adjacent gap within a 40-point tolerance,
  * yet position 2 (70) and position 4 (125) violate it by 55. So arrangements
  * are validated pairwise across the whole list (isValidArrangement), not
  * just neighbor-by-neighbor.
@@ -36,11 +36,15 @@ export interface Team<T extends LineupPlayer = LineupPlayer> {
   players: T[];
 }
 
-/** Club-wide / team-internal tolerance in DTR points, per tier. */
-export const TOLERANCE = {
-  base: { team: 35, club: 50 },
-  youth: { team: 70, club: 85 },
-} as const;
+/**
+ * Allowed DTR gap in points, per tier — the same within a team and across
+ * teams. The PDF's separate team (35/70) and club (50/85) limits let a
+ * player be blocked from the last spots of their own team yet allowed into
+ * the next team's top spot, since moving down a team swapped in the looser
+ * limit for the very same pair (Zéisseng's BERNARDIN Luc, 2026-10-28). One
+ * limit per tier avoids that (Jeff's call).
+ */
+export const TOLERANCE = { base: 40, youth: 75 } as const;
 
 export type ToleranceTier = keyof typeof TOLERANCE;
 
@@ -54,38 +58,19 @@ export function toleranceTierFor(a: LineupPlayer, b: LineupPlayer): ToleranceTie
   return "base";
 }
 
-export function toleranceFor(a: LineupPlayer, b: LineupPlayer, sameTeam: boolean): number {
-  const tier = toleranceTierFor(a, b);
-  return sameTeam ? TOLERANCE[tier].team : TOLERANCE[tier].club;
+export function toleranceFor(a: LineupPlayer, b: LineupPlayer): number {
+  return TOLERANCE[toleranceTierFor(a, b)];
 }
 
 /**
- * Which team (0-indexed) a position falls into, given each team's size in
- * order — e.g. teamSizes [4, 4, 3] puts positions 0-3 in team 0, 4-7 in
- * team 1, 8-10 in team 2. Lets a competition's last team be a different
- * size than the rest (e.g. a club's Division 6 team is 3-man while the
- * rest of Championnat Seniors is 4-man).
+ * Whether the arrangement (index order = listed order) satisfies the
+ * tolerance rule for every pair, not just neighbors. Team boundaries don't
+ * matter: the limit is the same within and across teams.
  */
-function teamIndexAt(position: number, teamSizes: number[]): number {
-  let cumulative = 0;
-  for (let team = 0; team < teamSizes.length; team++) {
-    cumulative += teamSizes[team];
-    if (position < cumulative) return team;
-  }
-  return teamSizes.length;
-}
-
-/**
- * Whether the arrangement (index order = listed order, chunked into teams
- * per `teamSizes`) satisfies the tolerance rule for every pair, not just
- * neighbors.
- */
-export function isValidArrangement(players: LineupPlayer[], teamSizes: number[]): boolean {
+export function isValidArrangement(players: LineupPlayer[]): boolean {
   for (let i = 0; i < players.length; i++) {
     for (let j = i + 1; j < players.length; j++) {
-      const sameTeam = teamIndexAt(i, teamSizes) === teamIndexAt(j, teamSizes);
-      const tolerance = toleranceFor(players[i], players[j], sameTeam);
-      if (players[j].dtr - players[i].dtr > tolerance) return false;
+      if (players[j].dtr - players[i].dtr > toleranceFor(players[i], players[j])) return false;
     }
   }
   return true;
@@ -129,15 +114,11 @@ export function startingOrder<T extends LineupPlayer>(
 }
 
 /** Every index the player at `fromIndex` could move to with the pairwise rule alone still holding. */
-function pairwiseTargets(
-  players: LineupPlayer[],
-  fromIndex: number,
-  teamSizes: number[],
-): number[] {
+function pairwiseTargets(players: LineupPlayer[], fromIndex: number): number[] {
   const legal: number[] = [];
   for (let to = 0; to < players.length; to++) {
     if (to === fromIndex) continue;
-    if (isValidArrangement(movePlayer(players, fromIndex, to), teamSizes)) legal.push(to);
+    if (isValidArrangement(movePlayer(players, fromIndex, to))) legal.push(to);
   }
   return legal;
 }
@@ -150,15 +131,13 @@ function pairwiseTargets(
  * (legal, thanks to the youth tolerance) puts an adult behind them, and from
  * that new spot the adult could slide further down than they ever could from
  * the sorted lineup — e.g. Beetebuerg-P's REKAWEK Radoslaw (1736) may only
- * drop to 2nd in Team 1, but after REKAWEK Jan (youth, 1675) moved above him,
- * he could reach Team 2.
+ * drop to 3rd in Team 1, but after REKAWEK Jan (youth, 1675) moved above him,
+ * he could reach 4th.
  */
-function allowedSlotsById(players: LineupPlayer[], teamSizes: number[]): Map<string, Set<number>> {
+function allowedSlotsById(players: LineupPlayer[]): Map<string, Set<number>> {
   const sorted = sortByDtr(players);
   const allowed = new Map<string, Set<number>>();
-  sorted.forEach((p, i) =>
-    allowed.set(p.id, new Set([i, ...pairwiseTargets(sorted, i, teamSizes)])),
-  );
+  sorted.forEach((p, i) => allowed.set(p.id, new Set([i, ...pairwiseTargets(sorted, i)])));
   return allowed;
 }
 
@@ -170,11 +149,10 @@ function allowedSlotsById(players: LineupPlayer[], teamSizes: number[]): Map<str
 function toleranceTargets(
   players: LineupPlayer[],
   fromIndex: number,
-  teamSizes: number[],
   reference: LineupPlayer[] = players,
 ): number[] {
-  const allowed = allowedSlotsById(reference, teamSizes);
-  return pairwiseTargets(players, fromIndex, teamSizes).filter((to) =>
+  const allowed = allowedSlotsById(reference);
+  return pairwiseTargets(players, fromIndex).filter((to) =>
     movePlayer(players, fromIndex, to).every((p, i) => allowed.get(p.id)?.has(i) ?? true),
   );
 }
@@ -204,9 +182,8 @@ export function legalTargetIndices(
   adjacentOnlyTeams = 0,
 ): number[] {
   const adjacentOnlySlots = adjacentOnlySlotCount(teamSizes, adjacentOnlyTeams);
-  if (adjacentOnlySlots === 0) return toleranceTargets(players, fromIndex, teamSizes);
+  if (adjacentOnlySlots === 0) return toleranceTargets(players, fromIndex);
 
-  const lowerTeamSizes = teamSizes.slice(adjacentOnlyTeams);
   const starting = startingOrder(players, teamSizes, adjacentOnlyTeams);
   const startingSlot = new Map(starting.map((p, i) => [p.id, i]));
   const staysNearStartingSlot = (to: number) =>
@@ -215,7 +192,7 @@ export function legalTargetIndices(
       return (i >= adjacentOnlySlots && start >= adjacentOnlySlots) || Math.abs(i - start) <= 1;
     });
   const lowerTeamsStayValid = (to: number) =>
-    isValidArrangement(movePlayer(players, fromIndex, to).slice(adjacentOnlySlots), lowerTeamSizes);
+    isValidArrangement(movePlayer(players, fromIndex, to).slice(adjacentOnlySlots));
 
   const neighbors = [fromIndex - 1, fromIndex + 1].filter(
     (to) =>
@@ -230,7 +207,6 @@ export function legalTargetIndices(
   const rest = toleranceTargets(
     players.slice(adjacentOnlySlots),
     fromIndex - adjacentOnlySlots,
-    lowerTeamSizes,
     starting.slice(adjacentOnlySlots),
   )
     .map((to) => to + adjacentOnlySlots)
