@@ -122,3 +122,32 @@ export function calculateMatchday(
   const totalDelta = calculated.reduce((sum, g) => sum + g.delta, 0);
   return { games: calculated, totalDelta, newDtr: self.dtr + totalDelta };
 }
+
+export interface PointsTableRow {
+  /** Smallest gap (opponent's DTR − yours) in this row; null = no lower end. */
+  fromGap: number | null;
+  /** Largest gap in this row; null = no upper end. */
+  toGap: number | null;
+  win: number;
+  loss: number;
+}
+
+/**
+ * The rounded change for a win and a loss at every rating gap, grouped into
+ * rows where neither changes. The change depends only on the gap, not on the
+ * ratings themselves, and stops moving past ±(a few hundred) points.
+ */
+export function pointsTable(k: number, maxGap = 1000): PointsTableRow[] {
+  const rows: PointsTableRow[] = [];
+  for (let gap = -maxGap; gap <= maxGap; gap++) {
+    const p = winProbability(0, gap);
+    const win = Math.round(ratingDelta(1, p, k)) + 0;
+    const loss = Math.round(ratingDelta(0, p, k)) + 0;
+    const last = rows[rows.length - 1];
+    if (last && last.win === win && last.loss === loss) last.toGap = gap;
+    else rows.push({ fromGap: gap, toGap: gap, win, loss });
+  }
+  rows[0].fromGap = null;
+  rows[rows.length - 1].toGap = null;
+  return rows;
+}

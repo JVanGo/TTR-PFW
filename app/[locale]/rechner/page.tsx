@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { getCalculatorPlayers } from "@/lib/calculator-players";
 import { DtrCalculator } from "@/components/calculator/DtrCalculator";
+import { PointsTable } from "@/components/calculator/PointsTable";
 import { SiteFooter } from "@/components/SiteFooter";
 
 // See app/[locale]/page.tsx for why: rendered per request rather than
@@ -17,6 +18,7 @@ export default async function CalculatorPage() {
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("title")}</h1>
         <p className="text-muted-foreground mt-1 mb-6 text-sm">{t("intro")}</p>
         <DtrCalculator players={players} />
+        <PointsTable />
       </div>
       <SiteFooter />
     </>

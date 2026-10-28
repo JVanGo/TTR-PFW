@@ -40,7 +40,15 @@
     "changeLine": "Deine Änderung = ({result} − {p}) × {k} = {exact} → {delta}",
     "opponentChangeLine": "{name}: ({result} − {p}) × {k} → {delta}",
     "totalLine": "Neuer DTR: {calc}",
-    "startOfDayNote": "Alle Spiele eines Spieltags werden mit den Werten vom Beginn des Tages berechnet; die Änderungen werden am Ende zusammengezählt."
+    "startOfDayNote": "Alle Spiele eines Spieltags werden mit den Werten vom Beginn des Tages berechnet; die Änderungen werden am Ende zusammengezählt.",
+    "tableHeading": "Punkte je nach Gegner",
+    "tableIntro": "Wie viele Punkte du bei einem Sieg oder einer Niederlage bekommst oder verlierst, je nachdem, wie viel stärker oder schwächer dein Gegner ist. Es zählt nur der Abstand, nicht die Höhe deines DTR. Jede Zeile beginnt dort, wo sich die Punkte ändern.",
+    "tableKLabel": "Dein K:",
+    "tableGapHeader": "DTR des Gegners − dein DTR",
+    "tableGapAtMost": "{gap} oder weniger",
+    "tableGapAtLeast": "{gap} oder mehr",
+    "tableGapRange": "{from} bis {to}",
+    "tableExample": "Beispiel mit K = 16: Du hast 1500, dein Gegner 1560 (Abstand +60). Ein Sieg bringt +11, eine Niederlage kostet −5."
   },
   "Footer": {
     "tagline": "FLTT-Rangliste mit DTR, berechnet aus echten Saison-Spielergebnissen — siehe",

@@ -40,7 +40,15 @@
     "changeLine": "Your change = ({result} − {p}) × {k} = {exact} → {delta}",
     "opponentChangeLine": "{name}: ({result} − {p}) × {k} → {delta}",
     "totalLine": "New DTR: {calc}",
-    "startOfDayNote": "Every game of a matchday is calculated with the ratings from the start of the day; the changes are added up at the end."
+    "startOfDayNote": "Every game of a matchday is calculated with the ratings from the start of the day; the changes are added up at the end.",
+    "tableHeading": "Points by opponent strength",
+    "tableIntro": "How many points you gain for a win or lose for a loss, depending on how much stronger or weaker your opponent is. Only the gap counts, not how high your DTR is. Each row starts where the points change.",
+    "tableKLabel": "Your K:",
+    "tableGapHeader": "Opponent’s DTR − your DTR",
+    "tableGapAtMost": "{gap} or lower",
+    "tableGapAtLeast": "{gap} or higher",
+    "tableGapRange": "{from} to {to}",
+    "tableExample": "Example with K = 16: you have 1500, your opponent 1560 (gap +60). A win gets you +11, a loss costs you −5."
   },
   "Footer": {
     "tagline": "FLTT ranking with DTR, calculated from real season match results — see",

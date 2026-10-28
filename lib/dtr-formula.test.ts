@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateMatchday, kFactorFor, winProbability } from "./dtr-formula";
+import { calculateMatchday, kFactorFor, pointsTable, winProbability } from "./dtr-formula";
 
 describe("kFactorFor", () => {
   const adult = { ageCategory: null, careerMatches: 100, returningGamesLeft: 0 };
@@ -55,5 +55,26 @@ describe("calculateMatchday", () => {
     // Both games use 1500, not 1508 for the second one.
     expect(day.games.map((g) => g.delta)).toEqual([8, 8]);
     expect(day.totalDelta).toBe(16);
+  });
+});
+
+describe("pointsTable", () => {
+  it("lists every gap where a win or loss is worth a different amount", () => {
+    const rows = pointsTable(16);
+    expect(rows).toHaveLength(17);
+    expect(rows[0]).toEqual({ fromGap: null, toGap: -224, win: 0, loss: -16 });
+    expect(rows[8]).toEqual({ fromGap: -8, toGap: 8, win: 8, loss: -8 });
+    expect(rows[11]).toEqual({ fromGap: 43, toGap: 61, win: 11, loss: -5 });
+    expect(rows[16]).toEqual({ fromGap: 224, toGap: null, win: 16, loss: 0 });
+  });
+
+  it("agrees with calculateMatchday", () => {
+    for (const row of pointsTable(20)) {
+      const gap = row.fromGap ?? row.toGap!;
+      const play = (won: boolean) =>
+        calculateMatchday({ dtr: 1500, k: 20 }, [{ opponent: { dtr: 1500 + gap, k: 16 }, won }])
+          .totalDelta + 0;
+      expect([play(true), play(false)]).toEqual([row.win, row.loss]);
+    }
   });
 });
