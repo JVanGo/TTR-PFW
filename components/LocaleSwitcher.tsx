@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 
-const LOCALES = ["de", "en"] as const;
+const LOCALES = ["de", "en", "fr"] as const;
 
 export function LocaleSwitcher() {
   const locale = useLocale();

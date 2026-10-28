@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { dateLocale } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/server";
 import { getRankingRows, CURRENT_SEASON } from "@/lib/ranking";
 import {
@@ -28,7 +29,7 @@ function dayBefore(iso: string): string {
 }
 
 function formatDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
+  return new Date(iso).toLocaleDateString(dateLocale(locale), {
     day: "2-digit",
     month: "short",
     year: "numeric",

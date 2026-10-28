@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { dateLocale } from "@/i18n/routing";
 import { getRankingRows, CURRENT_SEASON, type RankingRow } from "@/lib/ranking";
 import { getCompetitions, type Competition } from "@/lib/competitions";
 import { getCompetitionTeamCounts, type ClubTeamCount } from "@/lib/competitionTeamCounts";
@@ -43,10 +44,12 @@ export default async function RankingPage({ searchParams }: PageProps) {
               className="text-sm font-medium underline underline-offset-4"
             >
               {t("downloadSnapshot", {
-                date: new Date(`${snapshotDate}T00:00:00Z`).toLocaleDateString(
-                  locale === "de" ? "de-DE" : "en-GB",
-                  { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" },
-                ),
+                date: new Date(`${snapshotDate}T00:00:00Z`).toLocaleDateString(dateLocale(locale), {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  timeZone: "UTC",
+                }),
               })}
             </a>
           )}

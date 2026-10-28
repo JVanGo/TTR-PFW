@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { useLocale, useTranslations } from "next-intl";
+import { dateLocale } from "@/i18n/routing";
 
 export interface TtrPoint {
   date: string;
@@ -29,7 +30,7 @@ interface Props {
 }
 
 function formatDate(d: string, locale: string): string {
-  return new Date(d).toLocaleDateString(locale === "de" ? "de-DE" : "en-GB", {
+  return new Date(d).toLocaleDateString(dateLocale(locale), {
     day: "2-digit",
     month: "short",
     year: "2-digit",

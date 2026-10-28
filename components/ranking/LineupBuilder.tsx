@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { dateLocale } from "@/i18n/routing";
 import { buildTeams, legalTargetIndices, movePlayer, type LineupPlayer } from "@/lib/lineup";
 import { AGE_CATEGORIES, type AgeCategory } from "@/lib/age-categories";
 import type { Competition } from "@/lib/competitions";
@@ -329,7 +330,7 @@ export function LineupBuilder({
               {snapshotDate
                 ? t("snapshotHint", {
                     date: new Date(`${snapshotDate}T00:00:00Z`).toLocaleDateString(
-                      locale === "de" ? "de-DE" : "en-GB",
+                      dateLocale(locale),
                       { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" },
                     ),
                   })

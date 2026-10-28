@@ -58,7 +58,8 @@
   "LocaleSwitcher": {
     "label": "Sprache",
     "de": "Deutsch",
-    "en": "English"
+    "en": "English",
+    "fr": "Français"
   },
   "HomePage": {
     "title": "FLTT DTR-Rangliste",
