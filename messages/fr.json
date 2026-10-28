@@ -109,6 +109,7 @@
     "includePlayer": "Inclure {name}",
     "youthBadge": "Jeune",
     "selectedCount": "{selected} joueurs sur {needed} sélectionnés",
+    "clearSelection": "Effacer la sélection",
     "clickToMove": "Cliquez sur un joueur pour voir où il peut être placé selon les règles.",
     "clickHighlighted": "Cliquez sur une place en surbrillance pour l’y déplacer, ou cliquez à nouveau sur le joueur pour annuler.",
     "team": "Équipe {number}",

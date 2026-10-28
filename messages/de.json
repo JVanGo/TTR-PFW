@@ -109,6 +109,7 @@
     "includePlayer": "{name} einschließen",
     "youthBadge": "Jugend",
     "selectedCount": "{selected} von {needed} Spielern ausgewählt",
+    "clearSelection": "Auswahl zurücksetzen",
     "clickToMove": "Klicke auf einen Spieler, um zu sehen, wohin er regelkonform verschoben werden kann.",
     "clickHighlighted": "Klicke auf eine markierte Position, um ihn dorthin zu verschieben, oder klicke ihn erneut an, um abzubrechen.",
     "team": "Mannschaft {number}",

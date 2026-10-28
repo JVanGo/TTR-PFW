@@ -304,9 +304,20 @@ export function LineupBuilder({
       )}
 
       <div>
-        <p className="text-muted-foreground mb-1 text-xs">
-          {t("selectedCount", { selected: selectedIds.size, needed })}
-        </p>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <p className="text-muted-foreground text-xs">
+            {t("selectedCount", { selected: selectedIds.size, needed })}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={selectedIds.size === 0}
+            onClick={() => setSelectedIds(new Set())}
+          >
+            {t("clearSelection")}
+          </Button>
+        </div>
         {hiddenForAge > 0 && (
           <p className="text-muted-foreground mb-1 text-xs">
             {t("ineligibleHidden", { count: hiddenForAge })}

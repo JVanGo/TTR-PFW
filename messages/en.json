@@ -109,6 +109,7 @@
     "includePlayer": "Include {name}",
     "youthBadge": "Youth",
     "selectedCount": "{selected} of {needed} players selected",
+    "clearSelection": "Clear selection",
     "clickToMove": "Click a player to see where they could legally move.",
     "clickHighlighted": "Click a highlighted spot to move them there, or click them again to cancel.",
     "team": "Team {number}",
