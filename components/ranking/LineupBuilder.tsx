@@ -47,10 +47,22 @@ function isEligibleForMaxAge(player: LineupRosterPlayer, maxAgeCategory: AgeCate
   return AGE_CATEGORIES.indexOf(player.ageCategory) <= AGE_CATEGORIES.indexOf(maxAgeCategory);
 }
 
+/** The club's regular (full-size) team count: a fixed count wins, else the imported per-club count, if known. */
+function regularTeamCount(
+  activeCompetition: Competition | null,
+  club: string,
+  teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>,
+): number | undefined {
+  if (activeCompetition?.fixedTeamCount != null) return activeCompetition.fixedTeamCount;
+  return activeCompetition
+    ? teamCountsByCompetition[activeCompetition.id]?.[club]?.teamCount
+    : undefined;
+}
+
 /**
- * A fixed count always wins; otherwise prefill with the imported per-club
- * count for this competition, if one is known — falls back to whatever
- * count was already set (a no-op) rather than forcing back to 1.
+ * The total team count to prefill: the club's regular teams plus its
+ * smaller trailing (Division 6) teams — falls back to whatever count was
+ * already set (a no-op) rather than forcing back to 1.
  */
 function resolveTeamCount(
   activeCompetition: Competition | null,
@@ -58,11 +70,9 @@ function resolveTeamCount(
   teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>,
   fallback: number,
 ): number {
-  if (activeCompetition?.fixedTeamCount != null) return activeCompetition.fixedTeamCount;
-  const known = activeCompetition
-    ? teamCountsByCompetition[activeCompetition.id]?.[club]?.teamCount
-    : undefined;
-  return known ?? fallback;
+  const regular = regularTeamCount(activeCompetition, club, teamCountsByCompetition);
+  if (regular == null) return fallback;
+  return regular + (activeCompetition?.smallLastTeamCounts[club] ?? 0);
 }
 
 /**
@@ -107,9 +117,17 @@ export function LineupBuilder({
   );
 
   const activeCompetition = competitions.find((c) => c.id === selectedCompetitionId) ?? null;
-  const smallTrailingCount = activeCompetition?.smallLastTeamCounts[club] ?? 0;
+  // `teamCount` is the total. Going below the club's regular teams plus its
+  // smaller trailing teams drops those smaller (Division 6) teams first.
+  const smallTrailingCount = Math.min(
+    activeCompetition?.smallLastTeamCounts[club] ?? 0,
+    Math.max(
+      teamCount - (regularTeamCount(activeCompetition, club, teamCountsByCompetition) ?? 0),
+      0,
+    ),
+  );
   const teamSizes = computeTeamSizes(
-    teamCount,
+    teamCount - smallTrailingCount,
     activeCompetition?.teamSize ?? DEFAULT_TEAM_SIZE,
     smallTrailingCount,
   );
@@ -265,19 +283,17 @@ export function LineupBuilder({
             </Button>
             <input
               type="number"
-              min={1 + smallTrailingCount}
+              min={1}
               max={MAX_TEAMS}
-              value={teamCount + smallTrailingCount}
-              onChange={(e) =>
-                setTeamCount(clampTeamCount((Number(e.target.value) || 1) - smallTrailingCount))
-              }
+              value={teamCount}
+              onChange={(e) => setTeamCount(clampTeamCount(Number(e.target.value) || 1))}
               className="border-input bg-background w-12 rounded-md border px-2 py-1 text-center"
             />
             <Button
               type="button"
               variant="outline"
               size="icon-sm"
-              disabled={teamCount + smallTrailingCount >= MAX_TEAMS}
+              disabled={teamCount >= MAX_TEAMS}
               onClick={() => setTeamCount((n) => clampTeamCount(n + 1))}
               aria-label={t("moreTeams")}
             >
