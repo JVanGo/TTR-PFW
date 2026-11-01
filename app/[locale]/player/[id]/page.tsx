@@ -90,7 +90,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
     supabase
       .from("matches")
       .select(
-        "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, k_age_bonus, k_is_newcomer_bonus, k_is_returning_bonus, created_at",
+        "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, k_age_bonus, k_is_newcomer_bonus, k_is_returning_bonus, season, created_at",
       )
       .eq("player_id", player.id)
       .eq("season", selectedSeason)
@@ -99,7 +99,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
     supabase
       .from("matches")
       .select(
-        "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, k_age_bonus, k_is_newcomer_bonus, k_is_returning_bonus, created_at",
+        "id, match_date, competition, opponent_name, opponent_player_id, opponent_ttr, score, result, ttr_delta, new_ttr, k_factor, k_age_bonus, k_is_newcomer_bonus, k_is_returning_bonus, season, created_at",
       )
       .eq("player_id", player.id)
       .order("match_date", { ascending: true })
@@ -136,6 +136,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
     delta: m.ttr_delta,
     score: m.score ?? "",
     result: m.result as "W" | "L" | "FF",
+    season: m.season,
   });
   // Prepend the season-start value (same number the match history table's
   // own "Season start" row shows) so the graph's line begins there instead

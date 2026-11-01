@@ -4,6 +4,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -23,6 +24,8 @@ export interface TtrPoint {
    * usual "vs opponent · score · result" line, with no delta (there's
    * nothing before it to have changed from). */
   label?: string;
+  /** e.g. "2026-2027" — marks where a new season begins in the all-seasons view. */
+  season?: string;
 }
 
 interface Props {
@@ -65,6 +68,26 @@ function groupByDay(points: TtrPoint[]): DayPoint[] {
     }
   }
   return days;
+}
+
+/** The first game day of every season after the earliest one shown, for a
+ * divider line. A single-season graph gets none. */
+function seasonStarts(days: DayPoint[]): { date: string; season: string }[] {
+  const starts: { date: string; season: string }[] = [];
+  let current: string | undefined;
+  for (const day of days) {
+    const season = day.games[0]?.season;
+    if (!season) continue;
+    if (current && season !== current) starts.push({ date: day.date, season });
+    current = season;
+  }
+  return starts;
+}
+
+// "2026-2027" -> "26/27"
+function shortSeason(season: string): string {
+  const [from, to] = season.split("-");
+  return to ? `${from.slice(-2)}/${to.slice(-2)}` : season;
 }
 
 function deltaClass(delta: number): string {
@@ -153,6 +176,21 @@ export function TtrChart({ points }: Props) {
               />
             )}
           />
+          {seasonStarts(days).map((s) => (
+            <ReferenceLine
+              key={s.date}
+              x={s.date}
+              stroke="currentColor"
+              strokeOpacity={0.4}
+              strokeDasharray="4 4"
+              label={{
+                value: shortSeason(s.season),
+                position: "insideTopRight",
+                fontSize: 11,
+                fill: "currentColor",
+              }}
+            />
+          ))}
           <Line
             type="monotone"
             dataKey="ttr"

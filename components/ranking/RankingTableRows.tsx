@@ -33,12 +33,16 @@ interface Props {
 export function RankingTableRows({ rows, formatNumber, labels }: Props) {
   return (
     <div className="overflow-x-auto rounded-md border">
-      <table className="w-full min-w-[560px] text-sm">
+      {/* No min width: on phones the club moves under the name instead of
+          taking its own column, so DTR stays on screen without scrolling. */}
+      <table className="w-full text-sm">
         <thead className="bg-muted/60 text-muted-foreground">
           <tr>
             <th className="px-3 py-2 text-right font-medium">{labels.columnRank}</th>
             <th className="px-3 py-2 text-left font-medium">{labels.columnName}</th>
-            <th className="px-3 py-2 text-left font-medium">{labels.columnClub}</th>
+            <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">
+              {labels.columnClub}
+            </th>
             <th className="px-3 py-2 text-right font-medium">{labels.columnDtr}</th>
           </tr>
         </thead>
@@ -57,8 +61,13 @@ export function RankingTableRows({ rows, formatNumber, labels }: Props) {
                     {labels.inactiveBadge}
                   </span>
                 )}
+                <span className="text-muted-foreground block text-xs sm:hidden">
+                  {row.club ?? "—"}
+                </span>
               </td>
-              <td className="text-muted-foreground px-3 py-2">{row.club ?? "—"}</td>
+              <td className="text-muted-foreground hidden px-3 py-2 sm:table-cell">
+                {row.club ?? "—"}
+              </td>
               <td className="px-3 py-2 text-right tabular-nums">{row.dtr}</td>
             </tr>
           ))}
