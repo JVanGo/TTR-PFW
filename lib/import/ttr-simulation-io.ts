@@ -37,8 +37,10 @@ import {
 import { FLTT_ID_OVERRIDES } from "@/lib/import/flttid-overrides";
 import { resolveClubAlias } from "@/lib/import/club-aliases";
 import { PLAYER_NAME_ALIASES } from "@/lib/import/player-name-aliases";
+import { decideSmallCategory, loadTournamentEntries } from "@/lib/import/tournament-entries";
 import {
   simulateSeason,
+  isTournamentCompetition,
   ersteinstufungFor,
   inactivityDeductionAppliedAsOf,
   isMatchInactive,
@@ -150,6 +152,7 @@ interface SeasonPlacementRow {
   flttPlayerId: string;
   isoDate: string;
   competition: string;
+  category: string;
   tournamentPlacement: { place: number } | null;
 }
 
@@ -491,12 +494,12 @@ export async function computeSeasonSimulation(
   // flttPlayerId -> {nameKey, club}, via the Mongo catalog (our own players
   // table has no flttPlayerId) — the club is what lets us tell apart two
   // different real players who happen to share a name.
-  const catalogByFlttId = new Map<string, { nameKey: string; club: string | null }>();
+  const catalogByFlttId = new Map<string, { name: string; nameKey: string; club: string | null }>();
   // The reverse: nameKey -> catalog candidates, so a Supabase player row can
   // be resolved back to its flttPlayerId (to look up its season-start TTR).
   const catalogByNameKey = new Map<string, { flttPlayerId: string; club: string | null }[]>();
   for (const c of catalog) {
-    catalogByFlttId.set(c.flttPlayerId, { nameKey: nameKey(c.name), club: c.club });
+    catalogByFlttId.set(c.flttPlayerId, { name: c.name, nameKey: nameKey(c.name), club: c.club });
     const key = nameKey(c.name);
     const list = catalogByNameKey.get(key);
     const entry = { flttPlayerId: c.flttPlayerId, club: c.club };
@@ -789,6 +792,10 @@ export async function computeSeasonSimulation(
 
   const rawPlacements: RawSeasonPlacement[] = [];
   let skippedNoPlace = 0;
+  // Small-category rule (see lib/import/tournament-entries.ts).
+  const tournamentEntries = loadTournamentEntries();
+  const smallCategoryCounts: Record<string, number> = {};
+  const smallCategoryUnchecked: string[] = [];
   for (const p of placements) {
     const place = p.tournamentPlacement?.place;
     if (place !== 1 && place !== 2 && place !== 3) {
@@ -803,12 +810,32 @@ export async function computeSeasonSimulation(
       skippedNoPlace++;
       continue;
     }
+    const decision = isTournamentCompetition(p.competition)
+      ? decideSmallCategory(tournamentEntries, {
+          isoDate: p.isoDate,
+          category: p.category,
+          playerName: selfInfo?.name ?? selfPlayer.name,
+        })
+      : null;
+    if (decision) {
+      smallCategoryCounts[decision.kind] = (smallCategoryCounts[decision.kind] ?? 0) + 1;
+      if (
+        decision.kind === "no-pdf" ||
+        decision.kind === "no-category" ||
+        decision.kind === "player-not-found"
+      ) {
+        smallCategoryUnchecked.push(
+          `${decision.kind}: ${p.isoDate} ${p.competition} ${p.category} ${selfInfo?.name ?? ""}`,
+        );
+      }
+    }
     rawPlacements.push({
       sortKey: `${p.flttPlayerId}-${p.isoDate}-${p.competition}`,
       isoDate: p.isoDate,
       competition: p.competition,
       playerNameKey: identityKey(selfPlayer.name_key, selfPlayer.club),
       place,
+      reduced: decision?.kind === "reduced",
     });
   }
 
@@ -817,6 +844,14 @@ export async function computeSeasonSimulation(
       `(player not found), ${ambiguousOpponent} opponents left unresolved (shared name, no club ` +
       `match), ${skippedNoPlace} placement rows skipped.`,
   );
+  log(
+    `  Small-category rule (tournament PDFs synced ${tournamentEntries.syncedAt || "never"}): ` +
+      Object.entries(smallCategoryCounts)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(", "),
+  );
+  for (const line of smallCategoryUnchecked.slice(0, 20))
+    log(`    full bonus, unchecked — ${line}`);
   log(`Simulating season ${SEASON_LABEL}...`);
 
   const { matchRows, summary, playerLastMatchDates } = simulateSeason({

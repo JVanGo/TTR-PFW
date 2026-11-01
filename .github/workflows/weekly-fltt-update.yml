@@ -42,6 +42,14 @@ jobs:
       - name: Sync player catalog
         run: npx tsx scripts/import-fltt-catalog-r2-prod.ts
 
+      # Reads FLTT's per-tournament result PDFs for the entry counts behind the
+      # small-category placement rule (8/4/2 instead of 12/8/4 when fewer than
+      # 6 players of the higher class entered). If fltt.lu is
+      # unreachable, the copy committed in the repo is used instead.
+      - name: Sync tournament entry counts
+        run: npx tsx scripts/sync-tournament-entries.ts
+        continue-on-error: true
+
       # Recomputes the whole season's ratings from every match result seen so
       # far, replacing what's on the live site. Safe to re-run — always
       # recomputes from scratch rather than layering on top of last time.

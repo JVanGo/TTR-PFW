@@ -479,6 +479,29 @@ describe("simulateSeason", () => {
     expect(matchRows[0].newTtr).toBe(1004);
   });
 
+  it("gives the reduced 8/4/2 bonus for a small-category placement and labels it", () => {
+    const players = [player({ id: "a", name: "Alice", startingTtr: 1000 })];
+    const placements: RawSeasonPlacement[] = [1, 2, 3].map((place) => ({
+      sortKey: `p${place}`,
+      isoDate: `2025-11-1${place}`,
+      competition: "TOU Rued",
+      playerNameKey: "alice",
+      place: place as 1 | 2 | 3,
+      reduced: true,
+    }));
+    const { matchRows } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches: [],
+      placements,
+      youthGrowthPeriods: IRRELEVANT_GROWTH_PERIODS,
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    expect(matchRows.map((r) => r.ttrDelta)).toEqual([8, 4, 2]);
+    expect(matchRows[0].opponentName).toBe("Tournament — 1st place (small category)");
+  });
+
   it("excludes COU FELTEN matches entirely, with no placement bonus substitute", () => {
     const players = [
       player({ id: "a", name: "Alice", startingTtr: 1000 }),

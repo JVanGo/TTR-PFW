@@ -66,7 +66,12 @@ import {
   previousSeasonLabel,
   SEASON_LABEL,
 } from "../lib/import/ttr-simulation-io";
-import { PLACEMENT_TTR_BONUS, type OutputMatchRow } from "../lib/import/ttr-simulation";
+import {
+  PLACEMENT_TTR_BONUS,
+  REDUCED_PLACEMENT_LABEL_SUFFIX,
+  REDUCED_PLACEMENT_TTR_BONUS,
+  type OutputMatchRow,
+} from "../lib/import/ttr-simulation";
 import { fetchLatestTtrByPlayer } from "../lib/supabase/latestTtr";
 import { newPlayerChecks, type Finding, type PlayerRow } from "../lib/import/new-player-checks";
 
@@ -323,7 +328,12 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
       }
     } else if (isPlacement) {
       const label = Object.keys(PLACEMENT_BONUS_BY_LABEL).find((l) => r.opponent_name.includes(l));
-      const expected = label ? PLACEMENT_BONUS_BY_LABEL[label] : null;
+      const reduced = r.opponent_name.endsWith(REDUCED_PLACEMENT_LABEL_SUFFIX);
+      const expected = label
+        ? reduced
+          ? REDUCED_PLACEMENT_TTR_BONUS[label === "1st" ? 1 : label === "2nd" ? 2 : 3]
+          : PLACEMENT_BONUS_BY_LABEL[label]
+        : null;
       if (expected != null && r.ttr_delta !== expected) {
         findings.push({
           category: "Tournament placement bonus doesn't match its label",

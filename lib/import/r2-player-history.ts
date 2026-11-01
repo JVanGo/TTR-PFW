@@ -337,6 +337,8 @@ export interface MappedTournamentPlacement {
   flttPlayerId: string;
   isoDate: string;
   competition: string;
+  /** Category the placement was in, e.g. "C1-C2" or "C3•JUN" (R2's matchLabel). */
+  category: string;
   tournamentPlacement: { place: number } | null;
 }
 
@@ -586,6 +588,7 @@ export function mapPlayerHistoryToSeasonData(
       flttPlayerId,
       isoDate: p.isoDate,
       competition: p.competition,
+      category: p.matchLabel,
       tournamentPlacement: p.tournamentPlacement ? { place: p.tournamentPlacement.place } : null,
     }));
 

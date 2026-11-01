@@ -44,6 +44,12 @@ const INACTIVITY_DEDUCTION_OPPONENT_LABEL = "Inactivity deduction";
 // rating inflation, concentrated on the players who enter the most
 // tournaments.
 export const PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 12, 2: 8, 3: 4 };
+// Small-category rule (Jeff, 2026-11-01): fewer than 6 players of the
+// category's higher Klassierung entered -> players of that Klassierung only
+// get 8/4/2. Which placements qualify is decided in tournament-entries.ts.
+export const REDUCED_PLACEMENT_TTR_BONUS: Record<1 | 2 | 3, number> = { 1: 8, 2: 4, 3: 2 };
+/** Appended to a placement row's label when the reduced bonus applied. */
+export const REDUCED_PLACEMENT_LABEL_SUFFIX = " (small category)";
 
 // Competitions that never count towards the rating at all — no per-game
 // score, no placement bonus either, unlike TOU club tournaments.
@@ -189,6 +195,8 @@ export interface RawSeasonPlacement {
   competition: string;
   playerNameKey: string;
   place: 1 | 2 | 3;
+  /** Small-category rule applies: REDUCED_PLACEMENT_TTR_BONUS instead of the normal one. */
+  reduced?: boolean;
 }
 
 export interface SimulationInput {
@@ -671,13 +679,15 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
           summary.unresolvedPlayers++;
           continue;
         }
-        const bonus = PLACEMENT_TTR_BONUS[event.placement.place];
+        const bonus = (event.placement.reduced ? REDUCED_PLACEMENT_TTR_BONUS : PLACEMENT_TTR_BONUS)[
+          event.placement.place
+        ];
         dayRows.push({
           settleKey: event.placement.playerNameKey,
           playerId: state.id,
           matchDate: event.placement.isoDate,
           competition: event.placement.competition,
-          opponentName: `Tournament — ${event.placement.place === 1 ? "1st" : event.placement.place === 2 ? "2nd" : "3rd"} place`,
+          opponentName: `Tournament — ${event.placement.place === 1 ? "1st" : event.placement.place === 2 ? "2nd" : "3rd"} place${event.placement.reduced ? REDUCED_PLACEMENT_LABEL_SUFFIX : ""}`,
           opponentPlayerId: null,
           opponentTtr: null,
           score: null,
