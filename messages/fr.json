@@ -95,7 +95,8 @@
     "noResults": "Aucun joueur ne correspond aux filtres.",
     "previous": "← Précédent",
     "next": "Suivant →",
-    "pageOf": "Page {current} sur {total}"
+    "pageOf": "Page {current} sur {total}",
+    "weekChangeHint": "▲▼ évolution due aux matchs joués ces {days} derniers jours."
   },
   "LineupBuilder": {
     "heading": "Composition des équipes",

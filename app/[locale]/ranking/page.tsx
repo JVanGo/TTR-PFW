@@ -98,7 +98,10 @@ function RankingFiltered({
   const clubs = Array.from(clubSet).sort((a, b) => a.localeCompare(b));
 
   return (
+    // Keyed by club so following a club link from inside this view (e.g. a
+    // name after switching the dropdown) resets it to the linked club.
     <ClubRankingView
+      key={initialClub}
       rows={all}
       clubs={clubs}
       initialClub={initialClub}

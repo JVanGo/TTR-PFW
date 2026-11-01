@@ -104,6 +104,49 @@ export function pickTtrAsOf(
   return asOf;
 }
 
+/**
+ * Each player's latest rating plus their change from rows dated after
+ * `fromIso` up to and including `toIso` (the ranking's "▲12 this week"),
+ * from one scan of the season. The upper bound matters: the
+ * Inaktivitätsabzug row is dated at the season's end, in the future, and
+ * would otherwise show as a fresh ▼ for every inactive player all season.
+ * A change of 0 is left out, so the map holds just the players worth
+ * showing an arrow for.
+ */
+export async function fetchLatestTtrAndChangeByPlayer(
+  supabase: SupabaseClient,
+  season: string,
+  fromIso: string,
+  toIso: string,
+): Promise<{ latest: Map<string, number>; changeSince: Map<string, number> }> {
+  return pickLatestTtrAndChange(
+    await fetchSeasonRows<LatestTtrRow & MatchForStartingDtr>(
+      supabase,
+      season,
+      "player_id, match_date, competition, ttr_delta, new_ttr",
+    ),
+    fromIso,
+    toIso,
+  );
+}
+
+/** The pure part of fetchLatestTtrAndChangeByPlayer: rows in any order. */
+export function pickLatestTtrAndChange(
+  rows: (LatestTtrRow & MatchForStartingDtr)[],
+  fromIso: string,
+  toIso: string,
+): { latest: Map<string, number>; changeSince: Map<string, number> } {
+  const latest = pickLatestTtr(rows);
+  const before = pickTtrAsOf(rows, fromIso);
+  const after = pickTtrAsOf(rows, toIso);
+  const changeSince = new Map<string, number>();
+  for (const [playerId, to] of after) {
+    const from = before.get(playerId);
+    if (from != null && to !== from) changeSince.set(playerId, to - from);
+  }
+  return { latest, changeSince };
+}
+
 /** Every `matches` row of one season, selecting `columns` — see fetchLatestTtrByPlayer. */
 async function fetchSeasonRows<Row>(
   supabase: SupabaseClient,

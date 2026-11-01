@@ -95,7 +95,8 @@
     "noResults": "No players match the current filters.",
     "previous": "← Previous",
     "next": "Next →",
-    "pageOf": "Page {current} of {total}"
+    "pageOf": "Page {current} of {total}",
+    "weekChangeHint": "▲▼ change from games played in the last {days} days."
   },
   "LineupBuilder": {
     "heading": "Lineup Builder",

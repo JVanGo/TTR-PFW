@@ -192,7 +192,16 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
                   {player.age_category}
                 </span>
               )}{" "}
-              {player.club ?? "—"}
+              {player.club ? (
+                <Link
+                  href={`/ranking?club=${encodeURIComponent(player.club)}`}
+                  className="hover:text-foreground underline-offset-4 hover:underline"
+                >
+                  {player.club}
+                </Link>
+              ) : (
+                "—"
+              )}
               {isMatchInactive && (
                 <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                   {t("matchInactiveBadge")}

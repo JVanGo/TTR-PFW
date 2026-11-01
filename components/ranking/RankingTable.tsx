@@ -7,6 +7,7 @@ import {
   RankingTableRows,
   type RankingTableRow,
 } from "@/components/ranking/RankingTableRows";
+import { WEEK_CHANGE_DAYS } from "@/lib/season";
 
 export type { RankingTableRow };
 
@@ -88,6 +89,7 @@ export function RankingTable({ rows, clubs, club, onClubChange }: Props) {
           columnDtr: t("columnDtr"),
           inactiveBadge: t("inactiveBadge"),
           noResults: t("noResults"),
+          weekChangeHint: t("weekChangeHint", { days: WEEK_CHANGE_DAYS }),
         }}
       />
 

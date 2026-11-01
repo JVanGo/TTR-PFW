@@ -1,7 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
-import { fetchLatestTtrByPlayer, fetchTtrAsOfByPlayer } from "@/lib/supabase/latestTtr";
+import {
+  fetchLatestTtrAndChangeByPlayer,
+  fetchLatestTtrByPlayer,
+  fetchTtrAsOfByPlayer,
+} from "@/lib/supabase/latestTtr";
 import { fetchLatestSnapshot } from "@/lib/verbandsrangliste";
 import { createPublicClient } from "@/lib/supabase/public";
 import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions";
@@ -12,7 +16,7 @@ import {
   isMatchInactive as computeIsMatchInactive,
 } from "@/lib/import/ttr-simulation";
 import { RETURNING_PLAYER_PFW_OVERRIDES } from "@/lib/import/season-start-overrides";
-import { previousSeasonLabel } from "@/lib/season";
+import { previousSeasonLabel, WEEK_CHANGE_DAYS } from "@/lib/season";
 import { nameKey } from "@/lib/name-key";
 import { identityKey } from "@/lib/identity-key";
 
@@ -41,6 +45,8 @@ export interface RankingRow {
   ageCategory: AgeCategory | null;
   /** DTR on the newest Verbandsrangliste snapshot this season, or null if not on it — used by the Lineup Builder's NL teams. */
   snapshotDtr: number | null;
+  /** DTR change from games dated in the last WEEK_CHANGE_DAYS days, or null for none (or no change). */
+  weekChange: number | null;
 }
 
 interface PlayerRow {
@@ -75,15 +81,26 @@ export async function computeRankingRows(
   supabase: SupabaseClient,
   asOfIso?: string,
 ): Promise<RankingRow[]> {
-  const [allPlayers, latestTtrByPlayer, snapshot] = await Promise.all([
+  const weekAgoIso = new Date(Date.now() - WEEK_CHANGE_DAYS * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const [allPlayers, { latest: latestTtrByPlayer, changeSince }, snapshot] = await Promise.all([
     fetchAllRows<PlayerRow>(
       supabase,
       "players",
       "id, name, name_key, class, pfw, club, is_active, classement_points, age_category, is_kader, last_match_date",
     ),
     asOfIso
-      ? fetchTtrAsOfByPlayer(supabase, CURRENT_SEASON, asOfIso)
-      : fetchLatestTtrByPlayer(supabase, CURRENT_SEASON),
+      ? fetchTtrAsOfByPlayer(supabase, CURRENT_SEASON, asOfIso).then((latest) => ({
+          latest,
+          changeSince: new Map<string, number>(),
+        }))
+      : fetchLatestTtrAndChangeByPlayer(
+          supabase,
+          CURRENT_SEASON,
+          weekAgoIso,
+          new Date().toISOString().slice(0, 10),
+        ),
     asOfIso ? null : fetchLatestSnapshot(supabase, CURRENT_SEASON),
   ]);
   // Run sequentially, not alongside the two fetches above — each side of
@@ -149,6 +166,7 @@ export async function computeRankingRows(
       isKader: p.is_kader,
       ageCategory,
       snapshotDtr: snapshot?.dtrByPlayer.get(p.id) ?? null,
+      weekChange: changeSince.get(p.id) ?? null,
     };
   });
 
@@ -168,8 +186,8 @@ export async function computeRankingRows(
  * or an out-of-band season re-simulation), so it's cached for 5 minutes and
  * invalidated immediately on admin writes via `RANKING_CACHE_TAG`.
  *
- * Cache key has a "-v3" suffix (bumped from "-v2" when `snapshotDtr` was
- * added, 2026-10-25): the "-v1" entry was found (2026-09-12)
+ * Cache key has a "-v4" suffix (bumped from "-v3" when `weekChange` was
+ * added, 2026-11-01; "-v3" came with `snapshotDtr`): the "-v1" entry was found (2026-09-12)
  * serving `ageCategory`-less rows on production many hours after that field
  * was added to this function — Vercel's Data Cache persists across
  * deployments by design, and its 5-minute `revalidate` evidently never
@@ -179,6 +197,6 @@ export async function computeRankingRows(
  */
 export const getRankingRows = unstable_cache(
   async (): Promise<RankingRow[]> => computeRankingRows(createPublicClient()),
-  ["ranking-rows-v3"],
+  ["ranking-rows-v4"],
   { revalidate: 300, tags: [RANKING_CACHE_TAG] },
 );

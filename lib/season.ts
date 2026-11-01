@@ -9,3 +9,6 @@ export function previousSeasonLabel(current: string): string {
   const [startYear, endYear] = current.split("-").map(Number);
   return `${startYear - 1}-${endYear - 1}`;
 }
+
+/** How far back the ranking's "change this week" arrows look, by game date. */
+export const WEEK_CHANGE_DAYS = 7;

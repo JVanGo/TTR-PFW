@@ -95,7 +95,8 @@
     "noResults": "Keine Spieler entsprechen den aktuellen Filtern.",
     "previous": "← Zurück",
     "next": "Weiter →",
-    "pageOf": "Seite {current} von {total}"
+    "pageOf": "Seite {current} von {total}",
+    "weekChangeHint": "▲▼ Veränderung durch Spiele der letzten {days} Tage."
   },
   "LineupBuilder": {
     "heading": "Mannschaftsaufstellung",

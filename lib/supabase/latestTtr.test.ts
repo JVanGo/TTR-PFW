@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickLatestTtr, pickTtrAsOf, type LatestTtrRow } from "./latestTtr";
+import { pickLatestTtr, pickLatestTtrAndChange, pickTtrAsOf, type LatestTtrRow } from "./latestTtr";
 
 const row = (
   player_id: string,
@@ -75,5 +75,52 @@ describe("pickTtrAsOf", () => {
 
   it("leaves out players with no rows", () => {
     expect(pickTtrAsOf([], "2026-08-01").size).toBe(0);
+  });
+});
+
+describe("pickLatestTtrAndChange", () => {
+  const match = (player_id: string, match_date: string, ttr_delta: number, new_ttr: number) => ({
+    ...row(player_id, match_date, ttr_delta, new_ttr),
+    competition: "CH",
+  });
+
+  it("measures the change from games after the date only", () => {
+    const rows = [
+      match("a", "2026-10-10", 8, 1508), // before the cutoff
+      match("a", "2026-10-24", 6, 1514),
+      match("a", "2026-10-24", -2, 1514),
+    ];
+    const { latest, changeSince } = pickLatestTtrAndChange(rows, "2026-10-20", "2026-10-27");
+    expect(latest.get("a")).toBe(1514);
+    expect(changeSince.get("a")).toBe(6);
+  });
+
+  it("counts from the season start when the first game is after the date", () => {
+    const rows = [match("b", "2026-10-24", 12, 1212)];
+    expect(pickLatestTtrAndChange(rows, "2026-10-20", "2026-10-27").changeSince.get("b")).toBe(12);
+  });
+
+  it("leaves out players whose rating didn't move since the date", () => {
+    const rows = [match("c", "2026-10-01", 5, 1305)];
+    expect(pickLatestTtrAndChange(rows, "2026-10-20", "2026-10-27").changeSince.has("c")).toBe(
+      false,
+    );
+  });
+
+  it("ignores the future-dated inactivity deduction", () => {
+    const rows = [
+      match("d", "2026-10-24", 4, 1404),
+      { ...match("d", "2027-08-01", -80, 1324), competition: "Inaktivitätsabzug" },
+    ];
+    const { latest, changeSince } = pickLatestTtrAndChange(rows, "2026-10-20", "2026-10-27");
+    expect(latest.get("d")).toBe(1324); // the shown DTR still includes it
+    expect(changeSince.get("d")).toBe(4);
+  });
+
+  it("shows no change for a player whose only row is that deduction", () => {
+    const rows = [{ ...match("e", "2027-08-01", -80, 1320), competition: "Inaktivitätsabzug" }];
+    expect(pickLatestTtrAndChange(rows, "2026-10-20", "2026-10-27").changeSince.has("e")).toBe(
+      false,
+    );
   });
 });

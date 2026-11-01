@@ -2,6 +2,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { RankingTableRows, type RankingTableRow } from "@/components/ranking/RankingTableRows";
 import { RankingBrowserControls } from "@/components/ranking/RankingBrowserControls";
+import { WEEK_CHANGE_DAYS } from "@/lib/season";
 
 interface Props {
   rows: RankingTableRow[];
@@ -49,6 +50,7 @@ export async function RankingBrowser({ rows, totalCount, page, pageCount, clubs,
           columnDtr: t("columnDtr"),
           inactiveBadge: t("inactiveBadge"),
           noResults: t("noResults"),
+          weekChangeHint: t("weekChangeHint", { days: WEEK_CHANGE_DAYS }),
         }}
       />
 
