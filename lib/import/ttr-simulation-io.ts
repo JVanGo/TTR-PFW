@@ -37,7 +37,13 @@ import {
 import { FLTT_ID_OVERRIDES } from "@/lib/import/flttid-overrides";
 import { resolveClubAlias } from "@/lib/import/club-aliases";
 import { PLAYER_NAME_ALIASES } from "@/lib/import/player-name-aliases";
-import { decideSmallCategory, loadTournamentEntries } from "@/lib/import/tournament-entries";
+import {
+  decideSmallCategory,
+  loadTournamentEntries,
+  pdfNameMatches,
+  pdfPlacements,
+  r2LabelMatchesPdfCategory,
+} from "@/lib/import/tournament-entries";
 import {
   simulateSeason,
   isTournamentCompetition,
@@ -838,6 +844,94 @@ export async function computeSeasonSimulation(
       reduced: decision?.kind === "reduced",
     });
   }
+
+  // Placements the tournament PDFs list but FLTT's own data (R2) leaves out —
+  // in 25/26 mostly the ones FLTT's old system gave no bonus for (A/B players,
+  // tiny categories). They still earn DTR points (Jeff, 2026-11-01). Each is
+  // tied to a player who played a TOU game that day under a matching name,
+  // dated like that game (the PDF's file date can be a day off).
+  const touPlayersByDate = new Map<string, Map<string, string>>(); // date -> flttId -> competition
+  for (const m of seasonMatches) {
+    if (!isTournamentCompetition(m.competition)) continue;
+    const byPlayer = touPlayersByDate.get(m.isoDate) ?? new Map<string, string>();
+    byPlayer.set(m.flttPlayerId, m.competition);
+    touPlayersByDate.set(m.isoDate, byPlayer);
+  }
+  const r2PlacementsByPlayer = new Map<
+    string,
+    { isoDate: string; category: string; place: number }[]
+  >();
+  for (const p of placements) {
+    const list = r2PlacementsByPlayer.get(p.flttPlayerId) ?? [];
+    list.push({
+      isoDate: p.isoDate,
+      category: p.category,
+      place: p.tournamentPlacement?.place ?? 0,
+    });
+    r2PlacementsByPlayer.set(p.flttPlayerId, list);
+  }
+  const shiftDay = (iso: string, days: number) => {
+    const d = new Date(`${iso}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+  const addedFromPdf: string[] = [];
+  const pdfUnmatched: string[] = [];
+  for (const pp of pdfPlacements(tournamentEntries)) {
+    // The game day this placement belongs to, and who played under that name.
+    let match: { flttId: string; isoDate: string; competition: string }[] = [];
+    for (const offset of [0, -1, 1]) {
+      const iso = shiftDay(pp.isoDate, offset);
+      const players = touPlayersByDate.get(iso);
+      if (!players) continue;
+      const found = [...players.entries()]
+        .filter(([flttId]) => {
+          const info = catalogByFlttId.get(flttId);
+          return info ? pdfNameMatches(pp.name, info.name) : false;
+        })
+        .map(([flttId, competition]) => ({ flttId, isoDate: iso, competition }));
+      if (found.length > 0) {
+        match = found;
+        break;
+      }
+    }
+    if (match.length === 0) continue; // another season's tournament, or no games on file
+    if (match.length > 1) {
+      pdfUnmatched.push(
+        `${pp.isoDate} ${pp.category} ${pp.name} (several players share this name)`,
+      );
+      continue;
+    }
+    const { flttId, isoDate, competition } = match[0];
+    const already = (r2PlacementsByPlayer.get(flttId) ?? []).some(
+      (r) =>
+        Math.abs(Date.parse(r.isoDate) - Date.parse(isoDate)) <= 86_400_000 &&
+        (r2LabelMatchesPdfCategory(r.category, pp.category) || r.category === pp.category),
+    );
+    if (already) continue;
+    const selfInfo = catalogByFlttId.get(flttId);
+    const selfPlayer = selfInfo
+      ? resolvePlayer(playersByNameKey, selfInfo.nameKey, selfInfo.club)
+      : null;
+    if (!selfPlayer) {
+      pdfUnmatched.push(`${pp.isoDate} ${pp.category} ${pp.name} (not in our player list)`);
+      continue;
+    }
+    rawPlacements.push({
+      sortKey: `${flttId}-${isoDate}-${competition}-pdf-${pp.category}`,
+      isoDate,
+      competition,
+      playerNameKey: identityKey(selfPlayer.name_key, selfPlayer.club),
+      place: pp.place,
+      reduced: pp.reduced,
+    });
+    addedFromPdf.push(
+      `${isoDate} ${competition} ${pp.category} P${pp.place}${pp.reduced ? " (small category)" : ""} ${selfInfo?.name ?? pp.name}`,
+    );
+  }
+  log(`  ${addedFromPdf.length} placements added from tournament PDFs (missing in FLTT's data).`);
+  for (const line of addedFromPdf) log(`    + ${line}`);
+  for (const line of pdfUnmatched) log(`    ? not added — ${line}`);
 
   log(
     `  ${skippedNoResult} match rows skipped (no result), ${skippedSelfUnresolved} skipped ` +

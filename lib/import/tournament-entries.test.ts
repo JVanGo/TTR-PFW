@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  assignPlacersByLayout,
   categoryClasses,
   decideSmallCategory,
   parseTournamentPdfText,
+  pdfPlacements,
+  r2LabelMatchesPdfCategory,
+  youthCategoryClasses,
   type TournamentEntriesFile,
 } from "./tournament-entries";
 
@@ -96,8 +100,106 @@ describe("decideSmallCategory", () => {
   it("matches a shortened first name and a PDF dated one day off", () => {
     expect(decide("C1-C2", "FEITZ Tommy", "2025-12-27")).toBe("reduced");
   });
+});
 
-  it("leaves youth categories alone", () => {
-    expect(decide("C3•JUN", "FEITZ Tom")).toBe("youth");
+describe("youth tournaments", () => {
+  // Shaped like 2026-05-17-lenger.pdf: categories named differently from R2's labels.
+  const text = `Catégorie Individuel PrM-CAD D2-D3 participants: 4 (2) 4 2 Catégorie Individuel PrM-CAD D1 participants: 11
+1. TETTAMANTI Matteo (Bartreng) D2 Individuel PrM-CAD D2-D3-1 1. VINTERA Artur (Mamer) D1 +1,5
+3. CONG Zhaoping (Lëntgen) D3 Individuel PrM-CAD D2-D3-3 3. IABANJI Valentim (Diddeleng) D1 +0,5
+Catégorie Ind. PrM-JUN C3 & JUN D participants: 17 (12) 17 12 Catégorie Individuel PrM-JUN C1-C2 participants: 7 (3)
+1. TRINDADE ARAUJO André (Weimeschhaff) C3 +1,5 2. CONSTANTIN Eduard-Stefan (Zéisseng) C1
+3. ZHOU Eddie (Houwald) C2 +0,5`;
+  const parsed = parseTournamentPdfText(text);
+  const placers: Record<string, string[]> = {
+    "Individuel PrM-CAD D2-D3": ["tettamanti matteo", "cong zhaoping"],
+    "Individuel PrM-CAD D1": ["vintera artur", "iabanji valentim"],
+    "Ind. PrM-JUN C3 & JUN D": ["trindade araujo andre"],
+    "Individuel PrM-JUN C1-C2": ["constantin eduard stefan", "zhou eddie"],
+  };
+  for (const [name, list] of Object.entries(placers)) {
+    parsed.categories[name].placers = list.map((n, i) => ({
+      name: n,
+      place: Math.min(i + 1, 3) as 1 | 2 | 3,
+    }));
+  }
+  const file: TournamentEntriesFile = {
+    syncedAt: "",
+    tournaments: [{ isoDate: "2026-05-17", source: "lenger.pdf", ...parsed }],
+  };
+  const decide = (category: string, playerName: string) =>
+    decideSmallCategory(file, { isoDate: "2026-05-17", category, playerName }).kind;
+
+  it("reduces the higher class of a small youth category, found by the placer's name", () => {
+    expect(decide("D2-D3•CAD", "TETTAMANTI Matteo")).toBe("reduced"); // 2 D2s
+    expect(decide("C1•JUN", "CONSTANTIN Eduard-Stefan")).toBe("reduced"); // 3 C1s
+  });
+
+  it("keeps the full bonus for the lower class and for big categories", () => {
+    expect(decide("D2-D3•CAD", "CONG Zhaoping")).toBe("full"); // D3, lower class
+    expect(decide("C1•JUN", "ZHOU Eddie")).toBe("full"); // C2, lower class
+    expect(decide("D1•CAD", "IABANJI Valentim")).toBe("full"); // 11 entrants
+    expect(decide("C3•JUN", "TRINDADE ARAUJO André")).toBe("full"); // 12 C3s
+  });
+
+  it("reads the classes a youth category name covers", () => {
+    expect(youthCategoryClasses("Ind. PrM-JUN C3 & JUN D")).toEqual(["C3", "D1", "D2", "D3"]);
+    expect(youthCategoryClasses("Individuel MIN/CAD D3")).toEqual(["D3"]);
+    expect(youthCategoryClasses("PrM-JUN A-B")).toEqual(["A1", "A2", "A3", "B1", "B2", "B3"]);
+  });
+});
+
+describe("assignPlacersByLayout", () => {
+  it("splits two columns even when a text run crosses the boundary", () => {
+    const width = 595;
+    const result = assignPlacersByLayout([
+      {
+        width,
+        items: [
+          { str: "Catégorie D3", x: 39, y: 707 },
+          { str: "participants: 18 18", x: 199, y: 707 },
+          { str: "Catégorie D2-D3", x: 314, y: 707 },
+          { str: "participants: 37 (21)", x: 480, y: 707 },
+          { str: "1. MIELCZAREK Simon (Iechternach)", x: 44, y: 690 },
+          { str: "+1,5 D3 D3-11. KOROTICH Mikhail (Zolwer)", x: 260, y: 690 },
+          { str: "RIES Alex (Recken)", x: 44, y: 640 },
+          { str: "D3 +0,5 D3-4 PENG Michael Yitong (Stroossen)", x: 230, y: 640 },
+        ],
+      },
+    ]);
+    expect(result["D3"]).toEqual([
+      { name: "mielczarek simon", place: 1 },
+      { name: "ries alex", place: 3 },
+    ]);
+    expect(result["D2-D3"]).toEqual([
+      { name: "korotich mikhail", place: 1 },
+      { name: "peng michael yitong", place: 3 },
+    ]);
+  });
+});
+
+describe("pdfPlacements and label matching", () => {
+  it("lists every club placement with the rule applied, skipping doubles and regionals", () => {
+    const parsed = parseTournamentPdfText(
+      "Catégorie C1-C2 participants: 9 (3)\n1. FEITZ Tom (Helleng) C1 +1,5\n2. GÁSPÁR Milan (Rued) C2 +1",
+    );
+    parsed.categories["C1-C2"].placers = [
+      { name: "feitz tom", place: 1 },
+      { name: "gaspar milan", place: 2 },
+    ];
+    const club = { isoDate: "2025-09-07", source: "2025-09-07-baerdref.pdf", ...parsed };
+    const regional = { ...club, source: "2025-11-23-championnats-regionaux-est.pdf" };
+    const list = pdfPlacements({ syncedAt: "", tournaments: [club, regional] });
+    expect(list.map((p) => [p.name, p.place, p.reduced])).toEqual([
+      ["feitz tom", 1, true], // C1, only 3 C1s
+      ["gaspar milan", 2, false], // C2, lower class
+    ]);
+  });
+
+  it("matches R2 labels to PDF categories", () => {
+    expect(r2LabelMatchesPdfCategory("C1-C2", "C1-C2")).toBe(true);
+    expect(r2LabelMatchesPdfCategory("C1-C2", "B3-C1")).toBe(false);
+    expect(r2LabelMatchesPdfCategory("C3•JUN", "Ind. PrM-JUN C3 & JUN D")).toBe(true);
+    expect(r2LabelMatchesPdfCategory("C1•JUN", "Ind. PrM-JUN C3 & JUN D")).toBe(false);
   });
 });

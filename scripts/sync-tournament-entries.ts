@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { extractText, getDocumentProxy } from "unpdf";
 import {
   TOURNAMENT_ENTRIES_PATH,
+  assignPlacersByLayout,
   parseTournamentPdfText,
+  type PdfTextItem,
   type TournamentEntries,
   type TournamentEntriesFile,
 } from "@/lib/import/tournament-entries";
@@ -61,6 +63,22 @@ async function main() {
     const pdf = await getDocumentProxy(new Uint8Array(readFileSync(cachePath)));
     const { text } = await extractText(pdf, { mergePages: true });
     const parsed = parseTournamentPdfText(text);
+    // Per-category placer lists, from where each heading/name sits on the page.
+    const pages: { width: number; items: PdfTextItem[] }[] = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      pages.push({
+        width: page.getViewport({ scale: 1 }).width,
+        items: (content.items as { str?: string; transform?: number[] }[])
+          .filter((i) => typeof i.str === "string" && i.transform)
+          .map((i) => ({ str: i.str!, x: i.transform![4], y: i.transform![5] })),
+      });
+    }
+    const placersByCategory = assignPlacersByLayout(pages);
+    for (const [name, entry] of Object.entries(parsed.categories)) {
+      entry.placers = placersByCategory[name] ?? [];
+    }
     const catCount = Object.keys(parsed.categories).length;
     if (catCount === 0) console.warn(`  ${file}: no categories recognised, skipped.`);
     else tournaments.push({ isoDate: file.slice(0, 10), source: file, ...parsed });
