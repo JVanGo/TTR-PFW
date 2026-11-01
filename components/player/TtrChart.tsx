@@ -37,9 +37,47 @@ function formatDate(d: string, locale: string): string {
   });
 }
 
+/** One plotted point per game day: the rating after the day's last game,
+ * the day's net change, and every game played that day for the tooltip. */
+interface DayPoint {
+  date: string;
+  ttr: number;
+  delta: number;
+  games: TtrPoint[];
+  label?: string;
+}
+
+// Points arrive in chronological order, so a day's games are consecutive.
+// The season-start point keeps its own day (it's dated the day before the
+// first game anyway) so its label never mixes with real games.
+function groupByDay(points: TtrPoint[]): DayPoint[] {
+  const days: DayPoint[] = [];
+  for (const p of points) {
+    const last = days[days.length - 1];
+    if (p.label) {
+      days.push({ date: p.date, ttr: p.ttr, delta: 0, games: [], label: p.label });
+    } else if (last && !last.label && last.date === p.date) {
+      last.ttr = p.ttr;
+      last.delta += p.delta;
+      last.games.push(p);
+    } else {
+      days.push({ date: p.date, ttr: p.ttr, delta: p.delta, games: [p] });
+    }
+  }
+  return days;
+}
+
+function deltaClass(delta: number): string {
+  return delta > 0 ? "text-emerald-600" : delta < 0 ? "text-red-600" : "text-muted-foreground";
+}
+
+function formatDelta(delta: number): string {
+  return `(${delta >= 0 ? "+" : ""}${delta})`;
+}
+
 interface TooltipRenderProps {
   active?: boolean;
-  payload?: ReadonlyArray<{ payload?: TtrPoint }>;
+  payload?: ReadonlyArray<{ payload?: DayPoint }>;
   locale: string;
   vsLabel: string;
   dtrLabel: string;
@@ -47,36 +85,30 @@ interface TooltipRenderProps {
 
 function ChartTooltip({ active, payload, locale, vsLabel, dtrLabel }: TooltipRenderProps) {
   if (!active || !payload || payload.length === 0) return null;
-  const point = payload[0].payload;
-  if (!point) return null;
+  const day = payload[0].payload;
+  if (!day) return null;
   return (
-    <div className="bg-popover text-popover-foreground rounded-md border px-3 py-2 text-xs shadow-sm">
-      <p className="font-medium">{formatDate(point.date, locale)}</p>
-      {point.label ? (
-        <p>{point.label}</p>
+    <div className="bg-popover text-popover-foreground max-w-xs rounded-md border px-3 py-2 text-xs shadow-sm">
+      <p className="font-medium">{formatDate(day.date, locale)}</p>
+      {day.label ? (
+        <p>{day.label}</p>
       ) : (
-        <p>
-          {vsLabel} <span className="font-medium">{point.opponent}</span> · {point.score} ·{" "}
-          {point.result}
-        </p>
+        <ul className="my-1 space-y-0.5">
+          {day.games.map((g, i) => (
+            <li key={i}>
+              {vsLabel} <span className="font-medium">{g.opponent}</span> ·{" "}
+              {g.score && `${g.score} · `}
+              {g.result} <span className={deltaClass(g.delta)}>{formatDelta(g.delta)}</span>
+            </li>
+          ))}
+        </ul>
       )}
-      <p>
-        {dtrLabel} {point.ttr}
-        {!point.label && (
+      <p className={day.label ? undefined : "border-t pt-1 font-medium"}>
+        {dtrLabel} {day.ttr}
+        {!day.label && (
           <>
             {" "}
-            <span
-              className={
-                point.delta > 0
-                  ? "text-emerald-600"
-                  : point.delta < 0
-                    ? "text-red-600"
-                    : "text-muted-foreground"
-              }
-            >
-              ({point.delta >= 0 ? "+" : ""}
-              {point.delta})
-            </span>
+            <span className={deltaClass(day.delta)}>{formatDelta(day.delta)}</span>
           </>
         )}
       </p>
@@ -88,14 +120,15 @@ export function TtrChart({ points }: Props) {
   const t = useTranslations("TtrChart");
   const locale = useLocale();
   if (points.length === 0) return null;
-  const ttrs = points.map((p) => p.ttr);
+  const days = groupByDay(points);
+  const ttrs = days.map((d) => d.ttr);
   const min = Math.min(...ttrs) - 10;
   const max = Math.max(...ttrs) + 10;
 
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={points} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+        <LineChart data={days} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis
             dataKey="date"
