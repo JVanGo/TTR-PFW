@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   mapPlayerHistoryToSeasonData,
+  playerIdFromHistoryKey,
   type PlayerHistory,
   type PlayerHistorySeason,
   type RencontresRawRow,
@@ -112,5 +113,22 @@ describe("mapPlayerHistoryToSeasonData", () => {
     ]);
     const mapped = mapPlayerHistoryToSeasonData(h, "25-26");
     expect(mapped.earliestKnownClass).toBeNull();
+  });
+});
+
+describe("playerIdFromHistoryKey", () => {
+  it("reads a classic numeric ID", () => {
+    expect(playerIdFromHistoryKey("player-histories/17057.json")).toBe("17057");
+  });
+
+  it("reads a whole licence UUID, not just its trailing digits", () => {
+    expect(
+      playerIdFromHistoryKey("player-histories/116c3bd6-1148-48db-864d-9894a2b4d098.json"),
+    ).toBe("116c3bd6-1148-48db-864d-9894a2b4d098");
+  });
+
+  it("skips the manifest and anything outside the folder", () => {
+    expect(playerIdFromHistoryKey("player-histories/manifest.json")).toBeNull();
+    expect(playerIdFromHistoryKey("other/17057.json")).toBeNull();
   });
 });

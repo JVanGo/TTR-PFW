@@ -201,11 +201,26 @@ async function withR2Retry<T>(fn: (signal: AbortSignal) => Promise<T>, attempts 
   throw lastErr;
 }
 
+/**
+ * An FLTT player ID: either the classic number ("17057") or, for licences
+ * issued since FLTT's 2026-11-06 data update, a UUID ("116c3bd6-1148-...").
+ * The old digits-only pattern read a UUID file's trailing digits as an ID
+ * ("…9894a2b4d098" -> "098") and the whole sync died on the 404.
+ */
+const FLTT_PLAYER_ID_RE = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+
+/** The player ID in a `player-histories/<id>.json` key, or null for any
+ * other file in that folder (e.g. `manifest.json`). */
+export function playerIdFromHistoryKey(key: string): string | null {
+  const id = key.match(/^player-histories\/([^/]+)\.json$/)?.[1];
+  return id != null && FLTT_PLAYER_ID_RE.test(id) ? id : null;
+}
+
 /** Fetches one player's match-history file, using a local disk cache so a
  * repeated run of the season simulation doesn't re-download every player. */
 export async function fetchPlayerHistoryFromR2(flttPlayerId: string): Promise<PlayerHistory> {
-  if (!/^\d+$/.test(flttPlayerId)) {
-    throw new Error(`Use a numeric FLTT player ID, got: ${flttPlayerId}`);
+  if (!FLTT_PLAYER_ID_RE.test(flttPlayerId)) {
+    throw new Error(`Use an FLTT player ID (number or licence UUID), got: ${flttPlayerId}`);
   }
   const cachePath = join(CACHE_DIR, `${flttPlayerId}.json`);
   if (existsSync(cachePath)) {
@@ -442,9 +457,7 @@ export async function fetchCatalogFromR2(
   onProgress?: (done: number, total: number) => void,
 ): Promise<R2CatalogResult> {
   const keys = await listAllPlayerHistoryKeys();
-  const playerIds = keys
-    .map((k) => k.match(/([0-9]+)\.json$/)?.[1])
-    .filter((id): id is string => id != null);
+  const playerIds = keys.map(playerIdFromHistoryKey).filter((id): id is string => id != null);
 
   const clubByNameKey = new Map<string, R2ClubSighting>();
 

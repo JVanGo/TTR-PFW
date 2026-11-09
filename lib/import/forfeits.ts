@@ -641,7 +641,13 @@ export function findPerformanceGapForfeits(
   for (const r of ratedRows) {
     if (r.hasPerformance) continue;
     if (alreadyForfeited.has(r.id)) continue;
-    if (!playersWithSomePerformance.has(r.flttPlayerId)) continue;
+    // A stored forfeit or a 0-0 skips the crawl-gap check too: once a whole
+    // season has aged out of FLTT's 12-month window, NO row of it has
+    // Performance any more, so a player who only played that season would
+    // otherwise look like a crawl gap and lose the forfeit anyway (BAGUENAULT
+    // DE VIEVILLE Gabriel vs WEBER Odile, 2025-09-20 0-0, lost on the
+    // 2026-11-08 re-run of 25/26).
+    if (!playersWithSomePerformance.has(r.flttPlayerId) && !oldButStillChecked(r)) continue;
 
     const mirror = mirrorIndex.get(
       `${nameKey(r.opponentName)}|${r.isoDate}|${family(r.competition)}|${nameKey(r.playerName)}`,

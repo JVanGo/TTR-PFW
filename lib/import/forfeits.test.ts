@@ -591,6 +591,30 @@ describe("findPerformanceGapForfeits", () => {
     expect(result.forfeitedRowIds).toEqual(new Set(["old-stored", "old-zero"]));
   });
 
+  // 2026-11-08: once a player's whole season has aged out of the 12-month
+  // window, none of their rows has Performance any more — a stored forfeit
+  // or a 0-0 must still survive the crawl-gap skip, not just the age cutoff.
+  it("keeps an old stored forfeit or 0-0 for a player with no Performance rows left", () => {
+    const rows = [
+      row({ id: "old-stored", isoDate: "2025-01-01", opponentName: "STORED Opponent" }),
+      row({ id: "old-zero", isoDate: "2025-01-02", score: "0-0" }),
+      row({ id: "old-other", isoDate: "2025-01-03" }),
+      row({ id: "recent-gap", isoDate: "2026-05-01", opponentName: "SOMEONE ELSE" }),
+    ];
+    const stored = new Set([
+      performanceGapMatchKey("2025-01-01", "STORED Opponent", "HANSEN Finja"),
+    ]);
+    const result = findPerformanceGapForfeits(
+      rows,
+      new Set(),
+      NOW,
+      PERFORMANCE_GAP_EXEMPT_PLAYERS,
+      stored,
+    );
+    // "recent-gap" is still treated as a crawl gap, as before.
+    expect(result.forfeitedRowIds).toEqual(new Set(["old-stored", "old-zero"]));
+  });
+
   // Confirmed for real against fltt.lu (2026-10-02): MINDEN Christophe's
   // CH SEN N2-D5 Performance rows existed for his Sept 19 and Sept 26
   // matchdays but not yet for Sept 30 (2 days before the check) — FLTT's own

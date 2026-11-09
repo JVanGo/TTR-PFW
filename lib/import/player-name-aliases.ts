@@ -13,4 +13,5 @@
  */
 export const PLAYER_NAME_ALIASES: Record<string, string> = {
   "THOMMES Myriam": "MEYERS Myriam", // licence 22467, merged 2026-10-23
+  "JADE Maryvonne": "LALLIER Maryvonne", // Mëllerdall, confirmed by Jeff 2026-11-08
 };
