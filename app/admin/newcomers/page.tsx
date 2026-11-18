@@ -39,25 +39,37 @@ export default async function NewcomersPage() {
       {players.length === 0 ? (
         <p className="text-muted-foreground mt-8 text-sm">Nothing waiting on review.</p>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-md border">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead className="bg-muted/60 text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium">Name</th>
-                <th className="px-3 py-2 text-left font-medium">Class</th>
-                <th className="px-3 py-2 text-right font-medium">PFW</th>
-                <th className="px-3 py-2 text-left font-medium">Club</th>
-                <th className="px-3 py-2 text-left font-medium">Added</th>
-                <th className="px-3 py-2 text-left font-medium">Age group</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players.map((p) => (
-                <NewcomerRow key={p.id} player={p} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="mt-6">
+            {/* A plain link, not next/link: it's a file download, not a page. */}
+            <a
+              href="/admin/newcomers/export"
+              download
+              className="border-input bg-background hover:bg-muted inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium"
+            >
+              Export to Excel ({players.length})
+            </a>
+          </div>
+          <div className="mt-4 overflow-x-auto rounded-md border">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-muted/60 text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">Name</th>
+                  <th className="px-3 py-2 text-left font-medium">Class</th>
+                  <th className="px-3 py-2 text-right font-medium">PFW</th>
+                  <th className="px-3 py-2 text-left font-medium">Club</th>
+                  <th className="px-3 py-2 text-left font-medium">Added</th>
+                  <th className="px-3 py-2 text-left font-medium">Age group</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((p) => (
+                  <NewcomerRow key={p.id} player={p} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
