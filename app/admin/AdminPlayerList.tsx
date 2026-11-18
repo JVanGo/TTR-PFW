@@ -15,6 +15,7 @@ export interface AdminPlayerRow {
   classement_points: number | null;
   age_category: string | null;
   starting_dtr: number | null;
+  inactivity_exempt: boolean;
 }
 
 interface Props {

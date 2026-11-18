@@ -36,7 +36,7 @@ const INACTIVITY_DEDUCTION_STAGE_2_TOTAL = 100;
 // Exported for manual season-start overrides (see season-start-overrides.ts)
 // that need to mark a player's Inaktivitätsabzug as already fully paid down.
 export const INACTIVITY_DEDUCTION_STAGE_3_TOTAL = 120;
-const INACTIVITY_DEDUCTION_COMPETITION = "Inaktivitätsabzug";
+export const INACTIVITY_DEDUCTION_COMPETITION = "Inaktivitätsabzug";
 const INACTIVITY_DEDUCTION_OPPONENT_LABEL = "Inactivity deduction";
 
 // Lowered from 15/10/5 on 2026-10-20 (Jeff's call): every placement bonus is
@@ -143,6 +143,21 @@ export function inactivityDeductionAppliedAsOf(
   return 0;
 }
 
+/**
+ * Whether a player coming back on `referenceIsoDate` has been away 12+
+ * months, which earns the returning-player K bonus for their next 15 games.
+ * `null` (never played) is a newcomer, not a returner.
+ */
+export function isReturningAfterBreak(
+  lastMatchIsoDate: string | null,
+  referenceIsoDate: string,
+): boolean {
+  return (
+    lastMatchIsoDate != null &&
+    monthsBetween(lastMatchIsoDate, referenceIsoDate) >= INACTIVITY_MONTHS_THRESHOLD
+  );
+}
+
 /** Whether the Inaktivitätsabzug badge should show as of `referenceIsoDate`. */
 export function isMatchInactive(
   lastMatchIsoDate: string | null,
@@ -171,6 +186,13 @@ export interface SimPlayer {
    * reflected in `startingTtr`.
    */
   inactivityDeductionAlreadyApplied: number;
+  /**
+   * Ticked "Plays abroad" on the admin player form: the PDF's other
+   * Inaktivitätsabzug exemption ("Spieler mit ausländischer
+   * Spielberechtigung"), which FLTT's data has no field for. Never deducted,
+   * same as youth.
+   */
+  inactivityExempt?: boolean;
 }
 
 export interface RawSeasonMatch {
@@ -281,6 +303,7 @@ export interface PlayerEndState {
   ageCategory: AgeCategory | null;
   careerMatches: number;
   returningGamesLeft: number;
+  inactivityExempt: boolean;
 }
 
 interface RuntimeState {
@@ -293,6 +316,7 @@ interface RuntimeState {
   lastMatchIsoDate: string | null;
   /** Inaktivitätsabzug points applied so far this run (positive magnitude, 0/80/100/120), monotonically non-decreasing. */
   inactivityDeductionApplied: number;
+  inactivityExempt: boolean;
 }
 
 function kFactorBreakdown(state: RuntimeState): KFactorBreakdown {
@@ -434,10 +458,10 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     // match at all (lastMatchIsoDateBeforeSeason == null) has nothing to have
     // gone inactive from; that's what the newcomer bonus already covers, and
     // stacking both on a brand-new player double-counts the same situation.
-    const inactive =
-      p.lastMatchIsoDateBeforeSeason != null &&
-      monthsBetween(p.lastMatchIsoDateBeforeSeason, input.seasonStartIsoDate) >=
-        INACTIVITY_MONTHS_THRESHOLD;
+    const inactive = isReturningAfterBreak(
+      p.lastMatchIsoDateBeforeSeason,
+      input.seasonStartIsoDate,
+    );
     states.set(p.nameKey, {
       id: p.id,
       ttr: startingTtr,
@@ -446,6 +470,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
       inactivityBonusRemaining: inactive ? INACTIVITY_BONUS_MATCHES : 0,
       lastMatchIsoDate: p.lastMatchIsoDateBeforeSeason,
       inactivityDeductionApplied: p.inactivityDeductionAlreadyApplied,
+      inactivityExempt: p.inactivityExempt ?? false,
     });
   }
 
@@ -598,9 +623,9 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
 
   // Same recurring Teilrunde checkpoints as the two rules above — the PDF
   // names no dedicated recompute date for Inaktivitätsabzug either. Youth
-  // players (any age category) are exempt; the PDF's other exemption
-  // ("Spieler mit ausländischer Spielberechtigung") has no data source yet
-  // and isn't applied. Tracks a cumulative TOTAL per player rather than
+  // players (any age category) are exempt, and so are players Jeff ticked
+  // as playing abroad (the PDF's "Spieler mit ausländischer
+  // Spielberechtigung" exemption — FLTT's data has no field for it). Tracks a cumulative TOTAL per player rather than
   // per-stage flags, so a player checked for the first time after years away
   // jumps straight to the right total in one row instead of one row per stage.
   const inactivityDeductionDatesApplied = new Set<string>();
@@ -609,7 +634,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     for (const checkpointDate of sortedGrowthDates) {
       if (inactivityDeductionDatesApplied.has(checkpointDate) || isoDate < checkpointDate) continue;
       for (const state of states.values()) {
-        if (state.ageCategory != null) continue;
+        if (state.ageCategory != null || state.inactivityExempt) continue;
         const target = inactivityDeductionAppliedAsOf(state.lastMatchIsoDate, checkpointDate);
         if (target <= state.inactivityDeductionApplied) continue;
         const delta = -(target - state.inactivityDeductionApplied);
@@ -655,6 +680,28 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     applyErsteinstufungFloorIfDue(dayIso);
     applyGrowthIfDue(dayIso);
     applyInactivityDeductionIfDue(dayIso);
+
+    // The 12-month break for the returning-player bonus is measured up to
+    // the day they actually come back, not just to the season start — a
+    // player whose last game was in autumn 2025 and who returns in spring
+    // 2027 has been away well over a year, even though 26/27 began less than
+    // 12 months after their last game. Checked before any of the day's games
+    // are scored, so the bonus applies from their first game back.
+    for (let j = i; j < events.length && events[j].isoDate === dayIso; j++) {
+      const event = events[j];
+      const keys =
+        event.kind === "placement"
+          ? [event.placement.playerNameKey]
+          : event.match.b.kind === "tracked"
+            ? [event.match.a.playerNameKey, event.match.b.playerNameKey]
+            : [event.match.a.playerNameKey];
+      for (const key of keys) {
+        const state = states.get(key);
+        if (state && isReturningAfterBreak(state.lastMatchIsoDate, dayIso)) {
+          state.inactivityBonusRemaining = INACTIVITY_BONUS_MATCHES;
+        }
+      }
+    }
 
     const dayRows: DayRow[] = [];
     const pendingDelta = new Map<string, number>();
@@ -882,6 +929,7 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     ageCategory: s.ageCategory,
     careerMatches: s.careerMatches,
     returningGamesLeft: s.inactivityBonusRemaining,
+    inactivityExempt: s.inactivityExempt,
   }));
 
   return { matchRows, summary, playerLastMatchDates };

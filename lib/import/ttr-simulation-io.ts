@@ -3,6 +3,7 @@ import { estimateTtr, isPlayerClass, type PlayerClass } from "@/lib/conversions"
 import { nameKey } from "@/lib/name-key";
 import { clubKey, identityKey } from "@/lib/identity-key";
 import { previousSeasonLabel } from "@/lib/season";
+import { INACTIVITY_BONUS_MATCHES } from "@/lib/dtr-formula";
 import { fetchAllRows } from "@/lib/supabase/fetchAll";
 import {
   excludeKnownFalsePositives,
@@ -50,7 +51,9 @@ import {
   ersteinstufungFor,
   inactivityDeductionAppliedAsOf,
   isMatchInactive,
+  isReturningAfterBreak,
   INACTIVITY_DEDUCTION_STAGE_3_TOTAL,
+  INACTIVITY_DEDUCTION_COMPETITION,
   type OutputMatchRow,
   type PlayerEndState,
   type RawSeasonMatch,
@@ -268,6 +271,7 @@ interface SupabasePlayerRow {
   is_active: boolean;
   starting_dtr: number | null;
   starting_dtr_season: string | null;
+  inactivity_exempt: boolean;
 }
 
 /**
@@ -434,7 +438,7 @@ export async function computeSeasonSimulation(
   const supabasePlayers = await fetchAllRows<SupabasePlayerRow>(
     supabase,
     "players",
-    "id, name, name_key, club, class, pfw, classement_points, age_category, is_active, starting_dtr, starting_dtr_season",
+    "id, name, name_key, club, class, pfw, classement_points, age_category, is_active, starting_dtr, starting_dtr_season, inactivity_exempt",
   );
   log(`  ${supabasePlayers.length} players.`);
 
@@ -451,6 +455,33 @@ export async function computeSeasonSimulation(
     previousSeasonLabel(SEASON_LABEL),
   );
   log(`  ${priorSeasonDtrByPlayerId.size} players carrying forward a prior-season DTR.`);
+
+  // Players ticked "Plays abroad" get back whatever Inaktivitätsabzug the
+  // previous season took off them, since that loss is already baked into the
+  // DTR they carry forward. Every deduction ever applied shows up as its own
+  // row (earlier seasons have no simulated DTR to have hidden one in), so
+  // summing the previous season's rows is the full amount.
+  const exemptPlayerIds = supabasePlayers.filter((p) => p.inactivity_exempt).map((p) => p.id);
+  const priorSeasonDeductionByPlayerId = new Map<string, number>();
+  if (exemptPlayerIds.length > 0) {
+    const { data: deductionRows, error: deductionError } = await supabase
+      .from("matches")
+      .select("player_id, ttr_delta")
+      .eq("season", previousSeasonLabel(SEASON_LABEL))
+      .eq("competition", INACTIVITY_DEDUCTION_COMPETITION)
+      .in("player_id", exemptPlayerIds);
+    if (deductionError) throw new Error(deductionError.message);
+    for (const r of deductionRows ?? []) {
+      priorSeasonDeductionByPlayerId.set(
+        r.player_id,
+        (priorSeasonDeductionByPlayerId.get(r.player_id) ?? 0) - Number(r.ttr_delta),
+      );
+    }
+  }
+  log(
+    `  ${exemptPlayerIds.length} players ticked as playing abroad (no Inaktivitätsabzug); ` +
+      `${priorSeasonDeductionByPlayerId.size} of them get last season's deduction back.`,
+  );
 
   // "Typical player in this class" stand-in for the SEASON_START_OVERRIDES
   // players, none of whom have a usable starting PFW — the median PFW-
@@ -620,7 +651,7 @@ export async function computeSeasonSimulation(
     const priorSeasonDtr = startingTtr == null ? priorSeasonDtrByPlayerId.get(p.id) : undefined;
     if (priorSeasonDtr != null) {
       priorSeasonHits++;
-      startingTtr = priorSeasonDtr;
+      startingTtr = priorSeasonDtr + (priorSeasonDeductionByPlayerId.get(p.id) ?? 0);
     }
     if (startingTtr == null && returningPfwOverride != null && isPlayerClass(cls)) {
       const est = estimateTtr(returningPfwOverride, cls as PlayerClass, classementPoints);
@@ -702,6 +733,7 @@ export async function computeSeasonSimulation(
       ageCategory,
       careerMatchesBeforeSeason: prior?.count ?? 0,
       lastMatchIsoDateBeforeSeason,
+      inactivityExempt: p.inactivity_exempt,
       // Nonzero in two cases: (1) startingTtr was carried forward from the
       // player's own prior-season final DTR, the only case a deduction
       // could already be silently baked into the starting number; (2) a
@@ -995,8 +1027,16 @@ async function applyLastMatchDatesToSupabase(
     const chunk = playerLastMatchDates.slice(i, i + 200);
     const results = await Promise.all(
       chunk.map(
-        ({ playerId, lastMatchIsoDate, ageCategory, careerMatches, returningGamesLeft }) => {
-          const isActive = ageCategory != null || !isMatchInactive(lastMatchIsoDate, today);
+        ({
+          playerId,
+          lastMatchIsoDate,
+          ageCategory,
+          careerMatches,
+          returningGamesLeft,
+          inactivityExempt,
+        }) => {
+          const isActive =
+            ageCategory != null || inactivityExempt || !isMatchInactive(lastMatchIsoDate, today);
           if (!isActive) deactivated++;
           return supabase
             .from("players")
@@ -1004,7 +1044,11 @@ async function applyLastMatchDatesToSupabase(
               last_match_date: lastMatchIsoDate,
               is_active: isActive,
               career_matches: careerMatches,
-              returning_bonus_games_left: returningGamesLeft,
+              // Away 12+ months as of today: their next game back is a
+              // return, so the DTR-Rechner should show the full bonus.
+              returning_bonus_games_left: isReturningAfterBreak(lastMatchIsoDate, today)
+                ? INACTIVITY_BONUS_MATCHES
+                : returningGamesLeft,
             })
             .eq("id", playerId);
         },

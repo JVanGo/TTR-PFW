@@ -45,7 +45,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
 
   const { data: player, error } = await supabase
     .from("players")
-    .select("id, name, club, is_active, age_category, last_match_date")
+    .select("id, name, club, is_active, age_category, last_match_date, inactivity_exempt")
     .eq("id", id)
     .maybeSingle();
 
@@ -174,6 +174,7 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
   const currentKMatch = [...allMatches].reverse().find((m) => m.k_factor != null);
   const isMatchInactive =
     player.age_category == null &&
+    !player.inactivity_exempt &&
     computeIsMatchInactive(player.last_match_date, new Date().toISOString().slice(0, 10));
 
   return (

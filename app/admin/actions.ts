@@ -44,6 +44,7 @@ interface PlayerInput {
   age_category_reviewed: true;
   starting_dtr: number | null;
   starting_dtr_season: string | null;
+  inactivity_exempt: boolean;
 }
 
 function parsePlayerForm(formData: FormData): PlayerInput | string {
@@ -52,6 +53,7 @@ function parsePlayerForm(formData: FormData): PlayerInput | string {
   const pfwRaw = (formData.get("pfw") as string | null)?.trim();
   const club = (formData.get("club") as string | null)?.trim() || null;
   const isActive = formData.get("is_active") === "on";
+  const inactivityExempt = formData.get("inactivity_exempt") === "on";
   const classementRaw = (formData.get("classement_points") as string | null)?.trim();
   const ageCategoryRaw = (formData.get("age_category") as string | null)?.trim() ?? "";
   const startingDtrRaw = (formData.get("starting_dtr") as string | null)?.trim();
@@ -92,6 +94,7 @@ function parsePlayerForm(formData: FormData): PlayerInput | string {
     age_category_reviewed: true,
     starting_dtr: startingDtr,
     starting_dtr_season: startingDtr == null ? null : CURRENT_SEASON,
+    inactivity_exempt: inactivityExempt,
   };
 }
 

@@ -61,6 +61,7 @@ interface PlayerRow {
   age_category: string | null;
   is_kader: boolean;
   last_match_date: string | null;
+  inactivity_exempt: boolean;
 }
 
 /**
@@ -88,7 +89,7 @@ export async function computeRankingRows(
     fetchAllRows<PlayerRow>(
       supabase,
       "players",
-      "id, name, name_key, class, pfw, club, is_active, classement_points, age_category, is_kader, last_match_date",
+      "id, name, name_key, class, pfw, club, is_active, classement_points, age_category, is_kader, last_match_date, inactivity_exempt",
     ),
     asOfIso
       ? fetchTtrAsOfByPlayer(supabase, CURRENT_SEASON, asOfIso).then((latest) => ({
@@ -159,7 +160,10 @@ export async function computeRankingRows(
       id: p.id,
       name: p.name,
       club: p.club,
-      isMatchInactive: ageCategory == null && computeIsMatchInactive(p.last_match_date, todayIso),
+      isMatchInactive:
+        ageCategory == null &&
+        !p.inactivity_exempt &&
+        computeIsMatchInactive(p.last_match_date, todayIso),
       dtr,
       klassierung: klassierungForDtr(dtr),
       isYouth: ageCategory != null,

@@ -443,6 +443,44 @@ describe("simulateSeason", () => {
     expect(row.kIsReturningBonus).toBe(true);
   });
 
+  it("gives the returning bonus when the 12-month break is only reached mid-season", () => {
+    const players = [
+      player({
+        id: "a",
+        name: "Late Returner",
+        startingTtr: 1100,
+        careerMatchesBeforeSeason: 100,
+        // 9 months before SEASON_START (no bonus then), 14 months before the match.
+        lastMatchIsoDateBeforeSeason: "2024-10-01",
+      }),
+      player({ id: "b", name: "Bob", startingTtr: 1100 }),
+    ];
+    const matches = [
+      match({
+        playerNameKey: "late returner",
+        opponentNameKey: "bob",
+        isoDate: "2025-12-01",
+        won: true,
+      }),
+    ];
+    const { matchRows, playerLastMatchDates } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthPeriods: IRRELEVANT_GROWTH_PERIODS,
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const row = matchRows.find((r) => r.playerId === "a")!;
+    expect(row.kFactor).toBe(20);
+    expect(row.kIsReturningBonus).toBe(true);
+    // Bob played recently, so his K is unchanged.
+    expect(matchRows.find((r) => r.playerId === "b")!.kIsReturningBonus).toBe(false);
+    // One of the 15 bonus games used up.
+    expect(playerLastMatchDates.find((s) => s.playerId === "a")!.returningGamesLeft).toBe(14);
+  });
+
   it("excludes TOU tournament games from per-game scoring but applies a flat placement bonus", () => {
     const players = [player({ id: "a", name: "Alice", startingTtr: 1000 })];
     const matches: RawSeasonMatch[] = [
@@ -1095,6 +1133,42 @@ describe("simulateSeason", () => {
 
       expect(matchRows.some((r) => r.competition === "Inaktivitätsabzug")).toBe(false);
       expect(summary.inactivityDeductionsApplied).toBe(0);
+    });
+
+    it("never applies to an adult ticked as playing abroad, but still does to an unticked one", () => {
+      const players = [
+        player({
+          id: "abroad",
+          name: "Plays Abroad",
+          startingTtr: 1000,
+          ageCategory: null,
+          lastMatchIsoDateBeforeSeason: "2015-01-01",
+          inactivityDeductionAlreadyApplied: 0,
+          inactivityExempt: true,
+        }),
+        player({
+          id: "idle",
+          name: "Really Idle",
+          startingTtr: 1000,
+          ageCategory: null,
+          lastMatchIsoDateBeforeSeason: "2015-01-01",
+          inactivityDeductionAlreadyApplied: 0,
+        }),
+      ];
+      const { matchRows, playerLastMatchDates } = simulateSeason({
+        players,
+        staticTtrByNameKey: new Map(),
+        matches: [],
+        placements: [],
+        youthGrowthPeriods: [{ start: SEASON_START, end: "2026-01-01" }],
+        seasonStartIsoDate: SEASON_START,
+      });
+
+      const deductionRows = matchRows.filter((r) => r.competition === "Inaktivitätsabzug");
+      expect(deductionRows.map((r) => r.playerId)).toEqual(["idle"]);
+      expect(playerLastMatchDates.find((s) => s.playerId === "abroad")?.inactivityExempt).toBe(
+        true,
+      );
     });
 
     it("never applies to a player with no prior match at all — nothing to have gone inactive from", () => {

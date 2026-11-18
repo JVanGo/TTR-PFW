@@ -17,6 +17,7 @@ interface RawPlayer {
   age_category: string | null;
   starting_dtr: number | null;
   starting_dtr_season: string | null;
+  inactivity_exempt: boolean;
 }
 
 export default async function AdminPage() {
@@ -24,7 +25,7 @@ export default async function AdminPage() {
   const data = await fetchAllRows<RawPlayer>(
     supabase,
     "players",
-    "id, name, class, pfw, club, is_active, classement_points, age_category, starting_dtr, starting_dtr_season",
+    "id, name, class, pfw, club, is_active, classement_points, age_category, starting_dtr, starting_dtr_season, inactivity_exempt",
   );
   data.sort((a, b) => b.pfw - a.pfw);
 
@@ -45,6 +46,7 @@ export default async function AdminPage() {
     // One entered for an earlier season no longer applies, so the form
     // shows it blank rather than implying it's still in effect.
     starting_dtr: p.starting_dtr_season === CURRENT_SEASON ? p.starting_dtr : null,
+    inactivity_exempt: p.inactivity_exempt,
   }));
 
   return (

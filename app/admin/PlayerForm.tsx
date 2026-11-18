@@ -17,6 +17,7 @@ interface PlayerFormValues {
   classement_points?: number | string | null;
   age_category?: string | null;
   starting_dtr?: number | null;
+  inactivity_exempt?: boolean;
 }
 
 interface Props {
@@ -129,6 +130,22 @@ export function PlayerForm({ mode, initial }: Props) {
           className="h-4 w-4"
         />
         <span>Active (appears in the current Verbandsrangliste)</span>
+      </label>
+      <label className="flex items-start gap-2 text-sm sm:col-span-2">
+        <input
+          type="checkbox"
+          name="inactivity_exempt"
+          defaultChecked={initial?.inactivity_exempt ?? false}
+          className="mt-0.5 h-4 w-4"
+        />
+        <span>
+          Plays abroad — no inactivity deduction
+          <span className="text-muted-foreground block text-xs">
+            Keeps them active and in the ranking without losing points for not playing in
+            Luxembourg, and gives back last season&apos;s deduction · applies from the next weekly
+            update.
+          </span>
+        </span>
       </label>
       <div className="flex items-center gap-3 sm:col-span-2">
         <button
