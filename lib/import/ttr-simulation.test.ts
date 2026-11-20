@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  compareCompetitionPlayOrder,
+  isYouthCompetition,
   ersteinstufungFor,
   isRealMatchRow,
   ratingDelta,
@@ -218,6 +220,70 @@ describe("simulateSeason", () => {
     // The day settles once: both rows show the same final total (1100+8+8=1116).
     expect(aliceRows[0].newTtr).toBe(1116);
     expect(aliceRows[1].newTtr).toBe(1116);
+  });
+
+  it("settles after each competition: a youth competition counts first, the senior match uses its result", () => {
+    const players = [
+      player({ id: "a", name: "Alice", startingTtr: 1100 }),
+      player({ id: "b", name: "Bob", startingTtr: 1100 }),
+      player({ id: "c", name: "Carol", startingTtr: 1100 }),
+    ];
+    // Listed senior-first on purpose: the youth game must still go first.
+    const matches = [
+      match({
+        sortKey: "1",
+        competition: "CH SEN N2-D5 (R1)",
+        playerNameKey: "alice",
+        opponentNameKey: "carol",
+      }),
+      match({
+        sortKey: "2",
+        competition: "CH CAD (R1)",
+        playerNameKey: "alice",
+        opponentNameKey: "bob",
+      }),
+    ];
+    const { matchRows } = simulateSeason({
+      players,
+      staticTtrByNameKey: new Map(),
+      matches,
+      placements: [],
+      youthGrowthPeriods: IRRELEVANT_GROWTH_PERIODS,
+      seasonStartIsoDate: SEASON_START,
+    });
+
+    const aliceRows = matchRows.filter((r) => r.playerId === "a");
+    expect(aliceRows.map((r) => r.competition)).toEqual(["CH CAD (R1)", "CH SEN N2-D5 (R1)"]);
+    expect(aliceRows[0].newTtr).toBe(1108);
+    // Alice starts the senior match on 1108, not her start-of-day 1100.
+    const seniorDelta = Math.round(ratingDelta(1, winProbability(1108, 1100), 16));
+    expect(aliceRows[1].ttrDelta).toBe(seniorDelta);
+    expect(aliceRows[1].newTtr).toBe(1108 + seniorDelta);
+    // Carol sees Alice's rating after the youth game.
+    expect(matchRows.find((r) => r.playerId === "c")!.opponentTtr).toBe(1108);
+  });
+
+  it("orders competitions within a day: youth first, then alphabetically", () => {
+    const sorted = [
+      "TOU Ell",
+      "CH SEN D6",
+      "Crit MIN : Elim 2",
+      "Ch Rég : C3-D1",
+      "Crit MIN : Elim 1",
+      "CH CAD",
+    ].sort(compareCompetitionPlayOrder);
+    expect(sorted).toEqual([
+      "CH CAD",
+      "Crit MIN : Elim 1",
+      "Crit MIN : Elim 2",
+      "CH SEN D6",
+      "Ch Rég : C3-D1",
+      "TOU Ell",
+    ]);
+    expect(isYouthCompetition("CH JEU/MIN")).toBe(true);
+    expect(isYouthCompetition("M•suppl")).toBe(true);
+    expect(isYouthCompetition("Ch Nat : Mess A")).toBe(false);
+    expect(isYouthCompetition("COU MERSCH")).toBe(false);
   });
 
   it("uses a same-day opponent's start-of-day rating, not their already-updated rating from an earlier match that day", () => {

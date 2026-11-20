@@ -98,7 +98,7 @@ export interface CalculatedMatchday {
 }
 
 /**
- * One matchday, settled the way the season simulation settles it: every
+ * One competition on one matchday, settled the way the season simulation settles it: every
  * game uses the ratings from the start of the day, each game's change is
  * rounded on its own, and the changes are added up once at the end. A single
  * game is just a matchday with one entry.

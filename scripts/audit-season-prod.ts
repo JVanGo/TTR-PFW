@@ -13,7 +13,7 @@
  *
  * 2. Structural sanity checks on the stored rows themselves: things that
  *    should always hold regardless of input data — valid K-factors, a win
- *    never having a negative point change (and vice versa), a day's matches
+ *    never having a negative point change (and vice versa), a competition's matches on one day
  *    all settling to the same rating, opponent symmetry, and so on. These
  *    catch a different class of bug than #1 (e.g. a formula mistake that's
  *    consistent between the two runs, or a manual DB edit made outside the
@@ -385,7 +385,7 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
     }
 
     if (!isGrowthBonus && !isFloorReset && !isInactivityDeduction) {
-      const dayKey = `${r.player_id}|${r.match_date}`;
+      const dayKey = `${r.player_id}|${r.match_date}|${r.competition}`;
       const dayList = byPlayerDay.get(dayKey);
       if (dayList) dayList.push(r);
       else byPlayerDay.set(dayKey, [r]);
@@ -410,7 +410,7 @@ function structuralChecks(rows: StoredMatchRow[], nameById: Map<string, string>)
     const distinctTotals = new Set(group.map((r) => r.new_ttr));
     if (distinctTotals.size > 1) {
       findings.push({
-        category: "A player's matches on the same day settled to different totals",
+        category: "A player's matches in one competition on one day settled to different totals",
         detail: `${describe(group[0])} — totals: ${[...distinctTotals].join(", ")}`,
       });
     }

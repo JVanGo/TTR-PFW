@@ -443,8 +443,41 @@ type SeasonEvent =
   | { kind: "match"; isoDate: string; sortKey: string; match: CanonicalMatch }
   | { kind: "placement"; isoDate: string; sortKey: string; placement: RawSeasonPlacement };
 
+function eventCompetition(event: SeasonEvent): string {
+  return event.kind === "match" ? event.match.competition : event.placement.competition;
+}
+
+/**
+ * True for a youth competition (CH CAD, CH MIN, COU JEU, Ch Nat : POU,
+ * Ch Rég : U21, every Critérium, M•supp...). FLTT's data has dates but no
+ * times, so when a player plays two competitions on one day, youth counts as
+ * played first (Jeff's call, 2026-11-20: youth play in the afternoon, seniors
+ * in the evening).
+ */
+export function isYouthCompetition(competition: string): boolean {
+  const upper = competition.toUpperCase();
+  return (
+    upper.startsWith("CRIT ") ||
+    upper.startsWith("M•SUPP") ||
+    /(^|[\s:/])(CAD|JEU|MIN|JUN|POU|BJM|U21)([\s/]|$)/.test(upper)
+  );
+}
+
+/**
+ * Within one day: youth competitions first, then everything else, each
+ * alphabetically (so Crit MIN : Elim 1 comes before Elim 2, then Fin).
+ * Ratings settle after each competition (see the main loop below).
+ */
+export function compareCompetitionPlayOrder(a: string, b: string): number {
+  const youthA = isYouthCompetition(a);
+  if (youthA !== isYouthCompetition(b)) return youthA ? -1 : 1;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 function sortEvents(a: SeasonEvent, b: SeasonEvent): number {
   if (a.isoDate !== b.isoDate) return a.isoDate < b.isoDate ? -1 : 1;
+  const byCompetition = compareCompetitionPlayOrder(eventCompetition(a), eventCompetition(b));
+  if (byCompetition !== 0) return byCompetition;
   return a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0;
 }
 
@@ -667,13 +700,16 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
     settleKey: string;
   }
 
-  // Ratings are stable for a whole matchday: every match/placement on a given
-  // date is scored using each player's rating as it stood BEFORE that day's
-  // play began (nothing they, or their same-day opponents, do earlier that
-  // same day moves the number mid-day). All of a day's results are summed and
-  // applied once, at the end of the day, and every row from that day displays
-  // the same settled "new TTR" — each row still shows its own individual
-  // point change (ttrDelta), just not its own running total.
+  // Ratings are stable for a whole competition: every match/placement in one
+  // competition on a given date is scored using each player's rating as it
+  // stood BEFORE that competition began (nothing they, or their opponents, do
+  // earlier in the same competition moves the number mid-way). Its results
+  // are summed and applied once, when the competition ends, and every row
+  // from it displays the same settled "new TTR" — each row still shows its
+  // own individual point change (ttrDelta), just not its own running total.
+  // A player in two competitions on one day (e.g. CH CAD, then their senior
+  // league match) plays the second one on the rating the first settled to.
+  // Until 2026-11-20 the whole day settled once instead.
   let i = 0;
   while (i < events.length) {
     const dayIso = events[i].isoDate;
@@ -703,125 +739,111 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
       }
     }
 
-    const dayRows: DayRow[] = [];
-    const pendingDelta = new Map<string, number>();
-    const pendingMatchCount = new Map<string, number>();
-    const touched = new Set<string>();
-
-    const addDelta = (key: string, amount: number) => {
-      pendingDelta.set(key, (pendingDelta.get(key) ?? 0) + amount);
-      touched.add(key);
-    };
-    const addMatchPlayed = (key: string) => {
-      pendingMatchCount.set(key, (pendingMatchCount.get(key) ?? 0) + 1);
-    };
-
     while (i < events.length && events[i].isoDate === dayIso) {
-      const event = events[i];
-      i++;
+      const competitionNow = eventCompetition(events[i]);
+      const dayRows: DayRow[] = [];
+      const pendingDelta = new Map<string, number>();
+      const pendingMatchCount = new Map<string, number>();
+      const touched = new Set<string>();
 
-      if (event.kind === "placement") {
-        const state = states.get(event.placement.playerNameKey);
-        if (!state) {
-          summary.unresolvedPlayers++;
-          continue;
-        }
-        const bonus = (event.placement.reduced ? REDUCED_PLACEMENT_TTR_BONUS : PLACEMENT_TTR_BONUS)[
-          event.placement.place
-        ];
-        dayRows.push({
-          settleKey: event.placement.playerNameKey,
-          playerId: state.id,
-          matchDate: event.placement.isoDate,
-          competition: event.placement.competition,
-          opponentName: `Tournament — ${event.placement.place === 1 ? "1st" : event.placement.place === 2 ? "2nd" : "3rd"} place${event.placement.reduced ? REDUCED_PLACEMENT_LABEL_SUFFIX : ""}`,
-          opponentPlayerId: null,
-          opponentTtr: null,
-          score: null,
-          result: event.placement.place === 3 ? "L" : "W",
-          ttrDelta: bonus,
-          newTtr: 0, // filled in once the day settles, below
-          kFactor: null,
-          kAgeBonus: null,
-          kIsNewcomerBonus: null,
-          kIsReturningBonus: null,
-        });
-        addDelta(event.placement.playerNameKey, bonus);
-        summary.placementBonusesApplied++;
-        continue;
-      }
+      const addDelta = (key: string, amount: number) => {
+        pendingDelta.set(key, (pendingDelta.get(key) ?? 0) + amount);
+        touched.add(key);
+      };
+      const addMatchPlayed = (key: string) => {
+        pendingMatchCount.set(key, (pendingMatchCount.get(key) ?? 0) + 1);
+      };
 
-      const { match } = event;
-      const stateA = states.get(match.a.playerNameKey);
-      if (!stateA) {
-        summary.unresolvedPlayers++;
-        continue;
-      }
+      while (
+        i < events.length &&
+        events[i].isoDate === dayIso &&
+        eventCompetition(events[i]) === competitionNow
+      ) {
+        const event = events[i];
+        i++;
 
-      let ttrBSnapshot: number;
-      let opponentPlayerId: string | null = null;
-      let opponentDisplayName: string;
-      let stateB: RuntimeState | null = null;
-      let stateBKey: string | null = null;
-
-      if (match.b.kind === "tracked") {
-        const found = states.get(match.b.playerNameKey);
-        if (!found) {
-          summary.unresolvedPlayers++;
-          continue;
-        }
-        stateB = found;
-        stateBKey = match.b.playerNameKey;
-        ttrBSnapshot = found.ttr; // frozen: not mutated until this day settles
-        opponentPlayerId = found.id;
-        opponentDisplayName = playerByNameKey.get(match.b.playerNameKey)?.name ?? "";
-      } else {
-        const fallback = input.staticTtrByNameKey.get(nameKey(match.b.opponentName));
-        if (fallback == null) {
-          summary.droppedNoOpponentRating++;
-          continue;
-        }
-        ttrBSnapshot = fallback;
-        opponentDisplayName = match.b.opponentName;
-      }
-
-      const ttrASnapshot = stateA.ttr; // frozen: not mutated until this day settles
-
-      // A confirmed forfeit (see lib/import/forfeits.ts): no rating change for
-      // either side, and it doesn't count as a played match — no addDelta/
-      // addMatchPlayed, so career-match count and the inactivity bonus are
-      // untouched. Still shown in history with the real opponent/score for
-      // context, just with result "FF" instead of a computed win/loss.
-      if (match.isForfeit) {
-        dayRows.push({
-          settleKey: match.a.playerNameKey,
-          playerId: stateA.id,
-          matchDate: match.isoDate,
-          competition: match.competition,
-          opponentName: match.b.kind === "untracked" ? match.b.opponentName : opponentDisplayName,
-          opponentPlayerId,
-          opponentTtr: Math.round(ttrBSnapshot),
-          score: match.score,
-          result: "FF",
-          ttrDelta: 0,
-          newTtr: 0,
-          kFactor: null,
-          kAgeBonus: null,
-          kIsNewcomerBonus: null,
-          kIsReturningBonus: null,
-        });
-        summary.forfeitsApplied++;
-
-        if (stateB && stateBKey) {
+        if (event.kind === "placement") {
+          const state = states.get(event.placement.playerNameKey);
+          if (!state) {
+            summary.unresolvedPlayers++;
+            continue;
+          }
+          const bonus = (
+            event.placement.reduced ? REDUCED_PLACEMENT_TTR_BONUS : PLACEMENT_TTR_BONUS
+          )[event.placement.place];
           dayRows.push({
-            settleKey: stateBKey,
-            playerId: stateB.id,
+            settleKey: event.placement.playerNameKey,
+            playerId: state.id,
+            matchDate: event.placement.isoDate,
+            competition: event.placement.competition,
+            opponentName: `Tournament — ${event.placement.place === 1 ? "1st" : event.placement.place === 2 ? "2nd" : "3rd"} place${event.placement.reduced ? REDUCED_PLACEMENT_LABEL_SUFFIX : ""}`,
+            opponentPlayerId: null,
+            opponentTtr: null,
+            score: null,
+            result: event.placement.place === 3 ? "L" : "W",
+            ttrDelta: bonus,
+            newTtr: 0, // filled in once the day settles, below
+            kFactor: null,
+            kAgeBonus: null,
+            kIsNewcomerBonus: null,
+            kIsReturningBonus: null,
+          });
+          addDelta(event.placement.playerNameKey, bonus);
+          summary.placementBonusesApplied++;
+          continue;
+        }
+
+        const { match } = event;
+        const stateA = states.get(match.a.playerNameKey);
+        if (!stateA) {
+          summary.unresolvedPlayers++;
+          continue;
+        }
+
+        let ttrBSnapshot: number;
+        let opponentPlayerId: string | null = null;
+        let opponentDisplayName: string;
+        let stateB: RuntimeState | null = null;
+        let stateBKey: string | null = null;
+
+        if (match.b.kind === "tracked") {
+          const found = states.get(match.b.playerNameKey);
+          if (!found) {
+            summary.unresolvedPlayers++;
+            continue;
+          }
+          stateB = found;
+          stateBKey = match.b.playerNameKey;
+          ttrBSnapshot = found.ttr; // frozen: not mutated until this day settles
+          opponentPlayerId = found.id;
+          opponentDisplayName = playerByNameKey.get(match.b.playerNameKey)?.name ?? "";
+        } else {
+          const fallback = input.staticTtrByNameKey.get(nameKey(match.b.opponentName));
+          if (fallback == null) {
+            summary.droppedNoOpponentRating++;
+            continue;
+          }
+          ttrBSnapshot = fallback;
+          opponentDisplayName = match.b.opponentName;
+        }
+
+        const ttrASnapshot = stateA.ttr; // frozen: not mutated until this day settles
+
+        // A confirmed forfeit (see lib/import/forfeits.ts): no rating change for
+        // either side, and it doesn't count as a played match — no addDelta/
+        // addMatchPlayed, so career-match count and the inactivity bonus are
+        // untouched. Still shown in history with the real opponent/score for
+        // context, just with result "FF" instead of a computed win/loss.
+        if (match.isForfeit) {
+          dayRows.push({
+            settleKey: match.a.playerNameKey,
+            playerId: stateA.id,
             matchDate: match.isoDate,
             competition: match.competition,
-            opponentName: playerByNameKey.get(match.a.playerNameKey)?.name ?? "",
-            opponentPlayerId: stateA.id,
-            opponentTtr: Math.round(ttrASnapshot),
-            score: reverseScore(match.score),
+            opponentName: match.b.kind === "untracked" ? match.b.opponentName : opponentDisplayName,
+            opponentPlayerId,
+            opponentTtr: Math.round(ttrBSnapshot),
+            score: match.score,
             result: "FF",
             ttrDelta: 0,
             newTtr: 0,
@@ -831,83 +853,104 @@ export function simulateSeason(input: SimulationInput): SimulationResult {
             kIsReturningBonus: null,
           });
           summary.forfeitsApplied++;
+
+          if (stateB && stateBKey) {
+            dayRows.push({
+              settleKey: stateBKey,
+              playerId: stateB.id,
+              matchDate: match.isoDate,
+              competition: match.competition,
+              opponentName: playerByNameKey.get(match.a.playerNameKey)?.name ?? "",
+              opponentPlayerId: stateA.id,
+              opponentTtr: Math.round(ttrASnapshot),
+              score: reverseScore(match.score),
+              result: "FF",
+              ttrDelta: 0,
+              newTtr: 0,
+              kFactor: null,
+              kAgeBonus: null,
+              kIsNewcomerBonus: null,
+              kIsReturningBonus: null,
+            });
+            summary.forfeitsApplied++;
+          }
+          continue;
         }
-        continue;
-      }
 
-      const breakdownA = kFactorBreakdown(stateA);
-      const kA = breakdownA.k;
-      const paWinA = winProbability(ttrASnapshot, ttrBSnapshot);
-      const resultA: 0 | 1 = match.a.won ? 1 : 0;
-      const deltaA = Math.round(ratingDelta(resultA, paWinA, kA));
-
-      dayRows.push({
-        settleKey: match.a.playerNameKey,
-        playerId: stateA.id,
-        matchDate: match.isoDate,
-        competition: match.competition,
-        opponentName: match.b.kind === "untracked" ? match.b.opponentName : opponentDisplayName,
-        opponentPlayerId,
-        opponentTtr: Math.round(ttrBSnapshot),
-        score: match.score,
-        result: match.a.won ? "W" : "L",
-        ttrDelta: deltaA,
-        newTtr: 0,
-        kFactor: kA,
-        kAgeBonus: breakdownA.ageBonus,
-        kIsNewcomerBonus: breakdownA.isNewcomerBonus,
-        kIsReturningBonus: breakdownA.isReturningBonus,
-      });
-      addDelta(match.a.playerNameKey, deltaA);
-      addMatchPlayed(match.a.playerNameKey);
-      summary.matchesGraded++;
-
-      if (stateB && stateBKey) {
-        const breakdownB = kFactorBreakdown(stateB);
-        const kB = breakdownB.k;
-        const paWinB = 1 - paWinA;
-        const resultB: 0 | 1 = match.b.won ? 1 : 0;
-        const deltaB = Math.round(ratingDelta(resultB, paWinB, kB));
+        const breakdownA = kFactorBreakdown(stateA);
+        const kA = breakdownA.k;
+        const paWinA = winProbability(ttrASnapshot, ttrBSnapshot);
+        const resultA: 0 | 1 = match.a.won ? 1 : 0;
+        const deltaA = Math.round(ratingDelta(resultA, paWinA, kA));
 
         dayRows.push({
-          settleKey: stateBKey,
-          playerId: stateB.id,
+          settleKey: match.a.playerNameKey,
+          playerId: stateA.id,
           matchDate: match.isoDate,
           competition: match.competition,
-          opponentName: playerByNameKey.get(match.a.playerNameKey)?.name ?? "",
-          opponentPlayerId: stateA.id,
-          opponentTtr: Math.round(ttrASnapshot),
-          score: reverseScore(match.score),
-          result: match.b.won ? "W" : "L",
-          ttrDelta: deltaB,
+          opponentName: match.b.kind === "untracked" ? match.b.opponentName : opponentDisplayName,
+          opponentPlayerId,
+          opponentTtr: Math.round(ttrBSnapshot),
+          score: match.score,
+          result: match.a.won ? "W" : "L",
+          ttrDelta: deltaA,
           newTtr: 0,
-          kFactor: kB,
-          kAgeBonus: breakdownB.ageBonus,
-          kIsNewcomerBonus: breakdownB.isNewcomerBonus,
-          kIsReturningBonus: breakdownB.isReturningBonus,
+          kFactor: kA,
+          kAgeBonus: breakdownA.ageBonus,
+          kIsNewcomerBonus: breakdownA.isNewcomerBonus,
+          kIsReturningBonus: breakdownA.isReturningBonus,
         });
-        addDelta(stateBKey, deltaB);
-        addMatchPlayed(stateBKey);
+        addDelta(match.a.playerNameKey, deltaA);
+        addMatchPlayed(match.a.playerNameKey);
         summary.matchesGraded++;
+
+        if (stateB && stateBKey) {
+          const breakdownB = kFactorBreakdown(stateB);
+          const kB = breakdownB.k;
+          const paWinB = 1 - paWinA;
+          const resultB: 0 | 1 = match.b.won ? 1 : 0;
+          const deltaB = Math.round(ratingDelta(resultB, paWinB, kB));
+
+          dayRows.push({
+            settleKey: stateBKey,
+            playerId: stateB.id,
+            matchDate: match.isoDate,
+            competition: match.competition,
+            opponentName: playerByNameKey.get(match.a.playerNameKey)?.name ?? "",
+            opponentPlayerId: stateA.id,
+            opponentTtr: Math.round(ttrASnapshot),
+            score: reverseScore(match.score),
+            result: match.b.won ? "W" : "L",
+            ttrDelta: deltaB,
+            newTtr: 0,
+            kFactor: kB,
+            kAgeBonus: breakdownB.ageBonus,
+            kIsNewcomerBonus: breakdownB.isNewcomerBonus,
+            kIsReturningBonus: breakdownB.isReturningBonus,
+          });
+          addDelta(stateBKey, deltaB);
+          addMatchPlayed(stateBKey);
+          summary.matchesGraded++;
+        }
       }
-    }
 
-    // Settle the day: apply every touched player's accumulated change once.
-    for (const key of touched) {
-      const state = states.get(key)!;
-      const delta = pendingDelta.get(key) ?? 0;
-      const matchesToday = pendingMatchCount.get(key) ?? 0;
-      state.ttr = state.ttr + delta;
-      state.careerMatches += matchesToday;
-      state.inactivityBonusRemaining = Math.max(0, state.inactivityBonusRemaining - matchesToday);
-      // `touched` is populated only via addDelta — placements and real
-      // graded wins/losses, never forfeits — so this is exactly "had a real
-      // result today," the right signal for the Inaktivitätsabzug clock.
-      state.lastMatchIsoDate = dayIso;
-    }
+      // Settle the competition: apply every touched player's accumulated change once.
+      for (const key of touched) {
+        const state = states.get(key)!;
+        const delta = pendingDelta.get(key) ?? 0;
+        const matchesToday = pendingMatchCount.get(key) ?? 0;
+        state.ttr = state.ttr + delta;
+        state.careerMatches += matchesToday;
+        state.inactivityBonusRemaining = Math.max(0, state.inactivityBonusRemaining - matchesToday);
+        // `touched` is populated only via addDelta — placements and real
+        // graded wins/losses, never forfeits — so this is exactly "had a real
+        // result today," the right signal for the Inaktivitätsabzug clock.
+        state.lastMatchIsoDate = dayIso;
+      }
 
-    for (const { settleKey, ...row } of dayRows) {
-      matchRows.push({ ...row, newTtr: states.get(settleKey)?.ttr ?? row.newTtr });
+      for (const { settleKey, ...row } of dayRows) {
+        matchRows.push({ ...row, newTtr: states.get(settleKey)?.ttr ?? row.newTtr });
+      }
     }
   }
 

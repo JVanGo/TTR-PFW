@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { computeStartingDtr } from "@/lib/starting-dtr";
 import { pickLatestTtr, pickLatestTtrAndChange, pickTtrAsOf, type LatestTtrRow } from "./latestTtr";
 
 const row = (
@@ -122,5 +123,29 @@ describe("pickLatestTtrAndChange", () => {
     expect(pickLatestTtrAndChange(rows, "2026-10-20", "2026-10-27").changeSince.has("e")).toBe(
       false,
     );
+  });
+});
+
+describe("a day that settles twice (two competitions)", () => {
+  // CH CAD first: 1500 -> 1520 (+12, +8). Then CH SEN: 1520 -> 1510 (-10).
+  const stamped = (delta: number, newTtr: number, ms: number, competition: string) => ({
+    ...row("p", "2026-10-24", delta, newTtr),
+    competition,
+    created_at: new Date(Date.UTC(2026, 10, 20, 12, 0, 0, ms)).toISOString(),
+  });
+  const rows = [
+    stamped(-10, 1510, 3, "CH SEN N2-D5 (R1)"),
+    stamped(12, 1520, 1, "CH CAD (R1)"),
+    stamped(8, 1520, 2, "CH CAD (R1)"),
+  ];
+
+  it("ends on the last competition's rating, not the highest", () => {
+    expect(pickLatestTtr(rows).get("p")).toBe(1510);
+  });
+
+  it("recovers the start-of-day rating", () => {
+    const sorted = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    expect(computeStartingDtr(sorted)).toBe(1500);
+    expect(pickTtrAsOf(rows, "2026-10-01").get("p")).toBe(1500);
   });
 });

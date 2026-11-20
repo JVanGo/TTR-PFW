@@ -1073,7 +1073,16 @@ export async function runSeasonSimulation(
   const { error: deleteError } = await supabase.from("matches").delete().eq("season", SEASON_LABEL);
   if (deleteError) throw new Error(deleteError.message);
 
-  const rows = matchRows.map(toMatchesTableRow);
+  // matchRows are in play order. A day can now end on more than one rating
+  // (one per competition), so each row gets its own created_at, 1ms apart,
+  // and everything reading "latest row" (the player_season_summary view, the
+  // player page, latestTtr.ts) sees the order they were really played in.
+  // A batch insert's default now() would give the whole chunk one timestamp.
+  const insertStartMs = Date.now();
+  const rows = matchRows.map((row, index) => ({
+    ...toMatchesTableRow(row),
+    created_at: new Date(insertStartMs + index).toISOString(),
+  }));
   for (let i = 0; i < rows.length; i += 1000) {
     const chunk = rows.slice(i, i + 1000);
     const { error } = await supabase.from("matches").insert(chunk);

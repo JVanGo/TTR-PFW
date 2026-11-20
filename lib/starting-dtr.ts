@@ -3,6 +3,17 @@ export interface MatchForStartingDtr {
   competition: string;
   ttr_delta: number;
   new_ttr: number;
+  /** Play order within a day (simulation rows saved since 2026-11-20 each get their own). */
+  created_at?: string;
+}
+
+/**
+ * True when every row has its own created_at, so sorting by it gives the
+ * real play order. Rows saved before 2026-11-20 share one per insert batch.
+ */
+export function hasDistinctPlayOrder(rows: { created_at?: string }[]): boolean {
+  const stamps = rows.map((r) => r.created_at);
+  return stamps.every((s) => s != null) && new Set(stamps).size === stamps.length;
 }
 
 /**
@@ -20,6 +31,18 @@ export function computeStartingDtr(matches: MatchForStartingDtr[]): number | nul
   if (matches.length === 0) return null;
   const earliestDate = matches[0].match_date;
   const earliestDayRows = matches.filter((m) => m.match_date === earliestDate);
+  if (hasDistinctPlayOrder(earliestDayRows)) {
+    // A day can settle more than once (once per competition), so walk the
+    // first settlement only: the leading rows sharing one new_ttr. Their
+    // deltas add up to exactly how far that settlement moved the rating.
+    const ordered = [...earliestDayRows].sort((a, b) => a.created_at!.localeCompare(b.created_at!));
+    let firstRunSum = 0;
+    for (const row of ordered) {
+      if (row.new_ttr !== ordered[0].new_ttr) break;
+      firstRunSum += row.ttr_delta;
+    }
+    return ordered[0].new_ttr - firstRunSum;
+  }
   const settledRow =
     earliestDayRows.find(
       (m) =>

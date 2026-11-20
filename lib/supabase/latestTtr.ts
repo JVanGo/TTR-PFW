@@ -1,11 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { computeStartingDtr, type MatchForStartingDtr } from "@/lib/starting-dtr";
+import {
+  computeStartingDtr,
+  hasDistinctPlayOrder,
+  type MatchForStartingDtr,
+} from "@/lib/starting-dtr";
 
 export interface LatestTtrRow {
   player_id: string;
   match_date: string;
   ttr_delta: number;
   new_ttr: number;
+  created_at?: string;
 }
 
 /**
@@ -31,6 +36,13 @@ export function pickLatestTtr(rows: LatestTtrRow[]): Map<string, number> {
 
   const latest = new Map<string, number>();
   for (const [playerId, day] of lastDay) {
+    // Since 2026-11-20 a day settles once per competition, so it can end on
+    // more than one rating; rows saved since then are stamped in play order.
+    if (hasDistinctPlayOrder(day.rows)) {
+      const last = day.rows.reduce((a, b) => (b.created_at! > a.created_at! ? b : a));
+      latest.set(playerId, last.new_ttr);
+      continue;
+    }
     const startsFrom = new Set(day.rows.map((r) => r.new_ttr - r.ttr_delta));
     const ends = [...new Set(day.rows.map((r) => r.new_ttr))].filter((t) => !startsFrom.has(t));
     // No unique chain end (e.g. a plain matchday, where every row shares one
@@ -55,7 +67,7 @@ export async function fetchLatestTtrByPlayer(
     await fetchSeasonRows<LatestTtrRow>(
       supabase,
       season,
-      "player_id, match_date, ttr_delta, new_ttr",
+      "player_id, match_date, ttr_delta, new_ttr, created_at",
     ),
   );
 }
@@ -76,7 +88,7 @@ export async function fetchTtrAsOfByPlayer(
     await fetchSeasonRows<LatestTtrRow & MatchForStartingDtr>(
       supabase,
       season,
-      "player_id, match_date, competition, ttr_delta, new_ttr",
+      "player_id, match_date, competition, ttr_delta, new_ttr, created_at",
     ),
     asOfIso,
   );
@@ -97,7 +109,11 @@ export function pickTtrAsOf(
     laterRowsByPlayer.set(row.player_id, list);
   }
   for (const [playerId, list] of laterRowsByPlayer) {
-    list.sort((a, b) => a.match_date.localeCompare(b.match_date));
+    list.sort(
+      (a, b) =>
+        a.match_date.localeCompare(b.match_date) ||
+        (a.created_at ?? "").localeCompare(b.created_at ?? ""),
+    );
     const start = computeStartingDtr(list);
     if (start != null) asOf.set(playerId, start);
   }
@@ -123,7 +139,7 @@ export async function fetchLatestTtrAndChangeByPlayer(
     await fetchSeasonRows<LatestTtrRow & MatchForStartingDtr>(
       supabase,
       season,
-      "player_id, match_date, competition, ttr_delta, new_ttr",
+      "player_id, match_date, competition, ttr_delta, new_ttr, created_at",
     ),
     fromIso,
     toIso,
