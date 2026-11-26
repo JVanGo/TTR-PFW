@@ -187,7 +187,8 @@ export async function computeRankingRows(
  * or an out-of-band season re-simulation), so it's cached for 5 minutes and
  * invalidated immediately on admin writes via `RANKING_CACHE_TAG`.
  *
- * Cache key has a "-v5" suffix (bumped 2026-11-18 when Klassierung bands were
+ * Cache key has a "-v6" suffix (bumped 2026-11-26 when the weekly-arrow window
+ * moved to the latest game date; "-v5" came 2026-11-18 when Klassierung bands were
  * renamed to FLTT classes; "-v4" came when `weekChange` was
  * added, 2026-11-01; "-v3" came with `snapshotDtr`): the "-v1" entry was found (2026-09-12)
  * serving `ageCategory`-less rows on production many hours after that field
@@ -199,6 +200,6 @@ export async function computeRankingRows(
  */
 export const getRankingRows = unstable_cache(
   async (): Promise<RankingRow[]> => computeRankingRows(createPublicClient()),
-  ["ranking-rows-v5"],
+  ["ranking-rows-v6"],
   { revalidate: 300, tags: [RANKING_CACHE_TAG] },
 );
