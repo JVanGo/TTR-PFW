@@ -1,6 +1,6 @@
 import type { AgeCategory } from "@/lib/age-categories";
 import { getRankingRows } from "@/lib/ranking";
-import { fetchAllRows } from "@/lib/supabase/fetchAll";
+import { fetchAllRowsParallel } from "@/lib/supabase/fetchAll";
 import { createPublicClient } from "@/lib/supabase/public";
 
 /** One pickable player in the DTR-Rechner — everything their next game's K and change need. */
@@ -32,7 +32,7 @@ interface KStateRow {
 export async function getCalculatorPlayers(): Promise<CalculatorPlayer[]> {
   const [rows, kStates] = await Promise.all([
     getRankingRows(),
-    fetchAllRows<KStateRow>(
+    fetchAllRowsParallel<KStateRow>(
       createPublicClient(),
       "players",
       "id, career_matches, returning_bonus_games_left",

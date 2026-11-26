@@ -1,0 +1,32 @@
+name: keep-warm
+
+# Vercel's free plan puts the site's server to sleep when nobody visits for a
+# while, and the first visitor after that waits several seconds while it
+# wakes up (measured 2026-11-26: DTR-Rechner 6.7 s cold vs under 1 s warm,
+# player pages up to 4.6 s). Opening the main pages every ~10 minutes keeps
+# it awake most of the time. GitHub can start scheduled runs late, so the
+# occasional slow first visit can still happen. Free: the repo is public.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Open the main pages
+        run: |
+          for path in / /ranking /rechner /about; do
+            curl -s -o /dev/null --max-time 30 \
+              -w "%{http_code} %{time_total}s $path\n" \
+              "https://ttr-pfw.vercel.app$path" || true
+          done
+          # One player page, picked from the ranking, so that page type stays awake too.
+          player=$(curl -s --max-time 30 https://ttr-pfw.vercel.app/ranking | grep -o '/player/[0-9a-f-]\{36\}' | head -1)
+          if [ -n "$player" ]; then
+            curl -s -o /dev/null --max-time 30 -w "%{http_code} %{time_total}s $player\n" \
+              "https://ttr-pfw.vercel.app$player" || true
+          fi

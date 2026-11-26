@@ -27,3 +27,36 @@ export async function fetchAllRows<Row>(
   }
   return out;
 }
+
+/**
+ * Like fetchAllRows, but counts first and then fetches every page at once
+ * (two round trips instead of one per page). Pages are ordered by `id`,
+ * which must be unique, so no row is skipped or read twice between pages.
+ * Used on public pages where load time matters (the DTR-Rechner); the
+ * import/simulation code keeps the plain sequential fetchAllRows.
+ */
+export async function fetchAllRowsParallel<Row>(
+  supabase: SupabaseClient,
+  table: string,
+  columns: string,
+  pageSize = 1000,
+): Promise<Row[]> {
+  const { count, error: countError } = await supabase
+    .from(table)
+    .select("id", { count: "exact", head: true });
+  if (countError) throw new Error(`fetchAllRowsParallel(${table}): ${countError.message}`);
+
+  const pageCount = Math.ceil((count ?? 0) / pageSize);
+  const pages = await Promise.all(
+    Array.from({ length: pageCount }, async (_, page) => {
+      const { data, error } = await supabase
+        .from(table)
+        .select(columns)
+        .order("id")
+        .range(page * pageSize, page * pageSize + pageSize - 1);
+      if (error) throw new Error(`fetchAllRowsParallel(${table}): ${error.message}`);
+      return (data ?? []) as Row[];
+    }),
+  );
+  return pages.flat();
+}
