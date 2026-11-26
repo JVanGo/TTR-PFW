@@ -93,10 +93,11 @@ export default async function RankingPage({ searchParams }: PageProps) {
   );
 }
 
-/** A level or club is already narrowing things down — same behavior as
- * always: the (already smaller) matching set ships in full, with instant
- * client-side search/pagination/club-switching and a working Lineup
- * Builder. */
+/** A level or club is already narrowing things down, so the matching set
+ * ships in full, with instant client-side search/pagination and a working
+ * Lineup Builder. With a club picked, only that club's players ship (the
+ * whole ranking was ~1.1 MB); picking another club in the dropdown loads
+ * that club's page instead of filtering locally. */
 function RankingFiltered({
   all,
   selectedLevel,
@@ -112,20 +113,21 @@ function RankingFiltered({
   teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>;
   snapshotDate: string | null;
 }) {
-  const filtered = selectedLevel ? all.filter((p) => p.klassierung === selectedLevel) : all;
+  const levelRows = selectedLevel ? all.filter((p) => p.klassierung === selectedLevel) : all;
 
   const clubSet = new Set<string>();
-  for (const p of filtered) {
+  for (const p of levelRows) {
     if (p.club) clubSet.add(p.club);
   }
   const clubs = Array.from(clubSet).sort((a, b) => a.localeCompare(b));
+  const rows = initialClub ? levelRows.filter((p) => p.club === initialClub) : levelRows;
 
   return (
     // Keyed by club so following a club link from inside this view (e.g. a
     // name after switching the dropdown) resets it to the linked club.
     <ClubRankingView
       key={initialClub}
-      rows={filtered}
+      rows={rows}
       clubs={clubs}
       selectedLevel={selectedLevel ?? "All"}
       initialClub={initialClub}

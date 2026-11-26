@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useTransition } from "react";
+import { useRouter } from "@/i18n/navigation";
 import type { RankingRow } from "@/lib/ranking";
 import type { Competition } from "@/lib/competitions";
 import type { ClubTeamCount } from "@/lib/competitionTeamCounts";
@@ -19,9 +20,10 @@ interface Props {
 }
 
 /**
- * Owns club-selection state so the Lineup Builder (which needs a fixed
- * roster) can react live to the same club dropdown RankingTable renders,
- * rather than only seeing the club from the initial page load.
+ * The ranking narrowed by club and/or level, plus the Lineup Builder for the
+ * club. With a club picked, `rows` holds only that club's players, so
+ * picking another club in the dropdown loads that club's page (keeping the
+ * class filter) rather than filtering locally.
  */
 export function ClubRankingView({
   rows,
@@ -32,20 +34,36 @@ export function ClubRankingView({
   teamCountsByCompetition,
   snapshotDate,
 }: Props) {
-  const [club, setClub] = useState(initialClub);
+  const club = initialClub;
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const changeClub = (next: string) => {
+    const params = new URLSearchParams();
+    if (selectedLevel !== "All") params.set("level", selectedLevel);
+    if (next) params.set("club", next);
+    const query = params.toString();
+    startTransition(() => router.push(query ? `/ranking?${query}` : "/ranking"));
+  };
 
   // `rows` only ever contains roster-active players — lib/ranking.ts
   // excludes anyone dropped from FLTT's official list before this point.
   const roster = club ? rows.filter((r) => r.club === club) : [];
 
   return (
-    <div className={club ? "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]" : ""}>
+    <div
+      className={
+        (club ? "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px] " : "") +
+        (isPending ? "opacity-60 transition-opacity" : "")
+      }
+      aria-busy={isPending}
+    >
       <RankingTable
         rows={rows}
         clubs={clubs}
         selectedLevel={selectedLevel}
         club={club}
-        onClubChange={setClub}
+        onClubChange={changeClub}
       />
       {club && roster.length > 0 && (
         <LineupBuilder

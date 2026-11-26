@@ -16,9 +16,8 @@ interface Props {
  * The bare (no level, no club) ranking view is server-paginated — unlike
  * RankingTable, there's no full row list in the browser to filter locally,
  * so search and club selection navigate to a fresh server render instead of
- * updating in place. Picking a club hands off to the existing (unchanged)
- * ClubRankingView/RankingTable flow, which is where local instant filtering
- * still applies.
+ * updating in place. Picking a club hands off to ClubRankingView, which
+ * receives just that club's players.
  */
 export function RankingBrowserControls({
   clubs,

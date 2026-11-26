@@ -60,8 +60,10 @@ export function RankingTable({ rows, clubs, selectedLevel, club, onClubChange }:
           className="border-input bg-background focus:ring-ring rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-2 focus:outline-none"
           aria-label={t("searchAriaLabel")}
         />
+        {/* Uncontrolled: picking a club loads that club's page (see
+          ClubRankingView), so the choice stays shown while it loads. */}
         <select
-          value={club}
+          defaultValue={club}
           onChange={(e) => onClubChange(e.target.value)}
           className="border-input bg-background focus:ring-ring rounded-md border px-3 py-2 text-sm shadow-sm focus:ring-2 focus:outline-none"
           aria-label={t("clubFilterAriaLabel")}
