@@ -10,6 +10,7 @@ import { LineupBuilder } from "@/components/ranking/LineupBuilder";
 interface Props {
   rows: RankingRow[];
   clubs: string[];
+  selectedLevel: string;
   initialClub: string;
   competitions: Competition[];
   teamCountsByCompetition: Record<string, Record<string, ClubTeamCount>>;
@@ -25,6 +26,7 @@ interface Props {
 export function ClubRankingView({
   rows,
   clubs,
+  selectedLevel,
   initialClub,
   competitions,
   teamCountsByCompetition,
@@ -38,7 +40,13 @@ export function ClubRankingView({
 
   return (
     <div className={club ? "grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]" : ""}>
-      <RankingTable rows={rows} clubs={clubs} club={club} onClubChange={setClub} />
+      <RankingTable
+        rows={rows}
+        clubs={clubs}
+        selectedLevel={selectedLevel}
+        club={club}
+        onClubChange={setClub}
+      />
       {club && roster.length > 0 && (
         <LineupBuilder
           club={club}

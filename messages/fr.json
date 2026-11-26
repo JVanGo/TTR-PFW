@@ -80,16 +80,21 @@
     "subtitle": "Tous les joueurs, classés par DTR actuel — du plus haut au plus bas.",
     "downloadSnapshot": "Télécharger le classement fédéral du {date} (PDF)"
   },
+  "LevelPills": {
+    "all": "Tous"
+  },
   "RankingTable": {
     "searchPlaceholder": "Chercher par nom…",
     "searchAriaLabel": "Chercher des joueurs par nom",
     "clubFilterAriaLabel": "Filtrer par club",
     "allClubs": "Tous les clubs",
     "showing": "{count, number} joueurs affichés",
+    "inClass": " en classe {level}",
     "atClub": " à {club}",
     "columnRank": "#",
     "columnName": "Nom",
     "columnClub": "Club",
+    "columnClass": "Classe",
     "columnDtr": "DTR",
     "inactiveBadge": "inactif",
     "noResults": "Aucun joueur ne correspond aux filtres.",
@@ -191,6 +196,7 @@
     "backToRanking": "← Retour au classement"
   },
   "DtrDistributionChart": {
-    "tooltipCount": "{count, plural, one {# joueur} other {# joueurs}}"
+    "tooltipCount": "{count, plural, one {# joueur} other {# joueurs}}",
+    "clickHint": "Cliquez pour voir la classe {klassierung} dans le classement →"
   }
 }
