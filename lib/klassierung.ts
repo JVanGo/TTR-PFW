@@ -3,7 +3,8 @@
  * derived purely from a player's current DTR value.
  *
  * Boundaries reworked from the PDF's own (976-1100, 1101-1200, ...,
- * 1801-1900, 1901+) onto round hundreds, per the site owner. Renamed
+ * 1801-1900, 1901+) onto round hundreds, per the site owner — D3/D2 too
+ * since 2026-11-26 (D2 = 1000-1099; it had kept the PDF's 976-1100). Renamed
  * 2026-11-18 from the PDF's numbers (9-18+, N) to FLTT's own classement
  * names, one-for-one: 9 -> D3, 10 -> D2, 11 -> D1, 12 -> C3, 13 -> C2,
  * 14 -> C1, 15 -> B3, 16 -> B2, 17 -> B1, 18+ -> A3. The old open-ended N
@@ -29,8 +30,8 @@ export const KLASSIERUNG_BANDS = [
 export type Klassierung = (typeof KLASSIERUNG_BANDS)[number];
 
 export function klassierungForDtr(dtr: number): Klassierung {
-  if (dtr <= 975) return "D3";
-  if (dtr <= 1100) return "D2";
+  if (dtr <= 999) return "D3";
+  if (dtr <= 1099) return "D2";
   if (dtr <= 1199) return "D1";
   if (dtr <= 1299) return "C3";
   if (dtr <= 1399) return "C2";

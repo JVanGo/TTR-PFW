@@ -2,14 +2,15 @@ import { describe, expect, it } from "vitest";
 import { klassierungForDtr } from "./klassierung";
 
 describe("klassierungForDtr", () => {
-  it("keeps D3 and D2's original cutoffs", () => {
+  it("puts D3 below 1000 and D2 at 1000-1099", () => {
     expect(klassierungForDtr(975)).toBe("D3");
-    expect(klassierungForDtr(976)).toBe("D2");
-    expect(klassierungForDtr(1100)).toBe("D2");
+    expect(klassierungForDtr(999)).toBe("D3");
+    expect(klassierungForDtr(1000)).toBe("D2");
+    expect(klassierungForDtr(1099)).toBe("D2");
   });
 
   it("bands D1 through B1 on round hundreds", () => {
-    expect(klassierungForDtr(1101)).toBe("D1");
+    expect(klassierungForDtr(1100)).toBe("D1");
     expect(klassierungForDtr(1199)).toBe("D1");
     expect(klassierungForDtr(1200)).toBe("C3");
     expect(klassierungForDtr(1299)).toBe("C3");
