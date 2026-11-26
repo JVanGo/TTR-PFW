@@ -188,17 +188,19 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
         <header className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{player.name}</h1>
-            <p className="text-muted-foreground text-sm">
+            {/* One row: class, age category, club, inactive and K badges. A div,
+              not a <p>, since the K badge's breakdown panel is a block element. */}
+            <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
               {klassierung && (
                 <span className="bg-muted text-foreground rounded-full px-2 py-0.5 text-xs font-medium">
                   {klassierung}
                 </span>
               )}
               {player.age_category && (
-                <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-900 dark:bg-blue-950 dark:text-blue-200">
+                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-900 dark:bg-blue-950 dark:text-blue-200">
                   {player.age_category}
                 </span>
-              )}{" "}
+              )}
               {player.club ? (
                 <Link
                   href={`/ranking?club=${encodeURIComponent(player.club)}`}
@@ -207,28 +209,26 @@ export default async function PlayerPage({ params, searchParams }: PageProps) {
                   {player.club}
                 </Link>
               ) : (
-                "—"
+                <span>—</span>
               )}
               {isMatchInactive && (
-                <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                   {t("matchInactiveBadge")}
                 </span>
               )}
-            </p>
-            {currentKMatch &&
-              currentKMatch.k_factor != null &&
-              currentKMatch.k_age_bonus != null &&
-              currentKMatch.k_is_newcomer_bonus != null &&
-              currentKMatch.k_is_returning_bonus != null && (
-                <div className="mt-1">
+              {currentKMatch &&
+                currentKMatch.k_factor != null &&
+                currentKMatch.k_age_bonus != null &&
+                currentKMatch.k_is_newcomer_bonus != null &&
+                currentKMatch.k_is_returning_bonus != null && (
                   <KFactorBadge
                     kFactor={currentKMatch.k_factor}
                     ageBonus={currentKMatch.k_age_bonus}
                     isNewcomerBonus={currentKMatch.k_is_newcomer_bonus}
                     isReturningBonus={currentKMatch.k_is_returning_bonus}
                   />
-                </div>
-              )}
+                )}
+            </div>
           </div>
           <div className="text-right">
             <p className="text-muted-foreground text-sm uppercase">{t("dtrLabel")}</p>
