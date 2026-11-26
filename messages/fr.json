@@ -101,7 +101,7 @@
     "previous": "← Précédent",
     "next": "Suivant →",
     "pageOf": "Page {current} sur {total}",
-    "weekChangeHint": "▲▼ évolution due aux matchs joués ces {days} derniers jours."
+    "weekChangeHint": "▲▼ évolution due aux matchs des {days} jours précédant la dernière journée."
   },
   "LineupBuilder": {
     "heading": "Composition des équipes",

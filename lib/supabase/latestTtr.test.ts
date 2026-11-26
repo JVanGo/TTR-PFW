@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { computeStartingDtr } from "@/lib/starting-dtr";
-import { pickLatestTtr, pickLatestTtrAndChange, pickTtrAsOf, type LatestTtrRow } from "./latestTtr";
+import {
+  pickLatestTtr,
+  pickLatestTtrAndChange,
+  pickTtrAsOf,
+  weekChangeWindow,
+  type LatestTtrRow,
+} from "./latestTtr";
 
 const row = (
   player_id: string,
@@ -147,5 +153,27 @@ describe("a day that settles twice (two competitions)", () => {
     const sorted = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at));
     expect(computeStartingDtr(sorted)).toBe(1500);
     expect(pickTtrAsOf(rows, "2026-10-01").get("p")).toBe(1500);
+  });
+});
+
+describe("weekChangeWindow", () => {
+  it("ends on the latest game date, not today", () => {
+    const rows = [{ match_date: "2026-11-13" }, { match_date: "2026-11-15" }];
+    expect(weekChangeWindow(rows, "2026-11-26", 7)).toEqual({
+      fromIso: "2026-11-08",
+      toIso: "2026-11-15",
+    });
+  });
+
+  it("ignores rows dated after today (the season-end Inaktivitätsabzug)", () => {
+    const rows = [{ match_date: "2026-11-15" }, { match_date: "2027-08-01" }];
+    expect(weekChangeWindow(rows, "2026-11-26", 7).toIso).toBe("2026-11-15");
+  });
+
+  it("falls back to today when there are no games yet", () => {
+    expect(weekChangeWindow([], "2026-08-05", 7)).toEqual({
+      fromIso: "2026-07-29",
+      toIso: "2026-08-05",
+    });
   });
 });

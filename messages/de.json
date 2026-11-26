@@ -101,7 +101,7 @@
     "previous": "← Zurück",
     "next": "Weiter →",
     "pageOf": "Seite {current} von {total}",
-    "weekChangeHint": "▲▼ Veränderung durch Spiele der letzten {days} Tage."
+    "weekChangeHint": "▲▼ Veränderung durch die Spiele der letzten {days} Tage bis zum neuesten Spieltag."
   },
   "LineupBuilder": {
     "heading": "Mannschaftsaufstellung",

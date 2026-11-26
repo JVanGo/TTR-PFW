@@ -121,29 +121,51 @@ export function pickTtrAsOf(
 }
 
 /**
- * Each player's latest rating plus their change from rows dated after
- * `fromIso` up to and including `toIso` (the ranking's "▲12 this week"),
- * from one scan of the season. The upper bound matters: the
- * Inaktivitätsabzug row is dated at the season's end, in the future, and
- * would otherwise show as a fresh ▼ for every inactive player all season.
+ * Each player's latest rating plus their change over the most recent
+ * `days` days of games (the ranking's "▲12 this week"), from one scan of
+ * the season. The window ends on the latest game date up to `todayIso`,
+ * not on today itself: games only arrive with the Friday update, usually
+ * several days after they were played, so a window counted back from today
+ * dropped most arrows a day or two after each update. Anchored to the
+ * latest game, the arrows stay up until the next update brings newer games.
+ * The `todayIso` cap still matters: the Inaktivitätsabzug row is dated at
+ * the season's end, in the future, and would otherwise become the anchor.
  * A change of 0 is left out, so the map holds just the players worth
  * showing an arrow for.
  */
 export async function fetchLatestTtrAndChangeByPlayer(
   supabase: SupabaseClient,
   season: string,
-  fromIso: string,
-  toIso: string,
+  todayIso: string,
+  days: number,
 ): Promise<{ latest: Map<string, number>; changeSince: Map<string, number> }> {
-  return pickLatestTtrAndChange(
-    await fetchSeasonRows<LatestTtrRow & MatchForStartingDtr>(
-      supabase,
-      season,
-      "player_id, match_date, competition, ttr_delta, new_ttr, created_at",
-    ),
-    fromIso,
-    toIso,
+  const rows = await fetchSeasonRows<LatestTtrRow & MatchForStartingDtr>(
+    supabase,
+    season,
+    "player_id, match_date, competition, ttr_delta, new_ttr, created_at",
   );
+  const { fromIso, toIso } = weekChangeWindow(rows, todayIso, days);
+  return pickLatestTtrAndChange(rows, fromIso, toIso);
+}
+
+/**
+ * The window the weekly arrows cover: the `days` days ending on the latest
+ * game date on or before `todayIso` (or ending today, if there's none yet).
+ * `fromIso` is exclusive, `toIso` inclusive.
+ */
+export function weekChangeWindow(
+  rows: { match_date: string }[],
+  todayIso: string,
+  days: number,
+): { fromIso: string; toIso: string } {
+  let toIso = "";
+  for (const r of rows) {
+    if (r.match_date <= todayIso && r.match_date > toIso) toIso = r.match_date;
+  }
+  if (!toIso) toIso = todayIso;
+  const from = new Date(`${toIso}T00:00:00Z`);
+  from.setUTCDate(from.getUTCDate() - days);
+  return { fromIso: from.toISOString().slice(0, 10), toIso };
 }
 
 /** The pure part of fetchLatestTtrAndChangeByPlayer: rows in any order. */

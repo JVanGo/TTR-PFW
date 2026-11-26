@@ -74,8 +74,8 @@ export function RankingTableRows({ rows, formatNumber, labels }: Props) {
               <th className="px-3 py-2 text-left font-medium">{labels.columnName}</th>
               <th className="hidden px-3 py-2 text-left font-medium sm:table-cell">
                 {labels.columnClub}
-                <th className="px-3 py-2 text-left font-medium">{labels.columnClass}</th>
               </th>
+              <th className="px-3 py-2 text-left font-medium">{labels.columnClass}</th>
               <th className="px-3 py-2 text-right font-medium">{labels.columnDtr}</th>
             </tr>
           </thead>

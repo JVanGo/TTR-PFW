@@ -101,7 +101,7 @@
     "previous": "← Previous",
     "next": "Next →",
     "pageOf": "Page {current} of {total}",
-    "weekChangeHint": "▲▼ change from games played in the last {days} days."
+    "weekChangeHint": "▲▼ change from games in the {days} days up to the latest matchday."
   },
   "LineupBuilder": {
     "heading": "Lineup Builder",

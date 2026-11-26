@@ -45,7 +45,7 @@ export interface RankingRow {
   ageCategory: AgeCategory | null;
   /** DTR on the newest Verbandsrangliste snapshot this season, or null if not on it — used by the Lineup Builder's NL teams. */
   snapshotDtr: number | null;
-  /** DTR change from games dated in the last WEEK_CHANGE_DAYS days, or null for none (or no change). */
+  /** DTR change from the latest WEEK_CHANGE_DAYS days of games, or null for none (or no change). */
   weekChange: number | null;
 }
 
@@ -82,9 +82,6 @@ export async function computeRankingRows(
   supabase: SupabaseClient,
   asOfIso?: string,
 ): Promise<RankingRow[]> {
-  const weekAgoIso = new Date(Date.now() - WEEK_CHANGE_DAYS * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
   const [allPlayers, { latest: latestTtrByPlayer, changeSince }, snapshot] = await Promise.all([
     fetchAllRows<PlayerRow>(
       supabase,
@@ -99,8 +96,8 @@ export async function computeRankingRows(
       : fetchLatestTtrAndChangeByPlayer(
           supabase,
           CURRENT_SEASON,
-          weekAgoIso,
           new Date().toISOString().slice(0, 10),
+          WEEK_CHANGE_DAYS,
         ),
     asOfIso ? null : fetchLatestSnapshot(supabase, CURRENT_SEASON),
   ]);
