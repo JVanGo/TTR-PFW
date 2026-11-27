@@ -27,10 +27,10 @@ describe("klassierungForDtr", () => {
     expect(klassierungForDtr(1999)).toBe("A3");
   });
 
-  it("splits 2000+ into A2 and A1 at 2400", () => {
+  it("splits 2000+ into A2 and A1 at 2350", () => {
     expect(klassierungForDtr(2000)).toBe("A2");
-    expect(klassierungForDtr(2399)).toBe("A2");
-    expect(klassierungForDtr(2400)).toBe("A1");
+    expect(klassierungForDtr(2349)).toBe("A2");
+    expect(klassierungForDtr(2350)).toBe("A1");
     expect(klassierungForDtr(2618)).toBe("A1");
   });
 });

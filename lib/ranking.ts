@@ -200,6 +200,6 @@ export async function computeRankingRows(
  */
 export const getRankingRows = unstable_cache(
   async (): Promise<RankingRow[]> => computeRankingRows(createPublicClient()),
-  ["ranking-rows-v7"],
+  ["ranking-rows-v8"],
   { revalidate: 300, tags: [RANKING_CACHE_TAG] },
 );

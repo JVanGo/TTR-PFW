@@ -10,7 +10,8 @@
  * 14 -> C1, 15 -> B3, 16 -> B2, 17 -> B1, 18+ -> A3. The old open-ended N
  * (2000+) is split into A2 (2000-2399) and A1 (2400+) — 2400 is where
  * FLTT's own A1/A2 players separate in the live DTR data (25 of 26 players
- * at 2400+ were FLTT A1, only one FLTT A1 sat below it).
+ * at 2400+ were FLTT A1, only one FLTT A1 sat below it). Lowered to 2350
+ * on 2026-11-27 by the site owner, to bring A1 closer to its ideal share.
  */
 export const KLASSIERUNG_BANDS = [
   "D3",
@@ -40,6 +41,6 @@ export function klassierungForDtr(dtr: number): Klassierung {
   if (dtr <= 1699) return "B2";
   if (dtr <= 1799) return "B1";
   if (dtr <= 1999) return "A3";
-  if (dtr <= 2399) return "A2";
+  if (dtr <= 2349) return "A2";
   return "A1";
 }
